@@ -1,0 +1,135 @@
+/* stylelint-disable */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── TATTI Portal — Dark Navy + Purple/Blue Premium SaaS Design System ── */
+@layer base {
+  :root {
+    --background: 222 47% 11%;
+    --foreground: 213 31% 91%;
+    --card: 222 44% 14%;
+    --card-foreground: 213 31% 91%;
+    --popover: 222 44% 14%;
+    --popover-foreground: 213 31% 91%;
+    --primary: 252 83% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 40% 20%;
+    --secondary-foreground: 213 31% 91%;
+    --muted: 222 40% 18%;
+    --muted-foreground: 215 20% 55%;
+    --accent: 213 100% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 37% 22%;
+    --input: 222 37% 20%;
+    --ring: 252 83% 67%;
+    --radius: 0.75rem;
+
+    /* Sidebar */
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 215 20% 75%;
+    --sidebar-primary: 252 83% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 40% 14%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-border: 222 37% 18%;
+    --sidebar-ring: 252 83% 67%;
+
+    /* Charts */
+    --chart-1: 252 83% 67%;
+    --chart-2: 213 100% 60%;
+    --chart-3: 162 73% 46%;
+    --chart-4: 38 92% 58%;
+    --chart-5: 328 81% 60%;
+
+    /* Semantic extras */
+    --success: 142 71% 45%;
+    --warning: 38 92% 58%;
+    --info: 213 100% 60%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(252 83% 67%), hsl(213 100% 60%));
+    --gradient-card: linear-gradient(135deg, hsl(222 44% 14%), hsl(222 40% 18%));
+
+    /* Shadows */
+    --shadow-card: 0 4px 24px rgba(0,0,0,0.3);
+    --shadow-hover: 0 8px 32px rgba(0,0,0,0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Montserrat', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', system-ui, sans-serif;
+    font-weight: 600;
+  }
+}
+
+@layer utilities {
+  .gradient-text {
+    background-image: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-bg {
+    background-image: var(--gradient-primary);
+  }
+
+  .glass-card {
+    @apply bg-card border border-border;
+    box-shadow: var(--shadow-card);
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer;
+    @apply text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground;
+  }
+
+  .sidebar-item-active {
+    @apply bg-sidebar-accent text-foreground;
+    border-left: 3px solid hsl(var(--primary));
+  }
+
+  .status-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold;
+  }
+
+  .kpi-card {
+    @apply glass-card rounded-xl p-5 transition-all duration-200;
+  }
+
+  .kpi-card:hover {
+    box-shadow: var(--shadow-hover);
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }

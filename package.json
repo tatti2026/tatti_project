@@ -4,7 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "node ./node_modules/vite/bin/vite.js",
+    "dev:frontend": "cd frontend && node ../node_modules/vite/bin/vite.js",
+    "dev:backend": "cd backend && npm run dev",
     "build": "node ./node_modules/vite/bin/vite.js build",
+    "build:frontend": "cd frontend && node ../node_modules/vite/bin/vite.js build",
+    "build:backend": "cd backend && npm run build",
     "lint": "tsgo -p tsconfig.check.json; npx biome lint; .rules/check.sh;npx tailwindcss -i ./src/index.css -o /dev/null 2>&1 | grep -E '^(CssSyntaxError|Error):.*' || true;.rules/testBuild.sh"
   },
   "dependencies": {
@@ -48,7 +52,7 @@
     "embla-carousel-react": "^8.6.0",
     "eventsource-parser": "^3.0.6",
     "input-otp": "^1.4.2",
-    "jspdf": "^4.2.1",
+    "jspdf": "^2.5.2",
     "ky": "^1.13.0",
     "lucide-react": "^0.576.0",
     "miaoda-react-devkit": "0.1.1-beta.21",

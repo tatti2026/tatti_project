@@ -34,3 +34,7 @@ history/*.json
 /tasks
 .native-wind-cache
 .vite
+.env
+.env.*
+!.env.example
+backend/.env

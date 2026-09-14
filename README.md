@@ -1,91 +1,114 @@
-# Welcome to Your Miaoda Project
+# TATTI Student Management Portal
 
-## Project Info
+A full-stack, enterprise-grade portal for the **Tamil Nadu Advanced Technical Training Institute (TATTI)**. Includes an automated Student Entry Assessment engine, rule-based course recommendations, admin-controlled multi-step application workflow, exclusive UPI payment gateway, and administrative CRM.
 
-## Project Directory
+---
 
-```
-├── README.md # Documentation
-├── components.json # Component library configuration
-├── index.html # Entry file
-├── package.json # Package management
-├── postcss.config.js # PostCSS configuration
-├── public # Static resources directory
-│   ├── favicon.png # Icon
-│   └── images # Image resources
-├── src # Source code directory
-│   ├── App.tsx # Entry file
-│   ├── components # Components directory
-│   ├── context # Context directory
-│   ├── db # Database configuration directory
-│   ├── hooks # Common hooks directory
-│   ├── index.css # Global styles
-│   ├── layout # Layout directory
-│   ├── lib # Utility library directory
-│   ├── main.tsx # Entry file
-│   ├── routes.tsx # Routing configuration
-│   ├── pages # Pages directory
-│   ├── services # Database interaction directory
-│   ├── types # Type definitions directory
-├── tsconfig.app.json # TypeScript frontend configuration file
-├── tsconfig.json # TypeScript configuration file
-├── tsconfig.node.json # TypeScript Node.js configuration file
-└── vite.config.ts # Vite configuration file
-```
-
-## Tech Stack
-
-Vite, TypeScript, React, Supabase
-
-## Development Guidelines
-
-### How to edit code locally?
-
-You can choose [VSCode](https://code.visualstudio.com/Download) or any IDE you prefer. The only requirement is to have Node.js and npm installed.
-
-### Environment Requirements
+## 🏛️ Project Architecture
 
 ```
-# Node.js ≥ 20
-# npm ≥ 10
-Example:
-# node -v   # v20.18.3
-# npm -v    # 10.8.2
+tatti-portal/
+│
+├── frontend/                     # React 18 + Vite + Tailwind CSS + Lucide Icons
+│   ├── src/
+│   │   ├── components/           # UI library (buttons, inputs, dialogs, dropzones)
+│   │   ├── pages/
+│   │   │   ├── auth/             # Student & Admin authentication
+│   │   │   ├── student/          # Dashboard, Assessment, Application, Notifications
+│   │   │   └── admin/            # Dashboard, Students, Courses, Confirmations, etc.
+│   │   ├── layouts/              # StudentLayout (no counselling) & AdminLayout
+│   │   ├── routes/               # Centralized routes with role guards
+│   │   ├── services/             # Application access, payments & real-time messaging
+│   │   ├── hooks/                # Custom React hooks
+│   │   ├── contexts/             # AuthContext, ThemeContext
+│   │   ├── store/                # Zustand / state management
+│   │   ├── types/                # Unified TypeScript interfaces
+│   │   ├── utils/                # Utility helpers and formatters
+│   │   └── assets/               # Branding and illustrations
+│   ├── public/                   # Static favicon and public assets
+│   ├── package.json              # Frontend dependencies
+│   └── vite.config.ts            # Vite 8 config with PostCSS Tailwind setup
+│
+├── backend/                      # Node.js + Express + TypeScript + PostgreSQL
+│   ├── src/
+│   │   ├── controllers/          # Business logic handlers
+│   │   ├── routes/               # Modular REST endpoints
+│   │   ├── models/               # Domain data contracts
+│   │   ├── services/             # Scoring, UPI payment & access control services
+│   │   ├── middleware/           # Auth guard, accessControlMiddleware, errorHandler
+│   │   ├── config/               # Environment & app constants
+│   │   ├── database/             # PostgreSQL / Supabase pool & query client
+│   │   └── utils/                # JWT helpers & receipt generator
+│   ├── package.json              # Backend dependencies
+│   └── .env                      # Environment variables
+│
+├── database/                     # Database source of truth
+│   ├── migrations/               # Numbered SQL migrations (00001 - 00007)
+│   ├── schema/                   # Consolidated full_schema.sql
+│   └── seed/                     # Seed questions, courses, admin accounts
+│
+├── docs/                         # Technical documentation
+│   ├── API.md                    # REST API endpoints & request/response schemas
+│   ├── DATABASE.md               # ER diagram, schema details & RLS policies
+│   └── ARCHITECTURE.md           # System design & security model
+│
+├── .gitignore                    # Git exclusions
+└── README.md                     # Project overview and run instructions
 ```
 
-### Installing Node.js on Windows
+---
 
+## 🌟 Key Features & Rules
+
+1. **Clean Navigation**:
+   - `Counselling` has been completely removed from the student sidebar.
+   - `Course Recommendation` is not in the sidebar; it only appears inside the Entry Assessment module **after** assessment completion.
+2. **Controlled Application Workflow**:
+   - Application Process is **locked by default**.
+   - Students cannot unlock the process themselves. Only an Admin can unlock access from the Admin Portal.
+   - All unlock/lock actions are recorded in the security audit log (`application_access_audit`).
+3. **Exclusive UPI Payments**:
+   - UPI is the only institutional payment channel.
+   - Supports UPI Apps (Google Pay, PhonePe, Paytm, BHIM), dynamic QR Code scanning, and Virtual Payment Address (VPA) entry.
+   - Instant downloadable PDF payment receipt.
+4. **Focused Notifications**:
+   - Student notifications page strictly features two primary tabs: `[ All ]` and `[ Messages ]`.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Prerequisites
+- Node.js >= 18
+- npm or yarn
+
+### 2. Frontend Development Server
+```bash
+# Option A: From frontend directory
+cd frontend
+npm run dev
+
+# Option B: From root
+npm run dev
 ```
-# Step 1: Visit the Node.js official website: https://nodejs.org/, click download. The website will automatically suggest a suitable version (32-bit or 64-bit) for your system.
-# Step 2: Run the installer: Double-click the downloaded installer to run it.
-# Step 3: Complete the installation: Follow the installation wizard to complete the process.
-# Step 4: Verify installation: Open Command Prompt (cmd) or your IDE terminal, and type `node -v` and `npm -v` to check if Node.js and npm are installed correctly.
+The application will be accessible at: `http://localhost:5173/`
+
+### 3. Backend API Server
+```bash
+cd backend
+npm install
+npm run dev
 ```
+The REST API will be accessible at: `http://localhost:5000/api`
 
-### Installing Node.js on macOS
+### 4. Database Setup
+Execute the scripts located in `database/`:
+- `database/schema/full_schema.sql` (Creates all tables, constraints, and indexes)
+- `database/seed/seed_data.sql` (Inserts initial questions, courses, and demo records)
 
-```
-# Step 1: Using Homebrew (Recommended method): Open Terminal. Type the command `brew install node` and press Enter. If Homebrew is not installed, you need to install it first by running the following command in Terminal:
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-Alternatively, use the official installer: Visit the Node.js official website. Download the macOS .pkg installer. Open the downloaded .pkg file and follow the prompts to complete the installation.
-# Step 2: Verify installation: Open Command Prompt (cmd) or your IDE terminal, and type `node -v` and `npm -v` to check if Node.js and npm are installed correctly.
-```
+---
 
-### After installation, follow these steps:
-
-```
-# Step 1: Download the code package
-# Step 2: Extract the code package
-# Step 3: Open the code package with your IDE and navigate into the code directory
-# Step 4: In the IDE terminal, run the command to install dependencies: npm i
-# Step 5: In the IDE terminal, run the command to start the development server: npm run dev -- --host 127.0.0.1
-# Step 6: if step 5 failed, try this command to start the development server: npx vite --host 127.0.0.1
-```
-
-### How to develop backend services?
-
-Configure environment variables and install relevant dependencies.If you need to use a database, please use the official version of Supabase.
-
-## Learn More
-
-You can also check the help documentation: Download and Building the app（ [https://intl.cloud.baidu.com/en/doc/MIAODA/s/download-and-building-the-app-en](https://intl.cloud.baidu.com/en/doc/MIAODA/s/download-and-building-the-app-en)）to learn more detailed content.
+## 📚 Documentation Links
+- [API Reference](docs/API.md)
+- [Database & ER Diagram](docs/DATABASE.md)
+- [Architecture & Access Control Model](docs/ARCHITECTURE.md)

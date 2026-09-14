@@ -9,12 +9,12 @@ import AdminLoginPage from '@/pages/AdminLoginPage';
 // Student pages
 import StudentDashboard from '@/pages/student/StudentDashboard';
 import EntryAssessment from '@/pages/student/EntryAssessment';
-import CourseRecommendation from '@/pages/student/CourseRecommendation';
 import ApplicationProcess from '@/pages/student/ApplicationProcess';
 import CounsellingPage from '@/pages/student/CounsellingPage';
-import AdmissionStatus from '@/pages/student/AdmissionStatus';
+// AdmissionStatus removed from student portal (admin portal still manages admissions)
 import Notifications from '@/pages/student/Notifications';
 import StudentProfile from '@/pages/student/StudentProfile';
+import StudentSettings from '@/pages/student/StudentSettings';
 
 // Admin pages
 import AdminDashboard from '@/pages/admin/AdminDashboard';
@@ -55,12 +55,14 @@ export const routes: RouteConfig[] = [
   // Student Portal
   { name: 'Student Dashboard', path: '/student/dashboard', element: studentGuard(<StudentDashboard />) },
   { name: 'Entry Assessment', path: '/student/assessment', element: studentGuard(<EntryAssessment />) },
-  { name: 'Course Recommendation', path: '/student/courses', element: studentGuard(<CourseRecommendation />) },
   { name: 'Application Process', path: '/student/application', element: studentGuard(<ApplicationProcess />) },
-  { name: 'Counselling', path: '/student/counselling', element: studentGuard(<CounsellingPage />) },
-  { name: 'Admission Status', path: '/student/admission', element: studentGuard(<AdmissionStatus />) },
+  // Counselling removed from student portal — redirect to dashboard
+  { name: 'Counselling Redirect', path: '/student/counselling', element: <Navigate to="/student/dashboard" replace /> },
+  // Admission Status removed from student portal — redirect to dashboard. Admin portal manages admissions.
+  { name: 'Admission Status Redirect', path: '/student/admission', element: <Navigate to="/student/dashboard" replace /> },
   { name: 'Notifications', path: '/student/notifications', element: studentGuard(<Notifications />) },
   { name: 'Profile', path: '/student/profile', element: studentGuard(<StudentProfile />) },
+  { name: 'Settings', path: '/student/settings', element: studentGuard(<StudentSettings />) },
 
   // Admin Portal
   { name: 'Admin Dashboard', path: '/admin/dashboard', element: adminGuard(<AdminDashboard />) },
