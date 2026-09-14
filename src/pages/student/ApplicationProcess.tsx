@@ -518,7 +518,7 @@ export default function ApplicationProcess() {
   };
 
   const handleStep2 = async () => {
-    if (!selectedCourse) { toast.error('No course selected. Please select a course from Entry Assessment recommendations.'); return; }
+    if (!selectedCourse) { toast.error('No course selected. Please select a course from Career Fit Assessment recommendations.'); return; }
     setSaving(true);
     if (student) {
       let app = application;
@@ -633,7 +633,7 @@ export default function ApplicationProcess() {
                 onClick={() => navigate('/student/assessment')}
                 className="border-border hover:border-primary/40 text-xs"
               >
-                View Entry Assessment
+                View Career Fit Assessment
               </Button>
               <Button
                 onClick={() => navigate('/student/dashboard')}
@@ -781,8 +781,8 @@ export default function ApplicationProcess() {
             ) : (
               <div className="text-center py-8">
                 <BookOpen className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground text-sm">No course selected. Please select a course from your Entry Assessment recommendations.</p>
-                <Button onClick={() => navigate('/student/assessment?tab=recommendations')} variant="outline" className="mt-3" size="sm">Go to Entry Assessment</Button>
+                <p className="text-muted-foreground text-sm">No course selected. Please select a course from your Career Fit Assessment recommendations.</p>
+                <Button onClick={() => navigate('/student/assessment?tab=recommendations')} variant="outline" className="mt-3" size="sm">Go to Career Fit Assessment</Button>
               </div>
             )}
             <div className="flex gap-3 mt-4">

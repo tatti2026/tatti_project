@@ -45,7 +45,7 @@ export async function submitAssessment(req: Request, res: Response) {
   createSystemNotification(
     studentId,
     '✓ Assessment Completed',
-    `Your Entry Assessment has been evaluated with a score of ${evaluation.score}/${evaluation.totalMarks} (${evaluation.percentage}%). Your recommended courses are now unlocked.`,
+    `Your Career Fit Assessment has been evaluated with a score of ${evaluation.score}/${evaluation.totalMarks} (${evaluation.percentage}%). Your recommended courses are now unlocked.`,
     'assessment'
   );
 

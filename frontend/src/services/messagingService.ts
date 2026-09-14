@@ -43,7 +43,7 @@ const INITIAL_SEEDED_MESSAGES: ChatMessage[] = [
     senderId: 'admin',
     senderName: 'TATTI Admin',
     senderType: 'admin',
-    text: 'Please complete your Entry Assessment to review course recommendations. TATTI Admin will review your results to enable your Application Process.',
+    text: 'Please complete your Career Fit Assessment to review course recommendations. TATTI Admin will review your results to enable your Application Process.',
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
     status: 'delivered',
   },

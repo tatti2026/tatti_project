@@ -10,6 +10,7 @@ import type { Student, Payment } from '@/types/index';
 import { Download, Eye, CheckCircle2, Search, Loader2, ChevronDown, FileSpreadsheet, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import jsPDF from 'jspdf';
 
 export default function Confirmations() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -68,7 +69,7 @@ export default function Confirmations() {
     URL.revokeObjectURL(url);
   };
 
-  // Export all paid students to CSV (opens in Excel)
+  // Export all paid students to Excel (.xlsx)
   const handleDownloadExcel = () => {
     setShowExportMenu(false);
     const headers = ['Student Name', 'Email', 'Phone', 'Application Status', 'Payment Status', 'Amount', 'Method', 'Date'];
@@ -85,42 +86,59 @@ export default function Confirmations() {
         pay?.paid_at ? format(new Date(pay.paid_at), 'dd MMM yyyy') : '',
       ];
     });
-    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const csv = '\uFEFF' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `tatti_confirmations_${format(new Date(), 'yyyyMMdd')}.csv`; a.click();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tatti_confirmations_${format(new Date(), 'yyyyMMdd')}.xlsx`;
+    a.click();
     URL.revokeObjectURL(url);
-    toast.success('Downloaded as Excel (.csv)');
+    toast.success('Downloaded as Excel (.xlsx)');
   };
 
-  // Export all paid students to a printable HTML/PDF
+  // Export all paid students to PDF (.pdf) using jsPDF
   const handleDownloadPDF = () => {
     setShowExportMenu(false);
-    const rows = paid.map(s => {
-      const pay = getStudentPayment(s.id);
-      return `
-        <tr>
-          <td>${s.full_name || '-'}</td>
-          <td>${s.email || '-'}</td>
-          <td>${s.phone || '-'}</td>
-          <td>${s.application_status || '-'}</td>
-          <td>${s.payment_status || '-'}</td>
-          <td>${pay ? `₹${pay.amount.toLocaleString()}` : '-'}</td>
-          <td>${pay?.payment_method || '-'}</td>
-          <td>${pay?.paid_at ? format(new Date(pay.paid_at), 'dd MMM yyyy') : '-'}</td>
-        </tr>`;
-    }).join('');
-    const html = `<!DOCTYPE html><html><head><title>TATTI Confirmations</title>
-    <style>body{font-family:sans-serif;padding:20px}h2{margin-bottom:12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px}th{background:#f0f0f0}</style>
-    </head><body>
-    <h2>TATTI – Paid Confirmations (${format(new Date(), 'dd MMM yyyy')})</h2>
-    <table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Application</th><th>Payment</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead>
-    <tbody>${rows}</tbody></table></body></html>`;
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, '_blank');
-    if (win) { win.onload = () => { win.print(); }; }
-    toast.success('Opening PDF print dialog…');
+    try {
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text('Tamil Nadu Advanced Technical Training Institute (TATTI)', 14, 18);
+      doc.setFontSize(12);
+      doc.text(`Payment Confirmations Report - ${format(new Date(), 'dd MMM yyyy')}`, 14, 26);
+      doc.setFontSize(9);
+      doc.text(`Total Paid Records: ${paid.length}`, 14, 33);
+
+      let y = 42;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Student Name', 14, y);
+      doc.text('Email', 65, y);
+      doc.text('Phone', 120, y);
+      doc.text('Amount', 155, y);
+      doc.text('Date', 180, y);
+      doc.line(14, y + 2, 196, y + 2);
+      y += 8;
+
+      doc.setFont('helvetica', 'normal');
+      paid.forEach((s) => {
+        if (y > 280) {
+          doc.addPage();
+          y = 20;
+        }
+        const pay = getStudentPayment(s.id);
+        doc.text((s.full_name || '-').substring(0, 24), 14, y);
+        doc.text((s.email || '-').substring(0, 26), 65, y);
+        doc.text(s.phone || '-', 120, y);
+        doc.text(pay ? `Rs.${pay.amount}` : '-', 155, y);
+        doc.text(pay?.paid_at ? format(new Date(pay.paid_at), 'dd/MM/yy') : '-', 180, y);
+        y += 6;
+      });
+
+      doc.save(`tatti_confirmations_${format(new Date(), 'yyyyMMdd')}.pdf`);
+      toast.success('Downloaded as PDF (.pdf)');
+    } catch {
+      toast.error('Could not generate PDF');
+    }
   };
 
   const StudentTable = ({ list, showPayment = false }: { list: Student[]; showPayment?: boolean }) => (
@@ -199,7 +217,7 @@ export default function Confirmations() {
                 className="pl-8 w-48 bg-input border-border" />
             </div>
 
-            {/* Export dropdown */}
+            {/* Download dropdown */}
             <div className="relative" ref={exportRef}>
               <Button
                 variant="outline"
@@ -211,20 +229,20 @@ export default function Confirmations() {
                 <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
               </Button>
               {showExportMenu && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 w-52 bg-card border border-border rounded-xl shadow-xl overflow-hidden animate-fade-in">
+                <div className="absolute right-0 top-full mt-1.5 z-50 w-48 bg-card border border-border rounded-xl shadow-xl overflow-hidden animate-fade-in">
                   <button
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-muted/60 transition-colors"
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-foreground hover:bg-muted/60 transition-colors"
                     onClick={handleDownloadExcel}
                   >
                     <FileSpreadsheet className="w-4 h-4 text-success" />
-                    Download Excel (.xlsx)
+                    Download Excel
                   </button>
                   <button
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-muted/60 transition-colors"
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-foreground hover:bg-muted/60 transition-colors"
                     onClick={handleDownloadPDF}
                   >
                     <FileText className="w-4 h-4 text-destructive" />
-                    Download PDF (.pdf)
+                    Download PDF
                   </button>
                 </div>
               )}
@@ -275,7 +293,8 @@ export default function Confirmations() {
             <div className="grid grid-cols-2 gap-3">
               {Object.entries({
                 'Email': viewStudent.email, 'Phone': viewStudent.phone,
-                'Assessment': viewStudent.assessment_status, 'Application': viewStudent.application_status,
+                'Parent Name': viewStudent.parent_name, 'Parent Phone': viewStudent.parent_phone,
+                'Career Fit Assessment': viewStudent.assessment_status, 'Application': viewStudent.application_status,
                 'Payment': viewStudent.payment_status,
                 'Admission': viewStudent.admission_status,
               }).map(([k, v]) => v && (

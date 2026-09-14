@@ -16,7 +16,7 @@ import { getApplicationAccess, isApplicationUnlocked } from '@/services/applicat
 
 const journeySteps = [
   { key: 'registration', label: 'Registration', icon: UserCheck },
-  { key: 'assessment', label: 'Assessment', icon: ClipboardList },
+  { key: 'assessment', label: 'Career Fit Assessment', icon: ClipboardList },
   { key: 'recommendation', label: 'Course Select', icon: BookOpen },
   { key: 'application_access', label: 'App Access', icon: Lock },
   { key: 'application', label: 'Application', icon: FileText },
@@ -68,11 +68,11 @@ export default function StudentDashboard() {
 
   const kpiCards = [
     {
-      label: 'Assessment Status',
+      label: 'Career Fit Assessment',
       status: student?.assessment_status || 'not_started',
       icon: ClipboardList,
       action: () => navigate('/student/assessment'),
-      actionLabel: 'Take Assessment',
+      actionLabel: 'Take Career Fit Assessment',
     },
     {
       label: 'Application Access',

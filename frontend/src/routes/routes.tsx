@@ -26,7 +26,6 @@ import CoursesManagement from '@/pages/admin/CoursesManagement';
 import Confirmations from '@/pages/admin/Confirmations';
 import Reports from '@/pages/admin/Reports';
 import AdminNotifications from '@/pages/admin/AdminNotifications';
-import AdminSettings from '@/pages/admin/AdminSettings';
 
 export interface RouteConfig {
   name: string;
@@ -53,7 +52,7 @@ export const routes: RouteConfig[] = [
 
   // Student Portal
   { name: 'Student Dashboard', path: '/student/dashboard', element: studentGuard(<StudentDashboard />) },
-  { name: 'Entry Assessment', path: '/student/assessment', element: studentGuard(<EntryAssessment />) },
+  { name: 'Career Fit Assessment', path: '/student/assessment', element: studentGuard(<EntryAssessment />) },
   { name: 'Application Process', path: '/student/application', element: studentGuard(<ApplicationProcess />) },
   // Counselling removed from student portal — redirect to dashboard
   { name: 'Counselling Redirect', path: '/student/counselling', element: <Navigate to="/student/dashboard" replace /> },
@@ -66,13 +65,14 @@ export const routes: RouteConfig[] = [
   // Admin Portal
   { name: 'Admin Dashboard', path: '/admin/dashboard', element: adminGuard(<AdminDashboard />) },
   { name: 'Student Details', path: '/admin/students', element: adminGuard(<StudentDetails />) },
-  { name: 'Entry Assessment', path: '/admin/questions', element: adminGuard(<QuestionManagement />) },
-  { name: 'Assessment & Segmentation', path: '/admin/segmentation', element: adminGuard(<Segmentation />) },
+  { name: 'Career Fit Assessment', path: '/admin/questions', element: adminGuard(<QuestionManagement />) },
+  { name: 'Career Fit Segmentation', path: '/admin/segmentation', element: adminGuard(<Segmentation />) },
   { name: 'Counselling Management', path: '/admin/counselling', element: adminGuard(<CounsellingManagement />) },
   { name: 'Follow-up Management', path: '/admin/followup', element: adminGuard(<FollowUpManagement />) },
   { name: 'Courses', path: '/admin/courses', element: adminGuard(<CoursesManagement />) },
   { name: 'Confirmations', path: '/admin/confirmations', element: adminGuard(<Confirmations />) },
   { name: 'Reports', path: '/admin/reports', element: adminGuard(<Reports />) },
-  { name: 'Admin Notifications', path: '/admin/notifications', element: adminGuard(<AdminNotifications />) },
-  { name: 'Settings', path: '/admin/settings', element: adminGuard(<AdminSettings />) },
+  { name: 'Messages & Notifications', path: '/admin/notifications', element: adminGuard(<AdminNotifications />) },
+  // Admin settings removed — redirect to admin dashboard
+  { name: 'Admin Settings Redirect', path: '/admin/settings', element: <Navigate to="/admin/dashboard" replace /> },
 ];

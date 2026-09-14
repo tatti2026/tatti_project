@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { getAllStudents, updateStudent } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import StatusBadge from '@/components/common/StatusBadge';
@@ -12,44 +12,50 @@ import {
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import type { Student } from '@/types/index';
+import type { Student, AssessmentStatus, ApplicationStatus, PaymentStatus } from '@/types/index';
 import {
   Search, Eye, Pencil, Trash2, Download, ChevronLeft, ChevronRight,
-  Loader2, User, BookOpen, Phone, Mail, Calendar, Shield
+  Loader2, Filter, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw
 } from 'lucide-react';
 import { supabase } from '@/db/supabase';
 import { format } from 'date-fns';
 
 const PAGE_SIZE = 10;
 
+type SortField = 'student_id' | 'full_name' | 'created_at' | 'selected_course';
+type SortOrder = 'asc' | 'desc';
+
 export default function StudentDetails() {
   const [students, setStudents] = useState<Student[]>([]);
-  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
+
+  // Filters
+  const [filterAssessment, setFilterAssessment] = useState<string>('all');
+  const [filterApplication, setFilterApplication] = useState<string>('all');
+  const [filterPayment, setFilterPayment] = useState<string>('all');
+
+  // Sorting
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  // Dialogs
   const [viewStudent, setViewStudent] = useState<Student | null>(null);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
   const [deleteStudentId, setDeleteStudentId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const fetchData = async (p = page, s = search) => {
+  const fetchData = async () => {
     setLoading(true);
-    const result = await getAllStudents(p, PAGE_SIZE, s);
+    const result = await getAllStudents(0, 1000);
     setStudents(result.data);
-    setTotal(result.count);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
   }, []);
-
-  const handleSearch = (v: string) => {
-    setSearch(v);
-    setPage(0);
-    fetchData(0, v);
-  };
 
   const handleDelete = async (id: string) => {
     await supabase.from('students').delete().eq('id', id);
@@ -75,13 +81,77 @@ export default function StudentDetails() {
     fetchData();
   };
 
+  const resetFilters = () => {
+    setSearch('');
+    setFilterAssessment('all');
+    setFilterApplication('all');
+    setFilterPayment('all');
+    setSortField('created_at');
+    setSortOrder('desc');
+    setPage(0);
+  };
+
+  // Filtered and Sorted Students
+  const processedStudents = useMemo(() => {
+    return students
+      .filter(s => {
+        // Text search
+        if (search) {
+          const q = search.toLowerCase();
+          const matchName = (s.full_name || '').toLowerCase().includes(q);
+          const matchEmail = (s.email || '').toLowerCase().includes(q);
+          const matchId = (s.student_id || '').toLowerCase().includes(q);
+          const matchPhone = (s.phone || '').toLowerCase().includes(q);
+          const matchParent = (s.parent_name || '').toLowerCase().includes(q);
+          const matchParentPhone = (s.parent_phone || '').toLowerCase().includes(q);
+          const matchCourse = (s.selected_course || '').toLowerCase().includes(q);
+          if (!matchName && !matchEmail && !matchId && !matchPhone && !matchParent && !matchParentPhone && !matchCourse) {
+            return false;
+          }
+        }
+        // Assessment filter
+        if (filterAssessment !== 'all' && s.assessment_status !== filterAssessment) return false;
+        // Application filter
+        if (filterApplication !== 'all' && s.application_status !== filterApplication) return false;
+        // Payment filter
+        if (filterPayment !== 'all' && s.payment_status !== filterPayment) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        let valA = a[sortField] || '';
+        let valB = b[sortField] || '';
+        if (sortField === 'created_at') {
+          const dateA = new Date(valA).getTime() || 0;
+          const dateB = new Date(valB).getTime() || 0;
+          return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+        }
+        const strA = String(valA).toLowerCase();
+        const strB = String(valB).toLowerCase();
+        return sortOrder === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
+      });
+  }, [students, search, filterAssessment, filterApplication, filterPayment, sortField, sortOrder]);
+
+  const total = processedStudents.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const paginatedStudents = processedStudents.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+    setPage(0);
+  };
+
   const exportCSV = () => {
     const headers = [
       'Student ID', 'Student Name', 'Email', 'Phone Number',
       'Parent Name', 'Parent Phone Number', 'Selected Course',
       'Assessment Status', 'Application Status', 'Payment Status', 'Created Date'
     ];
-    const rows = students.map(s => [
+    const rows = processedStudents.map(s => [
       s.student_id || '',
       s.full_name || '',
       s.email || '',
@@ -104,45 +174,110 @@ export default function StudentDetails() {
     URL.revokeObjectURL(url);
   };
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-
-  const tableHeaders = [
-    'Student ID',
-    'Student Name',
-    'Email',
-    'Phone Number',
-    'Parent Name',
-    'Parent Phone Number',
-    'Selected Course',
-    'Assessment Status',
-    'Application Status',
-    'Payment Status',
-    'Created Date',
-    'Actions'
+  const tableHeaders: { label: string; field?: SortField }[] = [
+    { label: 'Student ID', field: 'student_id' },
+    { label: 'Student Name', field: 'full_name' },
+    { label: 'Email' },
+    { label: 'Phone Number' },
+    { label: 'Parent Name' },
+    { label: 'Parent Phone Number' },
+    { label: 'Selected Course', field: 'selected_course' },
+    { label: 'Assessment Status' },
+    { label: 'Application Status' },
+    { label: 'Payment Status' },
+    { label: 'Created Date', field: 'created_at' },
+    { label: 'Actions' }
   ];
 
   return (
     <AdminLayout>
       <div className="space-y-4 animate-fade-in">
-        {/* Header with Search and Export */}
+        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-foreground">Student Details</h1>
-            <p className="text-muted-foreground text-xs mt-0.5">{total} students enrolled in institute database</p>
+            <p className="text-muted-foreground text-xs mt-0.5">
+              {total} student{total === 1 ? '' : 's'} found • Institute admissions record
+            </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search students, parents..."
-                value={search}
-                onChange={e => handleSearch(e.target.value)}
-                className="pl-8 w-60 bg-input border-border text-xs"
-              />
-            </div>
             <Button variant="outline" size="sm" onClick={exportCSV} className="text-xs">
               <Download className="w-3.5 h-3.5 mr-1.5" /> Export CSV
             </Button>
+          </div>
+        </div>
+
+        {/* Search, Filter and Sort Bar */}
+        <div className="glass-card rounded-xl p-3 border border-border space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by ID, name, email, phone, parent, course..."
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPage(0); }}
+                className="pl-9 bg-input border-border text-xs h-9"
+              />
+            </div>
+
+            {/* Assessment Filter */}
+            <div className="w-36">
+              <select
+                value={filterAssessment}
+                onChange={e => { setFilterAssessment(e.target.value); setPage(0); }}
+                className="w-full bg-input border border-border rounded-md px-2.5 py-2 text-xs text-foreground outline-none"
+              >
+                <option value="all">Assessment: All</option>
+                <option value="not_started">Not Started</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+
+            {/* Application Filter */}
+            <div className="w-36">
+              <select
+                value={filterApplication}
+                onChange={e => { setFilterApplication(e.target.value); setPage(0); }}
+                className="w-full bg-input border border-border rounded-md px-2.5 py-2 text-xs text-foreground outline-none"
+              >
+                <option value="all">Application: All</option>
+                <option value="not_started">Not Started</option>
+                <option value="in_progress">In Progress</option>
+                <option value="submitted">Submitted</option>
+                <option value="under_review">Under Review</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+
+            {/* Payment Filter */}
+            <div className="w-32">
+              <select
+                value={filterPayment}
+                onChange={e => { setFilterPayment(e.target.value); setPage(0); }}
+                className="w-full bg-input border border-border rounded-md px-2.5 py-2 text-xs text-foreground outline-none"
+              >
+                <option value="all">Payment: All</option>
+                <option value="paid">Paid</option>
+                <option value="unpaid">Unpaid</option>
+                <option value="failed">Failed</option>
+                <option value="refunded">Refunded</option>
+              </select>
+            </div>
+
+            {/* Reset Filters */}
+            {(search || filterAssessment !== 'all' || filterApplication !== 'all' || filterPayment !== 'all') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reset
+              </Button>
+            )}
           </div>
         </div>
 
@@ -152,9 +287,26 @@ export default function StudentDetails() {
             <table className="w-full text-xs">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  {tableHeaders.map(h => (
-                    <th key={h} className="px-3 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap">
-                      {h}
+                  {tableHeaders.map(({ label, field }) => (
+                    <th
+                      key={label}
+                      onClick={() => field && handleSort(field)}
+                      className={`px-3 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap ${
+                        field ? 'cursor-pointer hover:text-foreground transition-colors select-none' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span>{label}</span>
+                        {field && (
+                          <span className="text-muted-foreground/60">
+                            {sortField === field ? (
+                              sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-primary" /> : <ArrowDown className="w-3 h-3 text-primary" />
+                            ) : (
+                              <ArrowUpDown className="w-3 h-3 opacity-40" />
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </th>
                   ))}
                 </tr>
@@ -167,14 +319,14 @@ export default function StudentDetails() {
                       <p className="mt-2 text-xs">Loading student records...</p>
                     </td>
                   </tr>
-                ) : students.length === 0 ? (
+                ) : paginatedStudents.length === 0 ? (
                   <tr>
                     <td colSpan={tableHeaders.length} className="py-12 text-center text-muted-foreground">
-                      No students found matching your criteria
+                      No students found matching your search or filter criteria.
                     </td>
                   </tr>
                 ) : (
-                  students.map(s => (
+                  paginatedStudents.map(s => (
                     <tr key={s.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                       {/* 1. Student ID */}
                       <td className="px-3 py-3 whitespace-nowrap font-mono font-medium text-foreground">
@@ -275,12 +427,12 @@ export default function StudentDetails() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-card/40">
-              <span className="text-xs text-muted-foreground">Page {page + 1} of {totalPages}</span>
+              <span className="text-xs text-muted-foreground">Page {page + 1} of {totalPages} ({total} total)</span>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => { setPage(p => p - 1); fetchData(page - 1); }} className="h-7 text-xs">
+                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)} className="h-7 text-xs">
                   <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
                 </Button>
-                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => { setPage(p => p + 1); fetchData(page + 1); }} className="h-7 text-xs">
+                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} className="h-7 text-xs">
                   Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
                 </Button>
               </div>
@@ -318,7 +470,7 @@ export default function StudentDetails() {
               {/* Detailed Information Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="p-3 bg-muted/40 rounded-lg border border-border/60">
-                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Student Contact</p>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Student Contact Phone</p>
                   <p className="text-sm font-medium text-foreground mt-1">{viewStudent.phone || '-'}</p>
                 </div>
 

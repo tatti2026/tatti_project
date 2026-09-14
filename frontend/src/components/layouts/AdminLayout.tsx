@@ -12,15 +12,14 @@ import {
 const navItems = [
   { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/admin/students', icon: Users, label: 'Student Details' },
-  { path: '/admin/questions', icon: ClipboardList, label: 'Entry Assessment' },
-  { path: '/admin/segmentation', icon: BarChart2, label: 'Assessment & Segmentation' },
+  { path: '/admin/questions', icon: ClipboardList, label: 'Career Fit Assessment' },
+  { path: '/admin/segmentation', icon: BarChart2, label: 'Career Fit Segmentation' },
   { path: '/admin/counselling', icon: Phone, label: 'Counselling' },
   { path: '/admin/followup', icon: MessageSquare, label: 'Follow-up' },
   { path: '/admin/courses', icon: BookOpen, label: 'Courses' },
   { path: '/admin/confirmations', icon: CheckSquare, label: 'Confirmations' },
   { path: '/admin/reports', icon: FileBarChart, label: 'Reports' },
-  { path: '/admin/notifications', icon: Bell, label: 'Notifications' },
-  { path: '/admin/settings', icon: Settings, label: 'Settings' },
+  { path: '/admin/notifications', icon: Bell, label: 'Notifications & Messages' },
 ];
 
 function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {

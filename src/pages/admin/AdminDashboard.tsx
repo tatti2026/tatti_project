@@ -84,8 +84,8 @@ export default function AdminDashboard() {
   const kpiCards = [
     { label: 'Total Students', value: stats.totalStudents, icon: Users, color: 'text-primary' },
     { label: 'New Students (7d)', value: stats.newStudents, icon: UserPlus, color: 'text-success' },
-    { label: 'Assessment Completed', value: stats.assessmentCompleted, icon: ClipboardList, color: 'text-info' },
-    { label: 'Assessment Pending', value: stats.assessmentPending, icon: ClipboardList, color: 'text-warning' },
+    { label: 'Career Fit Assessment Completed', value: stats.assessmentCompleted, icon: ClipboardList, color: 'text-info' },
+    { label: 'Career Fit Assessment Pending', value: stats.assessmentPending, icon: ClipboardList, color: 'text-warning' },
     { label: 'Applications Submitted', value: stats.applicationsSubmitted, icon: FileText, color: 'text-primary' },
     { label: 'Paid Applications', value: stats.paid, icon: CreditCard, color: 'text-success' },
     { label: 'Unpaid Applications', value: stats.unpaid, icon: CreditCard, color: 'text-destructive' },
@@ -145,7 +145,7 @@ export default function AdminDashboard() {
 
           {/* Assessment Performance */}
           <div className="glass-card rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-foreground mb-4">Assessment Performance</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-4">Career Fit Assessment Performance</h3>
             <div className="w-full min-w-0 overflow-hidden h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>

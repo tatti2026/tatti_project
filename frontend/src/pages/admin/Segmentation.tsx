@@ -7,7 +7,7 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import type { Student } from '@/types/index';
 import {
   Trophy, Target, AlertCircle, Users, BarChart3,
-  TrendingUp, Award, Clock
+  TrendingUp, Award, Clock, Sparkles
 } from 'lucide-react';
 
 const SEGMENT_COLORS = {
@@ -57,7 +57,7 @@ export default function Segmentation() {
     {
       tier: 'HIGH',
       title: 'High Intent & Qualified',
-      subtitle: 'Assessment passed & application submitted/paid',
+      subtitle: 'Career Fit Assessment passed & application submitted/paid',
       count: high.length,
       pct: highPct,
       icon: Trophy,
@@ -69,7 +69,7 @@ export default function Segmentation() {
     {
       tier: 'MEDIUM',
       title: 'Medium Intent (Qualified)',
-      subtitle: 'Assessment completed; application or fee pending',
+      subtitle: 'Career Fit Assessment completed; application or fee pending',
       count: medium.length,
       pct: medPct,
       icon: Target,
@@ -81,7 +81,7 @@ export default function Segmentation() {
     {
       tier: 'LOW',
       title: 'Low Intent / At Risk',
-      subtitle: 'Career Fit Assessment incomplete or not started',
+      subtitle: 'Career Fit Assessment incomplete or not yet started',
       count: low.length,
       pct: lowPct,
       icon: AlertCircle,
@@ -99,9 +99,10 @@ export default function Segmentation() {
           <div className="h-8 bg-muted rounded w-64" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-36 rounded-xl bg-muted" />
+              <div key={i} className="h-40 rounded-xl bg-muted" />
             ))}
           </div>
+          <div className="h-80 rounded-xl bg-muted" />
         </div>
       </AdminLayout>
     );
@@ -121,41 +122,41 @@ export default function Segmentation() {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border text-xs font-semibold text-foreground">
               <Users className="w-3.5 h-3.5 text-primary" />
-              <span>{total} Total Students</span>
+              <span>{total} Total Enrolled Students</span>
             </span>
           </div>
         </div>
 
-        {/* ── SEGMENT CARDS: HIGH, MEDIUM, LOW ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* ── SEGMENT CARDS: HIGH, MEDIUM, LOW (EQUAL HEIGHTS, CLEAN GRID) ── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
           {cards.map(card => {
             const Icon = card.icon;
             return (
               <div
                 key={card.tier}
-                className="glass-card rounded-xl p-5 border border-border flex flex-col justify-between hover:border-primary/40 transition-all shadow-sm"
+                className="glass-card rounded-xl p-5 border border-border flex flex-col justify-between hover:border-primary/40 transition-all shadow-sm h-full"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-black tracking-wider uppercase ${card.badgeBg}`}>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-black tracking-wider uppercase ${card.badgeBg}`}>
                       {card.tier}
                     </span>
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${card.bgGlow}`}>
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${card.bgGlow}`}>
                       <Icon className="w-4 h-4" />
                     </div>
                   </div>
 
                   <h2 className="text-sm font-bold text-foreground">{card.title}</h2>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 min-h-[32px] leading-tight">
+                  <p className="text-[11px] text-muted-foreground mt-1 min-h-[30px] leading-relaxed">
                     {card.subtitle}
                   </p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-border/50">
+                <div className="mt-5 pt-3 border-t border-border/50">
                   <div className="flex items-baseline justify-between mb-2">
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-2xl font-extrabold text-foreground">{card.count}</span>
-                      <span className="text-xs text-muted-foreground">students</span>
+                      <span className="text-2xl font-black text-foreground">{card.count}</span>
+                      <span className="text-xs text-muted-foreground font-medium">students</span>
                     </div>
                     <span className="text-sm font-bold text-foreground">{card.pct}%</span>
                   </div>
@@ -173,82 +174,84 @@ export default function Segmentation() {
           })}
         </div>
 
-        {/* ── DISTRIBUTION & STUDENT ROSTER SECTION ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* Distribution Chart Card */}
-          <div className="lg:col-span-4 glass-card rounded-xl p-5 border border-border flex flex-col h-full">
-            <div className="flex items-center justify-between pb-3 border-b border-border/60">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-bold text-foreground">Distribution Analysis</h2>
+        {/* ── DISTRIBUTION SECTION: REDESIGNED CLEAN PROFESSIONAL LAYOUT ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          {/* Distribution Chart & Intent Metrics Card */}
+          <div className="lg:col-span-4 glass-card rounded-xl p-5 border border-border flex flex-col justify-between shadow-sm">
+            <div>
+              <div className="flex items-center justify-between pb-3 border-b border-border/60">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                  <h2 className="text-sm font-bold text-foreground">Distribution Analysis</h2>
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground">Active Cohort</span>
               </div>
-              <span className="text-[11px] text-muted-foreground">Overall Cohort</span>
+
+              {/* Donut Chart with Centered KPI */}
+              <div className="relative py-4 flex items-center justify-center">
+                <div className="w-48 h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={54}
+                        outerRadius={78}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="p-2.5 bg-card/95 backdrop-blur-md rounded-lg border border-border shadow-lg text-xs">
+                                <p className="font-bold text-foreground flex items-center gap-1.5">
+                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.color }} />
+                                  {data.name} Segment
+                                </p>
+                                <p className="text-muted-foreground mt-0.5">{data.value} students ({data.percentage}%)</p>
+                                <p className="text-[10px] text-muted-foreground/80 mt-0.5">{data.desc}</p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Center KPI Metric */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-2xl font-black text-foreground">{total}</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Total</span>
+                </div>
+              </div>
             </div>
 
-            {/* Donut Chart with Center Display */}
-            <div className="relative py-4 flex items-center justify-center">
-              <div className="w-48 h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={52}
-                      outerRadius={76}
-                      paddingAngle={3}
-                      dataKey="value"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div className="p-2.5 bg-card/95 backdrop-blur-md rounded-lg border border-border shadow-lg text-xs">
-                              <p className="font-bold text-foreground flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.color }} />
-                                {data.name} Segment
-                              </p>
-                              <p className="text-muted-foreground mt-0.5">{data.value} students ({data.percentage}%)</p>
-                              <p className="text-[10px] text-muted-foreground/80 mt-0.5">{data.desc}</p>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Center Metrics */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-2xl font-black text-foreground">{total}</span>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Students</span>
-              </div>
-            </div>
-
-            {/* Structured Clean Legend with Exact Counts and Percentages */}
-            <div className="space-y-2 pt-2 border-t border-border/60 mt-auto">
+            {/* Clean Segment Indicators & Percentages */}
+            <div className="space-y-2.5 pt-3 border-t border-border/60">
               {pieData.map(item => (
                 <div
                   key={item.name}
-                  className="flex items-center justify-between p-2 rounded-lg bg-muted/40 border border-border/40 text-xs"
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/40 text-xs hover:bg-muted/60 transition-colors"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                    <div>
-                      <p className="font-semibold text-foreground text-xs leading-none">{item.name}</p>
-                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{item.desc}</p>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: item.color }} />
+                    <div className="min-w-0">
+                      <p className="font-bold text-foreground text-xs leading-none">{item.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate leading-tight mt-1">{item.desc}</p>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-bold text-foreground">{item.value}</p>
-                    <p className="text-[10px] text-muted-foreground font-medium">{item.percentage}%</p>
+                  <div className="text-right shrink-0 pl-2">
+                    <p className="font-extrabold text-foreground text-xs">{item.value} <span className="font-normal text-[10px] text-muted-foreground">students</span></p>
+                    <p className="text-[11px] font-bold text-primary">{item.percentage}%</p>
                   </div>
                 </div>
               ))}
@@ -256,8 +259,8 @@ export default function Segmentation() {
           </div>
 
           {/* Segment Student Details Table */}
-          <div className="lg:col-span-8 glass-card rounded-xl p-5 border border-border">
-            <Tabs defaultValue="high">
+          <div className="lg:col-span-8 glass-card rounded-xl p-5 border border-border flex flex-col justify-between shadow-sm">
+            <Tabs defaultValue="high" className="flex flex-col h-full">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3 mb-4">
                 <TabsList className="bg-muted p-1">
                   <TabsTrigger value="high" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
@@ -270,7 +273,7 @@ export default function Segmentation() {
                     LOW ({low.length})
                   </TabsTrigger>
                 </TabsList>
-                <span className="text-xs text-muted-foreground">Showing top entries by intent</span>
+                <span className="text-xs text-muted-foreground">Sorted by student intent level</span>
               </div>
 
               {[
@@ -278,9 +281,9 @@ export default function Segmentation() {
                 { key: 'medium', list: medium, label: 'Medium Intent' },
                 { key: 'low', list: low, label: 'Low Intent' },
               ].map(({ key, list }) => (
-                <TabsContent key={key} value={key} className="m-0 focus-visible:outline-none">
+                <TabsContent key={key} value={key} className="m-0 focus-visible:outline-none flex-1">
                   {list.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground text-xs">
+                    <div className="text-center py-16 text-muted-foreground text-xs">
                       No students currently classified in this segment.
                     </div>
                   ) : (

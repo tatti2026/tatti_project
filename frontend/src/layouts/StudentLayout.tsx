@@ -35,7 +35,7 @@ function SidebarContent({
 
   const navItems = [
     { path: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/student/assessment', icon: ClipboardList, label: 'Entry Assessment' },
+    { path: '/student/assessment', icon: ClipboardList, label: 'Career Fit Assessment' },
     {
       path: '/student/application',
       icon: isUnlocked ? Unlock : Lock,

@@ -488,7 +488,7 @@ export default function EntryAssessment() {
               <span className="w-2 h-2 rounded-full bg-primary" />
               <p className="text-xs uppercase tracking-wider font-bold text-primary">Entrance Assessment</p>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">TATTI Entry Assessment</h1>
+            <h1 className="text-2xl font-bold text-foreground">TATTI Career Fit Assessment</h1>
             <p className="text-muted-foreground text-xs md:text-sm">
               Read the exam instructions carefully before commencing.
             </p>
@@ -581,7 +581,7 @@ export default function EntryAssessment() {
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 <p className="text-xs uppercase tracking-wider font-bold text-emerald-600">Evaluation Completed</p>
               </div>
-              <h1 className="text-2xl font-bold text-foreground">Entry Assessment Result</h1>
+              <h1 className="text-2xl font-bold text-foreground">Career Fit Assessment Result</h1>
               <p className="text-muted-foreground text-xs md:text-sm">
                 Your performance scorecard and eligible course recommendations.
               </p>
