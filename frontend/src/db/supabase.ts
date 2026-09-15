@@ -1,6 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+// frontend/src/db/supabase.ts
+// Supabase has been fully removed from this project.
+// Authentication and data access now go through the Express REST API.
+// This file is kept as an empty stub to prevent import errors during transition.
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:54321';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = null as any;

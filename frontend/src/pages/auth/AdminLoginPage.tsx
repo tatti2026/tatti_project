@@ -9,12 +9,19 @@ import { toast } from 'sonner';
 import { Eye, EyeOff, GraduationCap, Shield, Loader2 } from 'lucide-react';
 
 export default function AdminLoginPage() {
+  // Guaranteed clean initial state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signInWithEmail, user, role } = useAuth();
   const navigate = useNavigate();
+
+  // Reset fields on initial mount
+  useEffect(() => {
+    setEmail('');
+    setPassword('');
+  }, []);
 
   useEffect(() => {
     if (user && role === 'admin') navigate('/admin/dashboard', { replace: true });
@@ -24,7 +31,7 @@ export default function AdminLoginPage() {
     e.preventDefault();
     if (!email || !password) { toast.error('Please fill in all fields'); return; }
     setLoading(true);
-    const { error } = await signInWithEmail(email, password);
+    const { error } = await signInWithEmail(email.trim(), password);
     setLoading(false);
     if (error) toast.error('Invalid admin credentials');
     else {
@@ -60,22 +67,50 @@ export default function AdminLoginPage() {
             <span className="text-xs text-accent font-medium">Authorized Personnel Only</span>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-5" autoComplete="off" autoCapitalize="none" spellCheck={false}>
             <div>
               <Label htmlFor="admin-email" className="text-sm font-medium">Admin Email</Label>
-              <Input id="admin-email" type="email" placeholder="Enter admin email"
-                value={email} onChange={e => setEmail(e.target.value)}
-                className="mt-1.5 bg-input border-border" />
+              <Input
+                id="admin-email"
+                name="tatti_admin_access_identifier"
+                type="email"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-form-type="other"
+                placeholder="Enter admin email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="mt-1.5 bg-input border-border"
+              />
             </div>
             <div>
               <Label htmlFor="admin-pw" className="text-sm font-medium">Password</Label>
               <div className="relative mt-1.5">
-                <Input id="admin-pw" type={showPassword ? 'text' : 'password'}
+                <Input
+                  id="admin-pw"
+                  name="tatti_admin_access_secret"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-form-type="other"
                   placeholder="Enter admin password"
-                  value={password} onChange={e => setPassword(e.target.value)}
-                  className="bg-input border-border pr-10" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="bg-input border-border pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>

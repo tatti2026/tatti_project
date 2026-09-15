@@ -5,9 +5,17 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- 0. Users Table (replaces Supabase auth.users)
+CREATE TABLE IF NOT EXISTS public.users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- 1. Profiles Table
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
     email VARCHAR(255) NOT NULL,
     full_name VARCHAR(255),
     phone VARCHAR(20),
@@ -22,6 +30,7 @@ CREATE TABLE IF NOT EXISTS public.students (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     student_id VARCHAR(50) UNIQUE,
+    username VARCHAR(100) UNIQUE,
     full_name VARCHAR(255),
     email VARCHAR(255),
     phone VARCHAR(20),
@@ -42,6 +51,13 @@ CREATE TABLE IF NOT EXISTS public.students (
     admission_status VARCHAR(40) DEFAULT 'not_applied' CHECK (admission_status IN ('not_applied', 'application_submitted', 'under_review', 'counselling_pending', 'counselling_completed', 'selected', 'admission_confirmed', 'not_selected')),
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 2a. Student ID Counters Table (for atomic sequential Student ID generation per year)
+-- Generates IDs like 2026-TATTI-001, 2026-TATTI-002, etc.
+CREATE TABLE IF NOT EXISTS public.student_id_counters (
+    year INTEGER PRIMARY KEY,
+    counter INTEGER NOT NULL DEFAULT 0
 );
 
 -- 3. Courses Catalog Table
@@ -144,17 +160,29 @@ CREATE TABLE IF NOT EXISTS public.notifications (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 10. Direct Messages Table (WhatsApp-style Admin <-> Student)
+-- 10. Direct Messages Table (Admin <-> Student two-way chat, fully persistent in PostgreSQL)
 CREATE TABLE IF NOT EXISTS public.direct_messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
     sender_id UUID,
     sender_name VARCHAR(255) NOT NULL,
     sender_type VARCHAR(20) NOT NULL CHECK (sender_type IN ('admin', 'student')),
-    message_text TEXT NOT NULL,
+    receiver_role VARCHAR(20) NOT NULL DEFAULT 'student' CHECK (receiver_role IN ('admin', 'student')),
+    message_text TEXT NOT NULL DEFAULT '',
+    attachment_name VARCHAR(500),
+    attachment_size VARCHAR(50),
+    attachment_type VARCHAR(100),
+    attachment_url TEXT,
     status VARCHAR(20) DEFAULT 'sent' CHECK (status IN ('sent', 'delivered', 'read')),
+    delivered_at TIMESTAMPTZ,
+    read_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Indexes for fast conversation lookup
+CREATE INDEX IF NOT EXISTS idx_direct_messages_student_id ON public.direct_messages(student_id);
+CREATE INDEX IF NOT EXISTS idx_direct_messages_created_at ON public.direct_messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_direct_messages_sender_type ON public.direct_messages(sender_type);
 
 -- 11. Admin Audit Logs Table
 CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
@@ -167,4 +195,33 @@ CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
     time VARCHAR(50) NOT NULL,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 12. Counselling Sessions Table
+CREATE TABLE IF NOT EXISTS public.counselling (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+    counsellor_name TEXT,
+    scheduled_date DATE,
+    scheduled_time TIME,
+    mode TEXT DEFAULT 'Online',
+    venue_or_link TEXT,
+    instructions TEXT,
+    notes TEXT,
+    status VARCHAR(50) DEFAULT 'not_scheduled',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 13. Follow Ups Table
+CREATE TABLE IF NOT EXISTS public.follow_ups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+    intent_level VARCHAR(50) DEFAULT 'medium',
+    last_interaction TIMESTAMPTZ,
+    followup_date DATE,
+    followup_status TEXT DEFAULT 'pending',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );

@@ -13,11 +13,17 @@ import {
   Users, Plus, X, ArrowLeft, Clock, Smile, Mic, AlertCircle,
   Filter, RefreshCw, Eye, Trash2, CheckSquare, Square, History
 } from 'lucide-react';
-import { sendChatMessage } from '@/services/messagingService';
+import {
+  sendChatMessage, getAllConversationsForAdmin,
+  fetchMessagesFromAPI, sendMessageViaAPI, markMessagesReadViaAPI, fetchConversationsFromAPI
+} from '@/services/messagingService';
+import FileAttachment from '@/components/chat/FileAttachment';
+import ChatInput from '@/components/chat/ChatInput';
+import type { UploadedFileData } from '@/components/chat/DocumentUploadModal';
 import { toast } from 'sonner';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
-type AdminTab = 'messages' | 'center' | 'conversations';
+type AdminTab = 'conversations' | 'messages';
 
 interface SentHistoryRecord {
   id: string;
@@ -38,6 +44,12 @@ interface AdminMessage {
   text: string;
   timestamp: Date;
   status: 'sent' | 'delivered' | 'read';
+  attachment?: {
+    name: string;
+    size: number | string;
+    type?: string;
+    url?: string;
+  };
 }
 
 interface StudentConversation {
@@ -111,7 +123,7 @@ const SENT_HISTORY_KEY = 'tatti_admin_sent_messages_history';
 // ─── Main Admin Notifications Component ─────────────────────────────────────
 export default function AdminNotifications() {
   const { profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<AdminTab>('messages');
+  const [activeTab, setActiveTab] = useState<AdminTab>('conversations');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [conversations, setConversations] = useState<StudentConversation[]>(MOCK_STUDENT_CONVS);
@@ -175,8 +187,28 @@ export default function AdminNotifications() {
       ]);
       setNotifications(notifs);
       setStudents(studList);
-      if (studList.length > 0 && !singleStudentId) {
-        setSingleStudentId(studList[0].id);
+      if (studList.length > 0) {
+        if (!singleStudentId) setSingleStudentId(studList[0].id);
+        const liveConvs = getAllConversationsForAdmin(studList);
+        if (liveConvs.length > 0) {
+          const mapped: StudentConversation[] = liveConvs.map(c => ({
+            id: c.id,
+            studentId: c.studentId,
+            studentName: c.studentName,
+            studentEmail: c.studentEmail || '',
+            lastMessage: c.lastMessage,
+            lastMessageTime: new Date(c.lastMessageTime),
+            unreadCount: c.unreadCount,
+            messages: c.messages.map(m => ({
+              ...m,
+              timestamp: new Date(m.timestamp),
+            })),
+          }));
+          setConversations(mapped);
+          if (!activeConvId) {
+            setActiveConvId(mapped[0]?.id || null);
+          }
+        }
       }
     } catch {
       // ignore
@@ -185,7 +217,124 @@ export default function AdminNotifications() {
 
   useEffect(() => {
     loadData();
+    const interval = setInterval(loadData, 5000);
+    return () => clearInterval(interval);
   }, [profile]);
+
+  // Real-time listener for incoming messages
+  useEffect(() => {
+    const handleNewMsg = () => {
+      if (students.length > 0) {
+        const liveConvs = getAllConversationsForAdmin(students);
+        setConversations(liveConvs.map(c => ({
+          id: c.id,
+          studentId: c.studentId,
+          studentName: c.studentName,
+          studentEmail: c.studentEmail || '',
+          lastMessage: c.lastMessage,
+          lastMessageTime: new Date(c.lastMessageTime),
+          unreadCount: c.unreadCount,
+          messages: c.messages.map(m => ({
+            ...m,
+            timestamp: new Date(m.timestamp),
+          })),
+        })));
+      }
+    };
+    window.addEventListener('tatti_new_message', handleNewMsg);
+    return () => window.removeEventListener('tatti_new_message', handleNewMsg);
+  }, [students]);
+
+  const activeConv = conversations.find(c => c.id === activeConvId);
+
+  // When active conversation changes, fetch its latest messages from API & mark read
+  useEffect(() => {
+    if (!activeConv) return;
+    const fetchActiveMsgs = async () => {
+      try {
+        const msgs = await fetchMessagesFromAPI(activeConv.studentId);
+        if (msgs && msgs.length > 0) {
+          setConversations(prev =>
+            prev.map(c => {
+              if (c.studentId === activeConv.studentId) {
+                return {
+                  ...c,
+                  messages: msgs.map(m => ({
+                    ...m,
+                    timestamp: new Date(m.timestamp),
+                  })),
+                };
+              }
+              return c;
+            })
+          );
+        }
+        await markMessagesReadViaAPI(activeConv.studentId, 'admin');
+      } catch {
+        // ignore
+      }
+    };
+    fetchActiveMsgs();
+    const activeInterval = setInterval(fetchActiveMsgs, 5000);
+    return () => clearInterval(activeInterval);
+  }, [activeConv?.studentId]);
+
+  const handleAdminSendChat = async (text: string) => {
+    if (!activeConv) return;
+    await sendMessageViaAPI({
+      studentId: activeConv.studentId,
+      senderId: profile?.id || 'admin',
+      senderName: profile?.full_name || 'TATTI Admin',
+      senderType: 'admin',
+      text,
+    });
+    const msgs = await fetchMessagesFromAPI(activeConv.studentId);
+    setConversations(prev =>
+      prev.map(c => {
+        if (c.studentId === activeConv.studentId) {
+          return {
+            ...c,
+            lastMessage: text,
+            lastMessageTime: new Date(),
+            messages: msgs.map(m => ({ ...m, timestamp: new Date(m.timestamp) })),
+          };
+        }
+        return c;
+      })
+    );
+  };
+
+  const handleAdminSendDoc = async (file: UploadedFileData) => {
+    if (!activeConv) return;
+    await sendMessageViaAPI({
+      studentId: activeConv.studentId,
+      senderId: profile?.id || 'admin',
+      senderName: profile?.full_name || 'TATTI Admin',
+      senderType: 'admin',
+      text: `Document: ${file.name}`,
+      attachment: {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        url: file.url,
+      },
+    });
+    const msgs = await fetchMessagesFromAPI(activeConv.studentId);
+    setConversations(prev =>
+      prev.map(c => {
+        if (c.studentId === activeConv.studentId) {
+          return {
+            ...c,
+            lastMessage: `Document: ${file.name}`,
+            lastMessageTime: new Date(),
+            messages: msgs.map(m => ({ ...m, timestamp: new Date(m.timestamp) })),
+          };
+        }
+        return c;
+      })
+    );
+    toast.success(`Sent document: ${file.name}`);
+  };
 
   const handleMarkRead = async (id: string) => {
     await markNotificationRead(id);
@@ -252,11 +401,11 @@ export default function AdminNotifications() {
 
     // Send to each student
     for (const target of selectedStudentsObj) {
-      // 1. Send direct chat message
-      sendChatMessage({
+      // 1. Send direct chat message via PostgreSQL API
+      await sendMessageViaAPI({
         studentId: target.id,
-        senderId: 'admin',
-        senderName: 'TATTI Admin',
+        senderId: profile?.id || 'admin',
+        senderName: profile?.full_name || 'TATTI Admin',
         senderType: 'admin',
         text: messageText.trim(),
       });
@@ -309,7 +458,6 @@ export default function AdminNotifications() {
     toast.success(`Message sent successfully to ${targetIds.length} recipient${targetIds.length === 1 ? '' : 's'}`);
   };
 
-  const activeConv = conversations.find(c => c.id === activeConvId);
   const unreadNotifsCount = notifications.filter(n => !n.is_read).length;
 
   return (
@@ -325,12 +473,11 @@ export default function AdminNotifications() {
           </div>
         </div>
 
-        {/* Tab Navigation: Messages (formerly Compose), Center, Conversations */}
+        {/* Tab Navigation: Student Chats, Broadcast Notifications */}
         <div className="flex flex-wrap gap-2 border-b border-border pb-3">
           {[
-            { id: 'messages' as AdminTab, label: 'Messages', icon: <Send className="w-4 h-4" /> },
-            { id: 'center' as AdminTab, label: 'Notification Center', icon: <Bell className="w-4 h-4" />, badge: unreadNotifsCount },
             { id: 'conversations' as AdminTab, label: 'Student Chats', icon: <MessageSquare className="w-4 h-4" /> },
+            { id: 'messages' as AdminTab, label: 'Broadcast Notifications', icon: <Send className="w-4 h-4" /> },
           ].map(tab => (
             <button
               key={tab.id}
@@ -596,57 +743,13 @@ export default function AdminNotifications() {
         )}
 
         {/* ═════════════════════════════════════════════════════════════ */}
-        {/* ── TAB 2: NOTIFICATION CENTER ────────────────────────────── */}
-        {/* ═════════════════════════════════════════════════════════════ */}
-        {activeTab === 'center' && (
-          <div className="glass-card rounded-2xl p-6 border border-border shadow-sm space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
-              <h3 className="text-base font-bold text-foreground">Administrative Alerts</h3>
-              {unreadNotifsCount > 0 && (
-                <Button variant="outline" size="sm" onClick={handleMarkAll} className="text-xs">
-                  <CheckCheck className="w-3.5 h-3.5 mr-1 text-primary" /> Mark all as read
-                </Button>
-              )}
-            </div>
-
-            {notifications.length === 0 ? (
-              <div className="text-center py-16 text-xs text-muted-foreground">
-                No notifications to display.
-              </div>
-            ) : (
-              <div className="divide-y divide-border/60">
-                {notifications.map(n => (
-                  <div key={n.id} className="py-3.5 flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${n.is_read ? 'bg-muted-foreground/40' : 'bg-primary'}`} />
-                        <h4 className="text-xs font-bold text-foreground">{n.title}</h4>
-                      </div>
-                      <p className="text-xs text-muted-foreground pl-4">{n.message}</p>
-                      <p className="text-[10px] text-muted-foreground/60 pl-4">
-                        {format(new Date(n.created_at), 'dd MMM yyyy, hh:mm a')}
-                      </p>
-                    </div>
-                    {!n.is_read && (
-                      <Button size="sm" variant="ghost" className="text-[11px] h-7" onClick={() => handleMarkRead(n.id)}>
-                        Mark read
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ═════════════════════════════════════════════════════════════ */}
-        {/* ── TAB 3: CONVERSATIONS (CHAT WITH STUDENT) ──────────────── */}
+        {/* ── STUDENT CHATS CONVERSATION VIEW ────────────────────────── */}
         {/* ═════════════════════════════════════════════════════════════ */}
         {activeTab === 'conversations' && (
-          <div className="glass-card rounded-2xl overflow-hidden border border-border" style={{ height: '70vh' }}>
+          <div className="glass-card rounded-2xl overflow-hidden border border-border shadow-md" style={{ height: '75vh' }}>
             <div className="flex h-full">
               {/* Left Column: Student list */}
-              <div className="w-full md:w-80 flex flex-col border-r border-border shrink-0">
+              <div className="w-full md:w-80 flex flex-col border-r border-border shrink-0 bg-card/60">
                 <div className="p-3 border-b border-border">
                   <div className="flex items-center gap-2 bg-muted/50 rounded-xl px-3 py-2 border border-border">
                     <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -660,65 +763,128 @@ export default function AdminNotifications() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
-                  {conversations.map(conv => (
-                    <button
-                      key={conv.id}
-                      onClick={() => setActiveConvId(conv.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3.5 border-b border-border/50 hover:bg-muted/40 transition-colors text-left ${
-                        activeConvId === conv.id ? 'bg-primary/10 border-l-4 border-l-primary' : ''
-                      }`}
-                    >
-                      <div className="w-9 h-9 rounded-full gradient-bg flex items-center justify-center text-white text-xs font-bold shrink-0">
-                        {conv.studentName[0]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-xs font-bold text-foreground truncate">{conv.studentName}</span>
-                          <span className="text-[10px] text-muted-foreground shrink-0">
-                            {format(conv.lastMessageTime, 'hh:mm a')}
-                          </span>
+                <div className="flex-1 overflow-y-auto divide-y divide-border/40">
+                  {conversations
+                    .filter(c => {
+                      if (!searchQuery.trim()) return true;
+                      const q = searchQuery.toLowerCase();
+                      return (
+                        c.studentName.toLowerCase().includes(q) ||
+                        c.studentId.toLowerCase().includes(q) ||
+                        c.studentEmail.toLowerCase().includes(q)
+                      );
+                    })
+                    .map(conv => (
+                      <button
+                        key={conv.id}
+                        onClick={() => setActiveConvId(conv.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 transition-colors text-left ${
+                          activeConvId === conv.id ? 'bg-primary/10 border-l-4 border-l-primary' : ''
+                        }`}
+                      >
+                        <div className="w-9 h-9 rounded-full gradient-bg flex items-center justify-center text-white text-xs font-bold shrink-0">
+                          {conv.studentName[0]}
                         </div>
-                        <p className="text-[11px] text-muted-foreground truncate">{conv.lastMessage}</p>
-                        <p className="text-[10px] text-muted-foreground/60 font-mono mt-0.5">{conv.studentId}</p>
-                      </div>
-                    </button>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-xs font-bold text-foreground truncate">{conv.studentName}</span>
+                            <span className="text-[10px] text-muted-foreground shrink-0">
+                              {format(new Date(conv.lastMessageTime), 'hh:mm a')}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground truncate">{conv.lastMessage}</p>
+                          <p className="text-[10px] text-muted-foreground/60 font-mono mt-0.5">{conv.studentId}</p>
+                        </div>
+                      </button>
+                    ))}
                 </div>
               </div>
 
-              {/* Right Column: Chat messages */}
-              <div className="flex-1 flex flex-col">
+              {/* Right Column: Chat messages & Composer */}
+              <div className="flex-1 flex flex-col h-full bg-background/40">
                 {activeConv ? (
-                  <div className="flex-1 flex flex-col h-full">
-                    <div className="p-3.5 border-b border-border bg-card/60 flex items-center justify-between">
+                  <div className="flex-1 flex flex-col h-full min-h-0">
+                    {/* Header */}
+                    <div className="p-3.5 border-b border-border bg-card/60 flex items-center justify-between shrink-0">
                       <div>
                         <h4 className="text-xs font-bold text-foreground">{activeConv.studentName}</h4>
-                        <p className="text-[10px] text-muted-foreground font-mono">{activeConv.studentId} • {activeConv.studentEmail}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">
+                          {activeConv.studentId} {activeConv.studentEmail ? `• ${activeConv.studentEmail}` : ''}
+                        </p>
                       </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                        Active Student
+                      </span>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                      {activeConv.messages.map(m => (
-                        <div
-                          key={m.id}
-                          className={`flex flex-col ${m.senderType === 'admin' ? 'items-end' : 'items-start'}`}
-                        >
-                          <div
-                            className={`max-w-md rounded-2xl p-3 text-xs leading-relaxed ${
-                              m.senderType === 'admin'
-                                ? 'gradient-bg text-white rounded-tr-none'
-                                : 'bg-muted border border-border text-foreground rounded-tl-none'
-                            }`}
-                          >
-                            {m.text}
-                          </div>
-                          <span className="text-[9px] text-muted-foreground mt-1 px-1">
-                            {format(m.timestamp, 'hh:mm a')}
-                          </span>
+                    {/* Messages Area */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+                      {activeConv.messages.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-8 text-muted-foreground">
+                          <MessageSquare className="w-8 h-8 mb-2 opacity-40 text-primary" />
+                          <p className="text-xs font-semibold text-foreground">No messages yet</p>
+                          <p className="text-[11px] max-w-xs mt-0.5">
+                            Send a direct message or upload documents to communicate with {activeConv.studentName}.
+                          </p>
                         </div>
-                      ))}
+                      ) : (
+                        activeConv.messages.map(m => {
+                          const isSender = m.senderType === 'admin';
+                          return (
+                            <div
+                              key={m.id}
+                              className={`flex flex-col ${isSender ? 'items-end' : 'items-start'}`}
+                            >
+                              <div
+                                className={`max-w-[85%] sm:max-w-md rounded-2xl p-3 text-xs leading-relaxed ${
+                                  isSender
+                                    ? 'gradient-bg text-white rounded-tr-none shadow-sm'
+                                    : 'bg-muted/80 border border-border text-foreground rounded-tl-none'
+                                }`}
+                              >
+                                {m.attachment && (
+                                  <div className="mb-2">
+                                    <FileAttachment
+                                      fileName={m.attachment.name}
+                                      fileSize={m.attachment.size}
+                                      fileType={m.attachment.type}
+                                      fileUrl={m.attachment.url}
+                                      isSender={isSender}
+                                    />
+                                  </div>
+                                )}
+                                {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
+                                <div
+                                  className={`flex items-center justify-end gap-1 mt-1 text-[9px] ${
+                                    isSender ? 'text-white/70' : 'text-muted-foreground'
+                                  }`}
+                                >
+                                  <span>{format(new Date(m.timestamp), 'hh:mm a')}</span>
+                                  {isSender && (
+                                    <span>
+                                      {m.status === 'read' ? (
+                                        <CheckCheckIcon className="w-3 h-3 text-sky-200 inline" />
+                                      ) : m.status === 'delivered' ? (
+                                        <CheckCheckIcon className="w-3 h-3 opacity-80 inline" />
+                                      ) : (
+                                        <Check className="w-3 h-3 opacity-60 inline" />
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
+
+                    {/* Chat Input with Document Upload & Virtual Keyboard */}
+                    <ChatInput
+                      onSendMessage={handleAdminSendChat}
+                      onSendDocument={handleAdminSendDoc}
+                      placeholder={`Message ${activeConv.studentName}...`}
+                    />
                   </div>
                 ) : (
                   <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">

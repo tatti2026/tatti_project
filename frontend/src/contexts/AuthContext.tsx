@@ -1,11 +1,36 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { supabase } from '@/db/supabase';
-import type { User } from '@supabase/supabase-js';
 import type { Profile, UserRole } from '@/types/index';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+export interface User {
+  id: string;
+  email: string;
+  role?: string;
+}
+
 export async function getProfile(userId: string): Promise<Profile | null> {
-  const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-  return data as Profile | null;
+  try {
+    const token = localStorage.getItem('tatti_token');
+    const res = await fetch(`${API_BASE}/profiles/${userId}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.error('Error in getProfile:', err);
+    return null;
+  }
+}
+
+export interface SignUpParams {
+  email: string;
+  password?: string;
+  fullName?: string;
+  username?: string;
+  phone?: string;
+  parentName?: string;
+  parentPhone?: string;
 }
 
 interface AuthContextType {
@@ -14,7 +39,11 @@ interface AuthContextType {
   role: UserRole | null;
   loading: boolean;
   signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUpWithEmail: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
+  signUpWithEmail: (
+    paramsOrEmail: string | SignUpParams,
+    password?: string,
+    fullName?: string
+  ) => Promise<{ error: Error | null; studentId?: string }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -33,52 +62,110 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        setUser(session?.user ?? null);
-        if (session?.user) getProfile(session.user.id).then(setProfile);
+    const token = localStorage.getItem('tatti_token');
+    if (!token) {
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+
+    fetch(`${API_BASE}/auth/me`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          if (data.profile) {
+            setUser({ id: data.profile.id, email: data.profile.email, role: data.profile.role });
+            setProfile(data.profile);
+          } else if (data.user) {
+            setUser(data.user);
+            getProfile(data.user.id).then(setProfile);
+          }
+        } else {
+          localStorage.removeItem('tatti_token');
+          setUser(null);
+          setProfile(null);
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem('tatti_token');
+        setUser(null);
+        setProfile(null);
       })
       .finally(() => setLoading(false));
-
-    // Do NOT use await inside onAuthStateChange callback — use .then() to avoid deadlocks
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        getProfile(session.user.id).then(setProfile);
-      } else {
-        setProfile(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to sign in');
+      }
+
+      if (data.token) {
+        localStorage.setItem('tatti_token', data.token);
+      }
+      setUser(data.user);
+      const prof = await getProfile(data.user.id);
+      setProfile(prof || {
+        id: data.user.id,
+        email: data.user.email,
+        role: data.user.role || 'student',
+        full_name: '',
+        phone: '',
+        created_at: new Date().toISOString()
+      });
+
       return { error: null };
     } catch (error) {
       return { error: error as Error };
     }
   };
 
-  const signUpWithEmail = async (email: string, password: string, fullName?: string) => {
+  const signUpWithEmail = async (
+    paramsOrEmail: string | SignUpParams,
+    password?: string,
+    fullName?: string
+  ) => {
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: fullName ? { data: { full_name: fullName } } : undefined,
+      const payload = typeof paramsOrEmail === 'object'
+        ? paramsOrEmail
+        : { email: paramsOrEmail, password, fullName };
+
+      const res = await fetch(`${API_BASE}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-      if (error) throw error;
-      return { error: null };
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to sign up');
+      }
+
+      if (data.token) {
+        localStorage.setItem('tatti_token', data.token);
+      }
+      setUser(data.user);
+      const prof = await getProfile(data.user.id);
+      setProfile(prof);
+
+      return { error: null, studentId: data.studentId as string | undefined };
     } catch (error) {
       return { error: error as Error };
     }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem('tatti_token');
     setUser(null);
     setProfile(null);
   };

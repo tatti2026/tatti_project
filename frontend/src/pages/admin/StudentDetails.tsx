@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { getAllStudents, updateStudent } from '@/lib/api';
+import { getAllStudents, updateStudent, deleteStudent } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import StatusBadge from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,6 @@ import {
   Search, Eye, Pencil, Trash2, Download, ChevronLeft, ChevronRight,
   Loader2, Filter, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw
 } from 'lucide-react';
-import { supabase } from '@/db/supabase';
 import { format } from 'date-fns';
 
 const PAGE_SIZE = 10;
@@ -58,8 +57,12 @@ export default function StudentDetails() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    await supabase.from('students').delete().eq('id', id);
-    toast.success('Student record deleted');
+    try {
+      await deleteStudent(id);
+      toast.success('Student record deleted');
+    } catch {
+      toast.error('Failed to delete student record');
+    }
     setDeleteStudentId(null);
     fetchData();
   };

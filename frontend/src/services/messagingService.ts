@@ -1,3 +1,19 @@
+import {
+  sendMessage as apiSendMessage,
+  getConversation as apiGetConversation,
+  getAllConversations as apiGetAllConversations,
+  markMessagesRead as apiMarkMessagesRead,
+  getUnreadCount as apiGetUnreadCount,
+  type DirectMessage,
+} from '@/lib/api';
+
+export interface ChatAttachment {
+  name: string;
+  size: number | string;
+  type?: string;
+  url?: string;
+}
+
 export interface ChatMessage {
   id: string;
   studentId: string;
@@ -7,11 +23,15 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
   status: 'sent' | 'delivered' | 'read';
+  deliveredAt?: string;
+  readAt?: string;
+  attachment?: ChatAttachment;
 }
 
 export interface ChatConversation {
   id: string;
   studentId: string;
+  studentCode?: string;
   studentName: string;
   studentEmail?: string;
   adminName: string;
@@ -99,15 +119,137 @@ export function playNotificationSound() {
   }
 }
 
+// ─── API-BACKED ASYNC METHODS ───────────────────────────────────────────────
+
 /**
- * Get all messages for a specific student conversation.
- * Falls back to 'default' messages if student has no custom messages yet.
+ * Fetch messages for student from PostgreSQL API. Falls back to localStorage if network/API error.
+ */
+export async function fetchMessagesFromAPI(studentId: string): Promise<ChatMessage[]> {
+  try {
+    const apiMsgs = await apiGetConversation(studentId);
+    if (apiMsgs && apiMsgs.length > 0) {
+      const mapped: ChatMessage[] = apiMsgs.map(m => ({
+        id: m.id,
+        studentId: m.studentId,
+        senderId: m.senderId,
+        senderName: m.senderName,
+        senderType: m.senderType,
+        text: m.text,
+        timestamp: m.timestamp,
+        status: m.status,
+        deliveredAt: m.deliveredAt,
+        readAt: m.readAt,
+        attachment: m.attachment,
+      }));
+      return mapped;
+    }
+  } catch (err) {
+    console.warn('fetchMessagesFromAPI failed, falling back to local storage:', err);
+  }
+  return getMessagesForStudent(studentId);
+}
+
+/**
+ * Send chat message through PostgreSQL API. Also triggers local notification sound & events.
+ */
+export async function sendMessageViaAPI(params: {
+  studentId: string;
+  senderId?: string;
+  senderName?: string;
+  senderType: 'admin' | 'student';
+  text: string;
+  attachment?: ChatAttachment;
+}): Promise<ChatMessage | null> {
+  try {
+    const sent = await apiSendMessage(
+      params.studentId,
+      params.text,
+      params.senderName,
+      params.attachment
+    );
+
+    if (sent) {
+      const msg: ChatMessage = {
+        id: sent.id,
+        studentId: sent.studentId,
+        senderId: sent.senderId,
+        senderName: sent.senderName,
+        senderType: sent.senderType,
+        text: sent.text,
+        timestamp: sent.timestamp,
+        status: sent.status,
+        deliveredAt: sent.deliveredAt,
+        readAt: sent.readAt,
+        attachment: sent.attachment,
+      };
+
+      playNotificationSound();
+      window.dispatchEvent(new CustomEvent('tatti_new_message', { detail: { message: msg } }));
+      return msg;
+    }
+  } catch (err) {
+    console.warn('sendMessageViaAPI failed, falling back to local send:', err);
+    return sendChatMessage({
+      studentId: params.studentId,
+      senderId: params.senderId || 'user',
+      senderName: params.senderName || 'User',
+      senderType: params.senderType,
+      text: params.text,
+      attachment: params.attachment,
+    });
+  }
+  return null;
+}
+
+/**
+ * Mark messages as read through PostgreSQL API
+ */
+export async function markMessagesReadViaAPI(studentId: string, readerType: 'admin' | 'student' = 'student'): Promise<void> {
+  try {
+    await apiMarkMessagesRead(studentId);
+  } catch (err) {
+    console.warn('markMessagesReadViaAPI failed:', err);
+  }
+  markConversationAsRead(studentId, readerType);
+}
+
+/**
+ * Fetch all conversations for Admin from PostgreSQL API
+ */
+export async function fetchConversationsFromAPI(): Promise<ChatConversation[]> {
+  try {
+    const summaries = await apiGetAllConversations();
+    if (summaries && summaries.length > 0) {
+      return summaries.map(s => ({
+        id: `conv-${s.studentId}`,
+        studentId: s.studentId,
+        studentCode: s.studentCode,
+        studentName: s.studentName,
+        studentEmail: s.studentEmail,
+        adminName: 'TATTI Admin',
+        adminAvatar: 'TA',
+        isOnline: true,
+        lastMessage: s.lastMessage || 'No messages yet',
+        lastMessageTime: s.lastMessageTime || new Date().toISOString(),
+        unreadCount: s.unreadCount,
+        messages: [],
+      }));
+    }
+  } catch (err) {
+    console.warn('fetchConversationsFromAPI failed:', err);
+  }
+  return [];
+}
+
+// ─── SYNCHRONOUS / LOCAL METHODS (PRESERVED FOR COMPATIBILITY) ──────────────
+
+/**
+ * Get all messages for a specific student conversation from localStorage.
  */
 export function getMessagesForStudent(studentId: string): ChatMessage[] {
   const all = getStoredMessages();
   const specific = all.filter(m => m.studentId === studentId);
   if (specific.length > 0) return specific;
-  // If no specific messages yet, clone default seed messages under this studentId
   return all.filter(m => m.studentId === 'default').map(m => ({ ...m, studentId }));
 }
 
@@ -134,13 +276,14 @@ export function getStudentConversation(studentId: string, studentName?: string):
 }
 
 /**
- * Get all conversations for Admin view
+ * Get all conversations for Admin view from localStorage
  */
-export function getAllConversationsForAdmin(studentsList: { id: string; full_name?: string | null; email?: string | null; student_id?: string | null }[]): ChatConversation[] {
+export function getAllConversationsForAdmin(
+  studentsList: { id: string; full_name?: string | null; email?: string | null; student_id?: string | null }[]
+): ChatConversation[] {
   const all = getStoredMessages();
   const convMap = new Map<string, ChatConversation>();
 
-  // Initialize known students
   for (const s of studentsList) {
     const msgs = all.filter(m => m.studentId === s.id);
     const effectiveMsgs = msgs.length > 0 ? msgs : all.filter(m => m.studentId === 'default').map(m => ({ ...m, studentId: s.id }));
@@ -150,6 +293,7 @@ export function getAllConversationsForAdmin(studentsList: { id: string; full_nam
     convMap.set(s.id, {
       id: `conv-${s.id}`,
       studentId: s.id,
+      studentCode: s.student_id || undefined,
       studentName: s.full_name || s.student_id || 'Student',
       studentEmail: s.email || undefined,
       adminName: 'TATTI Admin',
@@ -166,7 +310,7 @@ export function getAllConversationsForAdmin(studentsList: { id: string; full_nam
 }
 
 /**
- * Send a chat message (either Admin to Student, or Student to Admin)
+ * Send a chat message locally
  */
 export function sendChatMessage(params: {
   studentId: string;
@@ -174,6 +318,7 @@ export function sendChatMessage(params: {
   senderName: string;
   senderType: 'admin' | 'student';
   text: string;
+  attachment?: ChatAttachment;
 }): ChatMessage {
   const all = getStoredMessages();
   const now = new Date();
@@ -187,9 +332,9 @@ export function sendChatMessage(params: {
     text: params.text,
     timestamp: now.toISOString(),
     status: 'sent',
+    attachment: params.attachment,
   };
 
-  // If this student was relying on 'default' messages, copy them over first
   const existingForStudent = all.filter(m => m.studentId === params.studentId);
   if (existingForStudent.length === 0) {
     const defaults = all.filter(m => m.studentId === 'default').map(m => ({ ...m, id: `${m.id}-${params.studentId}`, studentId: params.studentId }));
@@ -199,7 +344,6 @@ export function sendChatMessage(params: {
   all.push(newMsg);
   saveMessages(all);
 
-  // Upgrade to delivered shortly after
   setTimeout(() => {
     const current = getStoredMessages();
     const updated = current.map(m => m.id === newMsg.id ? { ...m, status: 'delivered' as const } : m);
@@ -207,7 +351,6 @@ export function sendChatMessage(params: {
     window.dispatchEvent(new CustomEvent('tatti_message_status_updated', { detail: { messageId: newMsg.id, status: 'delivered' } }));
   }, 600);
 
-  // Play notification chime and dispatch event
   playNotificationSound();
   window.dispatchEvent(
     new CustomEvent('tatti_new_message', {
@@ -219,7 +362,7 @@ export function sendChatMessage(params: {
 }
 
 /**
- * Mark messages in a conversation as read
+ * Mark messages in a conversation as read locally
  */
 export function markConversationAsRead(studentId: string, readerType: 'admin' | 'student') {
   const all = getStoredMessages();

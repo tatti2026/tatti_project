@@ -434,8 +434,9 @@ export default function ApplicationProcess() {
       if (!s) s = await createStudent({ profile_id: profile.id, email: profile.email, full_name: profile.full_name });
       setStudent(s);
       if (s) {
-        const access = getApplicationAccess(s.id);
-        setIsUnlocked(access.status === 'unlocked');
+        const isDbUnlocked = (s as any).application_access_status === 'unlocked';
+        const isLocalUnlocked = getApplicationAccess(s.id).status === 'unlocked';
+        setIsUnlocked(isDbUnlocked || isLocalUnlocked);
 
         setForm({
           full_name: s.full_name || profile.full_name || '',
@@ -478,9 +479,9 @@ export default function ApplicationProcess() {
     })();
   }, [profile]);
 
-  // Real-time access listener
+  // Real-time access listener & polling for DB changes
   useEffect(() => {
-    if (!student) return;
+    if (!student || !profile) return;
     const handleAccess = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (!detail?.studentId || detail.studentId === student.id) {
@@ -495,11 +496,27 @@ export default function ApplicationProcess() {
     };
     window.addEventListener('tatti_application_access_changed', handleAccess);
     window.addEventListener('storage', handleStorage);
+
+    // Poll DB status every 5 seconds
+    const interval = setInterval(async () => {
+      try {
+        const refreshed = await getStudentByProfileId(profile.id);
+        if (refreshed) {
+          const isDbUnlocked = (refreshed as any).application_access_status === 'unlocked';
+          const isLocalUnlocked = getApplicationAccess(refreshed.id).status === 'unlocked';
+          setIsUnlocked(isDbUnlocked || isLocalUnlocked);
+        }
+      } catch {
+        // ignore polling error
+      }
+    }, 5000);
+
     return () => {
       window.removeEventListener('tatti_application_access_changed', handleAccess);
       window.removeEventListener('storage', handleStorage);
+      clearInterval(interval);
     };
-  }, [student]);
+  }, [student, profile]);
 
   const handleStep1 = async () => {
     if (!form.full_name || !form.email || !form.phone) { toast.error('Please fill in required fields'); return; }

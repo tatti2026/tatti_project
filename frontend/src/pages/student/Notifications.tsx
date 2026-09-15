@@ -16,8 +16,12 @@ import {
 } from 'lucide-react';
 import {
   getMessagesForStudent, getStudentConversation, sendChatMessage,
-  markConversationAsRead, playNotificationSound, type ChatMessage, type ChatConversation
+  markConversationAsRead, playNotificationSound, type ChatMessage, type ChatConversation,
+  fetchMessagesFromAPI, sendMessageViaAPI, markMessagesReadViaAPI
 } from '@/services/messagingService';
+import FileAttachment from '@/components/chat/FileAttachment';
+import ChatInput from '@/components/chat/ChatInput';
+import type { UploadedFileData } from '@/components/chat/DocumentUploadModal';
 
 type MainTab = 'all' | 'messages';
 
@@ -71,7 +75,7 @@ export default function Notifications() {
       const notifs = await getNotifications(profile.id);
       setNotifications(notifs);
 
-      const msgs = getMessagesForStudent(studentId);
+      const msgs = await fetchMessagesFromAPI(studentId);
       setMessages(msgs);
     } catch {
       // ignore
@@ -82,7 +86,7 @@ export default function Notifications() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 10000);
+    const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
   }, [profile]);
 
@@ -141,8 +145,9 @@ export default function Notifications() {
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
 
     if (student) {
-      markConversationAsRead(student.id, 'student');
-      setMessages(getMessagesForStudent(student.id));
+      await markMessagesReadViaAPI(student.id, 'student');
+      const msgs = await fetchMessagesFromAPI(student.id);
+      setMessages(msgs);
     }
   };
 
@@ -152,30 +157,53 @@ export default function Notifications() {
   };
 
   // Send message from student to Admin
-  const handleSendMessage = () => {
-    if (!inputText.trim()) return;
+  const handleSendMessageText = async (text: string) => {
+    if (!text.trim()) return;
     const studentId = student?.id || 'default';
     const studentName = student?.full_name || profile?.full_name || 'Student';
 
-    sendChatMessage({
+    await sendMessageViaAPI({
       studentId,
       senderId: profile?.id || 'student',
       senderName: studentName,
       senderType: 'student',
-      text: inputText.trim(),
+      text: text.trim(),
     });
 
-    setInputText('');
-    setMessages(getMessagesForStudent(studentId));
+    const msgs = await fetchMessagesFromAPI(studentId);
+    setMessages(msgs);
+  };
+
+  const handleSendDocument = async (file: UploadedFileData) => {
+    const studentId = student?.id || 'default';
+    const studentName = student?.full_name || profile?.full_name || 'Student';
+
+    await sendMessageViaAPI({
+      studentId,
+      senderId: profile?.id || 'student',
+      senderName: studentName,
+      senderType: 'student',
+      text: `Uploaded document: ${file.name}`,
+      attachment: {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        url: file.url,
+      },
+    });
+
+    const msgs = await fetchMessagesFromAPI(studentId);
+    setMessages(msgs);
   };
 
   // Switch to messages tab and mark read
-  const openMessagesTab = () => {
+  const openMessagesTab = async () => {
     setActiveTab('messages');
     setShowMobileChat(true);
     if (student) {
-      markConversationAsRead(student.id, 'student');
-      setMessages(getMessagesForStudent(student.id));
+      await markMessagesReadViaAPI(student.id, 'student');
+      const msgs = await fetchMessagesFromAPI(student.id);
+      setMessages(msgs);
     }
   };
 
@@ -664,7 +692,18 @@ export default function Notifications() {
                                     {m.senderName}
                                   </p>
                                 )}
-                                <p className="whitespace-pre-wrap">{m.text}</p>
+                                {m.attachment && (
+                                  <div className="mb-2">
+                                    <FileAttachment
+                                      fileName={m.attachment.name}
+                                      fileSize={m.attachment.size}
+                                      fileType={m.attachment.type}
+                                      fileUrl={m.attachment.url}
+                                      isSender={isMe}
+                                    />
+                                  </div>
+                                )}
+                                {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
                                 <div
                                   className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${
                                     isMe ? 'text-white/80' : 'text-muted-foreground'
@@ -693,52 +732,12 @@ export default function Notifications() {
                   <div ref={bottomRef} />
                 </div>
 
-                {/* Chat Input Box */}
-                <div className="p-3 border-t border-border bg-card">
-                  <div className="flex items-center gap-2 bg-muted/50 rounded-2xl px-3.5 py-2 border border-border">
-                    <button
-                      type="button"
-                      className="p-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                    >
-                      <Smile className="w-4 h-4" />
-                    </button>
-
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      placeholder="Type a message to TATTI Admin..."
-                      value={inputText}
-                      onChange={e => setInputText(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                      className="flex-1 bg-transparent text-xs sm:text-sm text-foreground placeholder:text-muted-foreground outline-none min-w-0"
-                    />
-
-                    <button
-                      type="button"
-                      className="p-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                    >
-                      <Paperclip className="w-4 h-4" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleSendMessage}
-                      disabled={!inputText.trim()}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                        inputText.trim()
-                          ? 'gradient-bg text-white shadow-md hover:opacity-90 cursor-pointer'
-                          : 'bg-muted text-muted-foreground cursor-not-allowed'
-                      }`}
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
+                {/* Chat Input with Document Upload & Virtual Keyboard */}
+                <ChatInput
+                  onSendMessage={handleSendMessageText}
+                  onSendDocument={handleSendDocument}
+                  placeholder="Type a message to TATTI Admin..."
+                />
               </div>
             </div>
           </div>

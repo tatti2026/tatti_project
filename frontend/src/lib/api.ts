@@ -1,18 +1,30 @@
-import { supabase } from '@/db/supabase';
 import { getApplicationAccess, isApplicationUnlocked } from '@/services/applicationAccessService';
 import type {
   Student, Assessment, Course, Question,
   CourseRecommendation, Application, Payment,
-  Counselling, Notification, FollowUp
+  Counselling, Notification, FollowUp, Profile
 } from '@/types/index';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+function getHeaders(): HeadersInit {
+  const token = localStorage.getItem('tatti_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 // ── STUDENT ────────────────────────────────────────────────
 export async function getStudentByProfileId(profileId: string): Promise<Student | null> {
-  const { data } = await supabase
-    .from('students')
-    .select('*')
-    .eq('profile_id', profileId)
-    .maybeSingle();
+  const res = await fetch(`${API_BASE}/students/profile/${profileId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
   if (!data) return null;
   const access = getApplicationAccess(data.id);
   return {
@@ -24,11 +36,13 @@ export async function getStudentByProfileId(profileId: string): Promise<Student 
 }
 
 export async function createStudent(data: Partial<Student>): Promise<Student | null> {
-  const { data: result } = await supabase
-    .from('students')
-    .insert(data)
-    .select()
-    .maybeSingle();
+  const res = await fetch(`${API_BASE}/students`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) return null;
+  const result = await res.json();
   if (!result) return null;
   const access = getApplicationAccess(result.id);
   return {
@@ -40,155 +54,183 @@ export async function createStudent(data: Partial<Student>): Promise<Student | n
 }
 
 export async function updateStudent(id: string, data: Partial<Student>): Promise<void> {
-  await supabase.from('students').update({ ...data, updated_at: new Date().toISOString() }).eq('id', id);
+  await fetch(`${API_BASE}/students/${id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteStudent(id: string): Promise<void> {
+  await fetch(`${API_BASE}/students/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+}
+
+export async function unlockStudentApplication(studentId: string, adminName?: string): Promise<{ success: boolean; message?: string }> {
+  const res = await fetch(`${API_BASE}/admin/students/${studentId}/unlock`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ adminName: adminName || 'TATTI Admin' }),
+  });
+  return res.json();
+}
+
+export async function lockStudentApplication(studentId: string, adminName?: string): Promise<{ success: boolean; message?: string }> {
+  const res = await fetch(`${API_BASE}/admin/students/${studentId}/lock`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ adminName: adminName || 'TATTI Admin' }),
+  });
+  return res.json();
 }
 
 export async function getAllStudents(page = 0, pageSize = 20, search = '') {
-  let query = supabase
-    .from('students')
-    .select('*, applications(course:courses(course_name))', { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(page * pageSize, (page + 1) * pageSize - 1);
-  if (search) {
-    query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,student_id.ilike.%${search}%`);
-  }
-  let { data, count, error } = await query;
-  if (error || !data) {
-    const fallback = await supabase
-      .from('students')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(page * pageSize, (page + 1) * pageSize - 1);
-    data = fallback.data;
-    count = fallback.count;
-  }
-  const list = (Array.isArray(data) ? data : []) as any[];
-  const enriched = list.map(s => {
-    const access = getApplicationAccess(s.id);
-    const appCourse = Array.isArray(s.applications) && s.applications[0]?.course?.course_name
-      ? s.applications[0].course.course_name
-      : null;
-    const computedCourse = s.selected_course || appCourse || 'Full Stack Web Development';
-    const computedParentName = s.parent_name || (s.full_name ? `R. ${s.full_name.split(' ')[0]} (Parent)` : 'Parent / Guardian');
-    const computedParentPhone = s.parent_phone || (s.phone ? `+91 94441 ${s.phone.slice(-4).padStart(4, '0')}` : '+91 94441 55667');
-    return {
-      ...s,
-      parent_name: computedParentName,
-      parent_phone: computedParentPhone,
-      selected_course: computedCourse,
-      application_access_status: access.status,
-      application_unlocked_by: access.unlocked_by,
-      application_unlocked_at: access.unlocked_at,
-    };
+  const query = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    search: search || '',
   });
-  return { data: enriched as Student[], count: count ?? 0 };
+  const res = await fetch(`${API_BASE}/students?${query.toString()}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return { data: [], count: 0 };
+  const result = await res.json();
+  return {
+    data: (result.data || []) as Student[],
+    count: result.count ?? 0,
+  };
 }
+
 
 // ── COURSES ────────────────────────────────────────────────
 export async function getAllCourses(): Promise<Course[]> {
-  const { data } = await supabase
-    .from('courses')
-    .select('*')
-    .order('course_name', { ascending: true });
+  const res = await fetch(`${API_BASE}/courses`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
   return (Array.isArray(data) ? data : []) as Course[];
 }
 
 export async function upsertCourse(course: Partial<Course>): Promise<void> {
   if (course.id) {
-    await supabase.from('courses').update({ ...course, updated_at: new Date().toISOString() }).eq('id', course.id);
+    await fetch(`${API_BASE}/courses/${course.id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(course),
+    });
   } else {
-    await supabase.from('courses').insert(course);
+    await fetch(`${API_BASE}/courses`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(course),
+    });
   }
 }
 
 export async function deleteCourse(id: string): Promise<void> {
-  await supabase.from('courses').delete().eq('id', id);
+  await fetch(`${API_BASE}/courses/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
 }
 
 // ── QUESTIONS ──────────────────────────────────────────────
 export async function getActiveQuestions(): Promise<Question[]> {
-  const { data } = await supabase
-    .from('questions')
-    .select('*')
-    .eq('is_active', true)
-    .order('created_at', { ascending: true })
-    .limit(30);
+  const res = await fetch(`${API_BASE}/questions/active`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
   return (Array.isArray(data) ? data : []) as Question[];
 }
 
 export async function getAllQuestions(): Promise<Question[]> {
-  const { data } = await supabase
-    .from('questions')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const res = await fetch(`${API_BASE}/questions`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
   return (Array.isArray(data) ? data : []) as Question[];
 }
 
 export async function upsertQuestion(q: Partial<Question>): Promise<void> {
   if (q.id) {
-    await supabase.from('questions').update({ ...q, updated_at: new Date().toISOString() }).eq('id', q.id);
+    await fetch(`${API_BASE}/questions/${q.id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(q),
+    });
   } else {
-    await supabase.from('questions').insert(q);
+    await fetch(`${API_BASE}/questions`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(q),
+    });
   }
 }
 
 export async function deleteQuestion(id: string): Promise<void> {
-  await supabase.from('questions').delete().eq('id', id);
+  await fetch(`${API_BASE}/questions/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
 }
 
 // ── ASSESSMENTS ────────────────────────────────────────────
 export async function getStudentAssessment(studentId: string): Promise<Assessment | null> {
-  const { data } = await supabase
-    .from('assessments')
-    .select('*')
-    .eq('student_id', studentId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return data as Assessment | null;
+  const res = await fetch(`${API_BASE}/assessments/student/${studentId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return null;
+  return await res.json();
 }
 
 export async function createAssessment(studentId: string): Promise<Assessment | null> {
-  const { data } = await supabase
-    .from('assessments')
-    .insert({ student_id: studentId, status: 'in_progress', started_at: new Date().toISOString() })
-    .select()
-    .maybeSingle();
-  return data as Assessment | null;
+  const res = await fetch(`${API_BASE}/assessments`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ studentId }),
+  });
+  if (!res.ok) return null;
+  return await res.json();
 }
 
 export async function submitAssessment(id: string, score: number, totalMarks: number, answers: Record<string, string>): Promise<void> {
-  const percentage = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
-  await supabase.from('assessments').update({
-    score, total_marks: totalMarks, percentage,
-    answers, status: 'completed', submitted_at: new Date().toISOString()
-  }).eq('id', id);
+  await fetch(`${API_BASE}/assessments/${id}/submit`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({ score, totalMarks, answers }),
+  });
 }
 
 // ── COURSE RECOMMENDATIONS ─────────────────────────────────
 export async function getStudentRecommendations(studentId: string): Promise<CourseRecommendation[]> {
-  const { data } = await supabase
-    .from('course_recommendations')
-    .select('*, course:courses(*)')
-    .eq('student_id', studentId)
-    .order('recommendation_percentage', { ascending: false });
+  const res = await fetch(`${API_BASE}/assessments/recommendations/${studentId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
   return (Array.isArray(data) ? data : []) as CourseRecommendation[];
 }
 
 export async function upsertRecommendation(rec: Partial<CourseRecommendation>): Promise<void> {
-  await supabase.from('course_recommendations').upsert(rec, { onConflict: 'student_id,course_id' });
+  await fetch(`${API_BASE}/assessments/recommendations`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(rec),
+  });
 }
 
 // ── APPLICATIONS ───────────────────────────────────────────
 export async function getStudentApplication(studentId: string): Promise<Application | null> {
-  const { data } = await supabase
-    .from('applications')
-    .select('*, course:courses(*)')
-    .eq('student_id', studentId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return data as Application | null;
+  const res = await fetch(`${API_BASE}/applications/student/${studentId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return null;
+  return await res.json();
 }
 
 export async function upsertApplication(app: Partial<Application>): Promise<Application | null> {
@@ -196,27 +238,28 @@ export async function upsertApplication(app: Partial<Application>): Promise<Appl
     throw new Error('Application process is locked by TATTI Admin. Application cannot be modified or submitted.');
   }
 
-  if (app.id) {
-    const { data } = await supabase.from('applications')
-      .update({ ...app, updated_at: new Date().toISOString() })
-      .eq('id', app.id).select().maybeSingle();
-    return data as Application | null;
-  } else {
-    const { data } = await supabase.from('applications').insert(app).select().maybeSingle();
-    return data as Application | null;
+  const endpoint = app.id ? `${API_BASE}/applications/${app.id}` : `${API_BASE}/applications`;
+  const method = app.id ? 'PUT' : 'POST';
+
+  const res = await fetch(endpoint, {
+    method,
+    headers: getHeaders(),
+    body: JSON.stringify(app),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to upsert application');
   }
+  return await res.json();
 }
 
 // ── PAYMENTS ───────────────────────────────────────────────
 export async function getStudentPayment(studentId: string): Promise<Payment | null> {
-  const { data } = await supabase
-    .from('payments')
-    .select('*')
-    .eq('student_id', studentId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return data as Payment | null;
+  const res = await fetch(`${API_BASE}/payments/student/${studentId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return null;
+  return await res.json();
 }
 
 export async function createPayment(payment: Partial<Payment>): Promise<Payment | null> {
@@ -224,73 +267,221 @@ export async function createPayment(payment: Partial<Payment>): Promise<Payment 
     throw new Error('Application process is locked by TATTI Admin. Payment cannot be initiated.');
   }
 
-  const { data } = await supabase.from('payments').insert(payment).select().maybeSingle();
-  return data as Payment | null;
+  const res = await fetch(`${API_BASE}/payments`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(payment),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to create payment');
+  }
+  return await res.json();
 }
 
 export async function getAllPayments(page = 0, pageSize = 20) {
-  const { data, count } = await supabase
-    .from('payments')
-    .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(page * pageSize, (page + 1) * pageSize - 1);
-  return { data: (Array.isArray(data) ? data : []) as Payment[], count: count ?? 0 };
+  const query = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+  });
+  const res = await fetch(`${API_BASE}/payments?${query.toString()}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return { data: [], count: 0 };
+  const result = await res.json();
+  return {
+    data: (result.data || []) as Payment[],
+    count: result.count ?? 0,
+  };
 }
 
 // ── COUNSELLING ────────────────────────────────────────────
 export async function getStudentCounselling(studentId: string): Promise<Counselling | null> {
-  const { data } = await supabase
-    .from('counselling')
-    .select('*')
-    .eq('student_id', studentId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return data as Counselling | null;
+  const res = await fetch(`${API_BASE}/counselling/student/${studentId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return null;
+  return await res.json();
 }
 
 export async function upsertCounselling(c: Partial<Counselling>): Promise<void> {
   if (c.id) {
-    await supabase.from('counselling').update({ ...c, updated_at: new Date().toISOString() }).eq('id', c.id);
+    await fetch(`${API_BASE}/counselling/${c.id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(c),
+    });
   } else {
-    await supabase.from('counselling').insert(c);
+    await fetch(`${API_BASE}/counselling`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(c),
+    });
   }
 }
 
 export async function getAllCounselling(): Promise<Counselling[]> {
-  const { data } = await supabase.from('counselling').select('*').order('created_at', { ascending: false });
+  const res = await fetch(`${API_BASE}/counselling`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
   return (Array.isArray(data) ? data : []) as Counselling[];
 }
 
 // ── NOTIFICATIONS ──────────────────────────────────────────
 export async function getNotifications(profileId: string): Promise<Notification[]> {
-  const { data } = await supabase
-    .from('notifications')
-    .select('*')
-    .eq('profile_id', profileId)
-    .order('created_at', { ascending: false })
-    .limit(50);
+  const res = await fetch(`${API_BASE}/notifications/profile/${profileId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
   return (Array.isArray(data) ? data : []) as Notification[];
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
-  await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+  await fetch(`${API_BASE}/notifications/${id}/read`, {
+    method: 'PUT',
+    headers: getHeaders(),
+  });
 }
 
 export async function createNotification(n: Partial<Notification>): Promise<void> {
-  await supabase.from('notifications').insert(n);
+  await fetch(`${API_BASE}/notifications`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(n),
+  });
 }
 
 // ── FOLLOW-UPS ─────────────────────────────────────────────
 export async function getFollowUps(): Promise<FollowUp[]> {
-  const { data } = await supabase.from('follow_ups').select('*').order('created_at', { ascending: false });
+  const res = await fetch(`${API_BASE}/follow-ups`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
   return (Array.isArray(data) ? data : []) as FollowUp[];
 }
 
 export async function upsertFollowUp(f: Partial<FollowUp>): Promise<void> {
   if (f.id) {
-    await supabase.from('follow_ups').update({ ...f, updated_at: new Date().toISOString() }).eq('id', f.id);
+    await fetch(`${API_BASE}/follow-ups/${f.id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(f),
+    });
   } else {
-    await supabase.from('follow_ups').insert(f);
+    await fetch(`${API_BASE}/follow-ups`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(f),
+    });
   }
 }
+
+// ── PROFILES ───────────────────────────────────────────────
+export async function updateProfile(id: string, data: Partial<Profile>): Promise<void> {
+  await fetch(`${API_BASE}/profiles/${id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+}
+
+// ── DIRECT MESSAGES ─────────────────────────────────────────
+export interface DirectMessageAttachment {
+  name: string;
+  size: number | string;
+  type?: string;
+  url?: string;
+}
+
+export interface DirectMessage {
+  id: string;
+  studentId: string;
+  senderId: string;
+  senderName: string;
+  senderType: 'admin' | 'student';
+  text: string;
+  timestamp: string;
+  status: 'sent' | 'delivered' | 'read';
+  deliveredAt?: string;
+  readAt?: string;
+  attachment?: DirectMessageAttachment;
+}
+
+export interface ConversationSummary {
+  studentId: string;
+  studentCode?: string;
+  studentName: string;
+  studentEmail?: string;
+  studentPhone?: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  lastMessageSender: string;
+  unreadCount: number;
+  totalMessages: number;
+}
+
+export async function sendMessage(
+  studentId: string,
+  text: string,
+  senderName?: string,
+  attachment?: DirectMessageAttachment
+): Promise<DirectMessage | null> {
+  const res = await fetch(`${API_BASE}/messages/send`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ studentId, text, senderName, attachment }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to send message');
+  }
+  const data = await res.json();
+  return data.message as DirectMessage;
+}
+
+export async function getConversation(studentId: string): Promise<DirectMessage[]> {
+  const res = await fetch(`${API_BASE}/messages/conversation/${studentId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.messages || []) as DirectMessage[];
+}
+
+export async function getAllConversations(): Promise<ConversationSummary[]> {
+  const res = await fetch(`${API_BASE}/messages/conversations`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.conversations || []) as ConversationSummary[];
+}
+
+export async function markMessagesRead(studentId: string): Promise<void> {
+  await fetch(`${API_BASE}/messages/read/${studentId}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+  });
+}
+
+export async function getUnreadCount(): Promise<number> {
+  const res = await fetch(`${API_BASE}/messages/unread-count`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return 0;
+  const data = await res.json();
+  return data.count || 0;
+}
+
+export async function getMyStudentId(): Promise<{ studentId: string | null; studentCode: string | null }> {
+  const res = await fetch(`${API_BASE}/messages/my-student-id`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return { studentId: null, studentCode: null };
+  return await res.json();
+}
+

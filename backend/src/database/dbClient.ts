@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-import { config } from '../config/environment.js';
+import { pool, query } from './pgPool.js';
 
-export const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
+export { pool, query };

@@ -1,9 +1,23 @@
 import { Router } from 'express';
-import { getActiveQuestions, submitAssessment } from '../controllers/assessmentController.js';
+import { getActiveQuestions } from '../controllers/questionController.js';
+import {
+  submitAssessment,
+  getStudentAssessment,
+  createAssessment,
+  submitAssessmentById,
+  getStudentRecommendations,
+  upsertRecommendation
+} from '../controllers/assessmentController.js';
 
 const router = Router();
 
 router.get('/questions', getActiveQuestions);
 router.post('/submit', submitAssessment);
+
+router.get('/student/:studentId', getStudentAssessment);
+router.post('/', createAssessment);
+router.put('/:id/submit', submitAssessmentById);
+router.get('/recommendations/:studentId', getStudentRecommendations);
+router.post('/recommendations', upsertRecommendation);
 
 export default router;

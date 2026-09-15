@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
   LayoutDashboard, Users, ClipboardList, BarChart2, Phone,
-  MessageSquare, BookOpen, CheckSquare, FileBarChart, Bell,
+  PhoneCall, BookOpen, CheckSquare, FileBarChart, Bell, MessageSquare,
   Settings, LogOut, Menu, GraduationCap, ChevronRight, Shield
 } from 'lucide-react';
 
@@ -15,11 +15,11 @@ const navItems = [
   { path: '/admin/questions', icon: ClipboardList, label: 'Career Fit Assessment' },
   { path: '/admin/segmentation', icon: BarChart2, label: 'Assessment & Segmentation' },
   { path: '/admin/counselling', icon: Phone, label: 'Counselling' },
-  { path: '/admin/followup', icon: MessageSquare, label: 'Follow-up' },
+  { path: '/admin/followup', icon: PhoneCall, label: 'Follow-up' },
   { path: '/admin/courses', icon: BookOpen, label: 'Courses' },
   { path: '/admin/confirmations', icon: CheckSquare, label: 'Confirmations' },
   { path: '/admin/reports', icon: FileBarChart, label: 'Reports' },
-  { path: '/admin/notifications', icon: Bell, label: 'Notifications' },
+  { path: '/admin/notifications', icon: MessageSquare, label: 'Student Chats' },
 ];
 
 function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {

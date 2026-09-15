@@ -42,7 +42,7 @@ function SidebarContent({
       label: 'Application Process',
       isAppProcess: true,
     },
-    { path: '/student/notifications', icon: Bell, label: 'Notifications', isNotifications: true },
+    { path: '/student/notifications', icon: Bell, label: 'Chats & Notifications', isNotifications: true },
     { path: '/student/profile', icon: User, label: 'Profile' },
     { path: '/student/settings', icon: Settings, label: 'Settings' },
   ];
