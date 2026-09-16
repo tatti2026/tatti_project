@@ -8,92 +8,96 @@ import {
 import { createSystemNotification } from '../services/notificationService.js';
 import type { StudentRecord } from '../models/index.js';
 
-export async function unlockStudentApplication(req: Request, res: Response) {
-  const { studentId } = req.params;
-  const { adminId, adminName } = req.body;
-  const adminDisplayName = adminName || 'TATTI Admin';
-
-  const result = setStudentApplicationAccess(
-    studentId,
-    'unlocked',
-    { adminId: adminId || 'ADMIN', adminName: adminDisplayName }
-  );
-
+export async function updateStudentApplicationAccess(req: Request, res: Response) {
   try {
-    await query(
+    const { id, studentId } = req.params;
+    const targetStudentId = id || studentId;
+    const { unlocked, adminName } = req.body;
+    const isUnlocked = !!unlocked;
+    const status = isUnlocked ? 'unlocked' : 'locked';
+    const adminDisplayName = adminName || 'TATTI Head Administrator';
+
+    // Verify student exists
+    const checkRes = await query('SELECT id, full_name, email FROM students WHERE id = $1', [targetStudentId]);
+    if (checkRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    const student = checkRes.rows[0];
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    const updatedRes = await query(
       `UPDATE students 
-       SET application_access_status = 'unlocked', 
-           application_unlocked_by = $1, 
-           application_unlocked_at = now() 
-       WHERE id = $2`,
-      [adminDisplayName, studentId]
+       SET application_access_status = $1, 
+           application_unlocked_by = $2, 
+           application_unlocked_at = $3,
+           updated_at = now()
+       WHERE id = $4
+       RETURNING *`,
+      [
+        status,
+        isUnlocked ? adminDisplayName : null,
+        isUnlocked ? now.toISOString() : null,
+        targetStudentId
+      ]
     );
 
-    await query(
-      `INSERT INTO admin_audit_logs (student_id, admin_name, action, date, time)
-       VALUES ($1, $2, 'UNLOCK', $3, $4)`,
-      [studentId, adminDisplayName, result.log.date, result.log.time]
-    );
+    try {
+      await query(
+        `INSERT INTO admin_audit_logs (student_id, admin_name, action, date, time)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [targetStudentId, adminDisplayName, isUnlocked ? 'UNLOCK' : 'LOCK', dateStr, timeStr]
+      );
+    } catch (auditErr) {
+      console.warn('Audit log table insert warning:', auditErr);
+    }
+
+    if (isUnlocked) {
+      createSystemNotification(
+        targetStudentId,
+        '🎉 Application Process Unlocked',
+        'Congratulations! TATTI Admin has unlocked your application process. You can now start your application.',
+        'application'
+      );
+    }
+
+    return res.json({
+      success: true,
+      applicationAccess: isUnlocked,
+      application_access_status: status,
+      student: updatedRes.rows[0],
+      message: `Application access ${status} successfully for ${student.full_name || 'student'}.`,
+    });
   } catch (err) {
-    console.error('Error updating student application access in DB:', err);
+    console.error('Error updating student application access:', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
+}
 
-  // Send real-time notification to the student
-  createSystemNotification(
-    studentId,
-    '🎉 Application Process Unlocked',
-    'Congratulations! TATTI Admin has unlocked your application process. You can now start your application.',
-    'application'
-  );
-
-  return res.json({
-    message: `Application access unlocked successfully for student ${studentId}.`,
-    record: result.record,
-    log: result.log,
-  });
+export async function unlockStudentApplication(req: Request, res: Response) {
+  req.body = { ...req.body, unlocked: true };
+  return updateStudentApplicationAccess(req, res);
 }
 
 export async function lockStudentApplication(req: Request, res: Response) {
-  const { studentId } = req.params;
-  const { adminId, adminName } = req.body;
-  const adminDisplayName = adminName || 'TATTI Admin';
-
-  const result = setStudentApplicationAccess(
-    studentId,
-    'locked',
-    { adminId: adminId || 'ADMIN', adminName: adminDisplayName }
-  );
-
-  try {
-    await query(
-      `UPDATE students 
-       SET application_access_status = 'locked', 
-           application_unlocked_by = NULL, 
-           application_unlocked_at = NULL 
-       WHERE id = $1`,
-      [studentId]
-    );
-
-    await query(
-      `INSERT INTO admin_audit_logs (student_id, admin_name, action, date, time)
-       VALUES ($1, $2, 'LOCK', $3, $4)`,
-      [studentId, adminDisplayName, result.log.date, result.log.time]
-    );
-  } catch (err) {
-    console.error('Error updating student application access in DB:', err);
-  }
-
-  return res.json({
-    message: `Application access locked for student ${studentId}.`,
-    record: result.record,
-    log: result.log,
-  });
+  req.body = { ...req.body, unlocked: false };
+  return updateStudentApplicationAccess(req, res);
 }
 
 export async function getStudentAuditLogs(req: Request, res: Response) {
   const { studentId } = req.params;
-  const logs = getAuditLogsForStudent(studentId);
-  return res.json(logs);
+  try {
+    const resDb = await query(
+      'SELECT * FROM admin_audit_logs WHERE student_id = $1 ORDER BY created_at DESC',
+      [studentId]
+    );
+    return res.json(resDb.rows);
+  } catch {
+    const logs = getAuditLogsForStudent(studentId);
+    return res.json(logs);
+  }
 }
 
 export async function listAllStudents(req: Request, res: Response) {
@@ -123,12 +127,11 @@ export async function listAllStudents(req: Request, res: Response) {
     const data = dataRes.rows as StudentRecord[];
 
     const list = data.map(s => {
-      const access = getStudentApplicationAccess(s.id);
       return {
         ...s,
-        application_access_status: access.status,
-        application_unlocked_by: access.unlockedBy,
-        application_unlocked_at: access.unlockedAt,
+        application_access_status: s.application_access_status || 'locked',
+        application_unlocked_by: s.application_unlocked_by || null,
+        application_unlocked_at: s.application_unlocked_at || null,
       };
     });
 

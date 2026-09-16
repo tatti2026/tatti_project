@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import type { Student } from '@/types/index';
-import { User, Loader2, Save } from 'lucide-react';
+import { User, Loader2, Save, BadgeCheck, Lock } from 'lucide-react';
 
 export default function StudentProfile() {
   const { profile, refreshProfile } = useAuth();
@@ -66,15 +66,75 @@ export default function StudentProfile() {
           <p className="text-muted-foreground text-sm">Manage your personal information</p>
         </div>
 
-        {/* Avatar card */}
-        <div className="glass-card rounded-xl p-6 flex items-center gap-4">
+        {/* Avatar + Student ID card */}
+        <div className="glass-card rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="w-16 h-16 rounded-full gradient-bg flex items-center justify-center shrink-0">
             <span className="text-2xl font-bold text-white">{(form.full_name || profile?.email || 'S')[0].toUpperCase()}</span>
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-lg font-bold text-foreground">{form.full_name || 'Student'}</p>
             <p className="text-sm text-muted-foreground">{profile?.email}</p>
-            <p className="text-xs text-primary mt-0.5">Student ID: {student?.student_id || 'Not assigned'}</p>
+          </div>
+        </div>
+
+        {/* Student ID — Prominent Read-Only Card */}
+        <div className="glass-card rounded-xl p-5 border-2 border-primary/20 bg-primary/5">
+          <div className="flex items-center gap-2 mb-3">
+            <BadgeCheck className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">Student ID</span>
+            <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              <Lock className="w-2.5 h-2.5" /> Read-only
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-2xl font-bold text-foreground tracking-wider">
+              {student?.student_id || '—'}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            This is your permanent Student ID. Use it to sign in to the TATTI Portal.
+          </p>
+        </div>
+
+        {/* Read-only info: email, username, parent */}
+        <div className="glass-card rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Lock className="w-4 h-4 text-muted-foreground" /> Account Information
+            <span className="text-[10px] text-muted-foreground ml-1">(read-only)</span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs text-muted-foreground">Username</Label>
+              <Input
+                value={student?.username || '—'}
+                disabled
+                className="mt-1 bg-muted border-border text-muted-foreground text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Email Address</Label>
+              <Input
+                value={profile?.email || '—'}
+                disabled
+                className="mt-1 bg-muted border-border text-muted-foreground text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Parent / Guardian Name</Label>
+              <Input
+                value={student?.parent_name || '—'}
+                disabled
+                className="mt-1 bg-muted border-border text-muted-foreground text-sm"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Parent / Guardian Phone</Label>
+              <Input
+                value={student?.parent_phone || '—'}
+                disabled
+                className="mt-1 bg-muted border-border text-muted-foreground text-sm"
+              />
+            </div>
           </div>
         </div>
 

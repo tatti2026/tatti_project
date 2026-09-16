@@ -319,7 +319,7 @@ export default function Segmentation() {
                               </td>
                               <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
                                 <span className="px-2 py-0.5 rounded bg-muted text-[11px] font-medium text-foreground">
-                                  {s.selected_course || 'Full Stack Web Development'}
+                                  {s.selected_course || 'Not Selected'}
                                 </span>
                               </td>
                             </tr>

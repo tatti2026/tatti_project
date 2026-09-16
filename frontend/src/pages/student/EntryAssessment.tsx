@@ -25,10 +25,9 @@ import {
   Loader2, AlertCircle, Award, Target, Check, CheckCircle,
   Lock, Unlock
 } from 'lucide-react';
-import { getApplicationAccess, isApplicationUnlocked } from '@/services/applicationAccessService';
 
 export default function EntryAssessment() {
-  const { profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // Core state
@@ -49,6 +48,7 @@ export default function EntryAssessment() {
 
   // UI state
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [selectingCourse, setSelectingCourse] = useState(false);
   const [detailCourse, setDetailCourse] = useState<Course | null>(null);
@@ -56,46 +56,74 @@ export default function EntryAssessment() {
 
   // ── 1. INITIAL DATA FETCH ──────────────────────────────────
   useEffect(() => {
-    if (!profile) return;
+    if (authLoading) return;
+    if (!profile) {
+      const token = localStorage.getItem('tatti_token');
+      if (!token) {
+        navigate('/login');
+      }
+      return;
+    }
+
     (async () => {
       setLoading(true);
+      setError(null);
       try {
         let s = await getStudentByProfileId(profile.id);
         if (!s) s = await createStudent({ profile_id: profile.id, email: profile.email, full_name: profile.full_name });
         setStudent(s);
 
         const [qs, existingAssessment, allCourses, existingRecs, app] = await Promise.all([
-          getActiveQuestions(),
-          s ? getStudentAssessment(s.id) : null,
-          getAllCourses(),
-          s ? getStudentRecommendations(s.id) : [],
-          s ? getStudentApplication(s.id) : null,
+          getActiveQuestions().catch(() => []),
+          s ? getStudentAssessment(s.id).catch(() => null) : null,
+          getAllCourses().catch(() => []),
+          s ? getStudentRecommendations(s.id).catch(() => []) : [],
+          s ? getStudentApplication(s.id).catch(() => null) : null,
         ]);
 
-        setQuestions(qs);
-        setCourses(allCourses.filter(c => c.status === 'available'));
+        const safeQs = Array.isArray(qs) ? qs : [];
+        const safeCourses = Array.isArray(allCourses) ? allCourses.filter(c => c && c.status === 'available') : [];
+        const safeRecs = Array.isArray(existingRecs) ? existingRecs : [];
+
+        setQuestions(safeQs);
+        setCourses(safeCourses);
 
         if (existingAssessment?.status === 'completed') {
-          setAssessment(existingAssessment);
-          if (existingRecs.length > 0) {
-            const enriched = existingRecs.map(r => ({ ...r, course: allCourses.find(c => c.id === r.course_id) }));
+          const score = Number(existingAssessment.score) || 0;
+          const totalMarks = Number(existingAssessment.total_marks) || 0;
+          const percentage = Number(existingAssessment.percentage) || 0;
+
+          setAssessment({
+            ...existingAssessment,
+            score,
+            total_marks: totalMarks,
+            percentage,
+          });
+
+          if (safeRecs.length > 0) {
+            const enriched = safeRecs.map(r => ({
+              ...r,
+              recommendation_percentage: Number(r.recommendation_percentage) || 0,
+              course: safeCourses.find(c => c.id === r.course_id),
+            }));
             setRecommendations(enriched as CourseRecommendationType[]);
-            setInterestedCourseIds(new Set(existingRecs.filter(r => r.is_interested).map(r => r.course_id)));
-            const sel = existingRecs.find(r => r.is_selected);
+            setInterestedCourseIds(new Set(safeRecs.filter(r => r.is_interested).map(r => r.course_id)));
+            const sel = safeRecs.find(r => r.is_selected);
             if (sel) setSelectedCourseId(sel.course_id);
             else if (app?.course_id) setSelectedCourseId(app.course_id);
-          } else if (s) {
-            await generateRecommendations(s.id, existingAssessment.percentage ?? 0, allCourses);
+          } else if (s && safeCourses.length > 0) {
+            await generateRecommendations(s.id, percentage, safeCourses);
           }
         }
       } catch (err) {
         console.error('Failed to load assessment data', err);
-        toast.error('Failed to load assessment data.');
+        setError('Unable to load the assessment. Please try again.');
+        toast.error('Unable to load the assessment. Please try again.');
       } finally {
         setLoading(false);
       }
     })();
-  }, [profile]);
+  }, [profile, authLoading, navigate]);
 
   // ── 2. COUNTDOWN TIMER ──────────────────────────────────────
   useEffect(() => {
@@ -228,7 +256,7 @@ export default function EntryAssessment() {
         });
       }
 
-      const unlocked = isApplicationUnlocked(student.id);
+      const unlocked = student?.application_access_status === 'unlocked';
 
       if (unlocked) {
         const existingApp = await getStudentApplication(student.id);
@@ -277,7 +305,9 @@ export default function EntryAssessment() {
 
   // ── 7. COMPUTED HELPERS ────────────────────────────────────
   const isCompleted = assessment?.status === 'completed';
-  const pct = assessment?.percentage ?? 0;
+  const pct = Number(assessment?.percentage) || 0;
+  const score = Number(assessment?.score) || 0;
+  const totalMarks = Number(assessment?.total_marks) || 0;
 
   const performanceTier = useMemo(() => {
     if (pct >= 80) return { title: 'Distinction (Advanced Tier)', color: 'text-emerald-500', badgeClass: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', note: 'Exceptional performance across analytical, technical, and aptitude questions.' };
@@ -289,7 +319,7 @@ export default function EntryAssessment() {
   const categories = useMemo(() => {
     const set = new Set<string>();
     courses.forEach(c => {
-      if (c.category) set.add(c.category);
+      if (c && c.category) set.add(c.category);
     });
     return ['all', ...Array.from(set)];
   }, [courses]);
@@ -299,13 +329,55 @@ export default function EntryAssessment() {
     return recommendations.filter(r => r.course?.category === selectedCategory);
   }, [recommendations, selectedCategory]);
 
-  if (loading) {
+  // Loading State
+  if (loading || authLoading) {
     return (
       <StudentLayout>
-        <div className="space-y-4 max-w-5xl mx-auto">
-          <div className="h-14 rounded-xl bg-muted animate-pulse" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[1, 2, 3].map(i => <div key={i} className="h-44 rounded-xl bg-muted animate-pulse" />)}
+        <div className="flex flex-col items-center justify-center min-h-[55vh] space-y-4 max-w-5xl mx-auto py-16">
+          <Loader2 className="w-9 h-9 animate-spin text-primary" />
+          <p className="text-muted-foreground text-sm font-semibold">Loading Career Fit Assessment...</p>
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  // Error State
+  if (error) {
+    return (
+      <StudentLayout>
+        <div className="max-w-md mx-auto my-16 p-8 glass-card rounded-2xl text-center space-y-4 border border-border">
+          <div className="w-12 h-12 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-bold text-foreground">Unable to Load Assessment</h2>
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <div className="pt-2 flex justify-center gap-3">
+            <Button variant="outline" onClick={() => navigate('/student/dashboard')}>
+              Dashboard
+            </Button>
+            <Button onClick={() => window.location.reload()} className="gradient-bg border-0 text-white">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  // Empty State (before assessment completion)
+  if (!isCompleted && (!questions || questions.length === 0)) {
+    return (
+      <StudentLayout>
+        <div className="max-w-md mx-auto my-16 p-8 glass-card rounded-2xl text-center space-y-4 border border-border">
+          <div className="w-12 h-12 rounded-xl bg-muted text-muted-foreground flex items-center justify-center mx-auto">
+            <ClipboardList className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-bold text-foreground">No Questions Available</h2>
+          <p className="text-sm text-muted-foreground">No assessment questions are currently available.</p>
+          <div className="pt-2 flex justify-center">
+            <Button variant="outline" onClick={() => navigate('/student/dashboard')}>
+              Back to Dashboard
+            </Button>
           </div>
         </div>
       </StudentLayout>
@@ -511,7 +583,7 @@ export default function EntryAssessment() {
               {[
                 { label: 'Total Questions', value: questions.length.toString(), icon: ClipboardList },
                 { label: 'Time Limit', value: '45 Minutes', icon: Clock },
-                { label: 'Total Marks', value: questions.reduce((s, q) => s + q.marks, 0).toString(), icon: Award },
+                { label: 'Total Marks', value: questions.reduce((s, q) => s + (Number(q?.marks) || 0), 0).toString(), icon: Award },
                 { label: 'Exam Format', value: 'MCQ Single Choice', icon: Target },
               ].map(({ label, value, icon: Icon }) => (
                 <div key={label} className="bg-muted/60 rounded-xl p-3.5 border border-border/50 text-center">
@@ -598,7 +670,7 @@ export default function EntryAssessment() {
               <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs py-1 px-2.5 gap-1.5 font-semibold">
                 <Check className="w-3.5 h-3.5" /> Course Recommendations Unlocked
               </Badge>
-              {isApplicationUnlocked(student?.id || '') ? (
+              {student?.application_access_status === 'unlocked' ? (
                 <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs py-1 px-2.5 gap-1.5 font-semibold">
                   <Unlock className="w-3.5 h-3.5" /> Application Process Unlocked
                 </Badge>
@@ -634,7 +706,7 @@ export default function EntryAssessment() {
                 <span className="text-4xl font-extrabold gradient-text">{pct.toFixed(1)}%</span>
                 <p className="text-xs font-bold text-foreground mt-1">Overall Percentage</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Total Score: <span className="font-bold text-foreground">{assessment?.score}</span> / {assessment?.total_marks}
+                  Total Score: <span className="font-bold text-foreground">{score}</span> / {totalMarks}
                 </p>
               </div>
             </div>
@@ -647,12 +719,12 @@ export default function EntryAssessment() {
               </div>
               <div className="bg-muted/50 rounded-xl p-3 text-center">
                 <p className="text-[11px] text-muted-foreground">Correct Answers</p>
-                <p className="text-lg font-bold text-emerald-500">{assessment?.score}</p>
+                <p className="text-lg font-bold text-emerald-500">{score}</p>
               </div>
               <div className="bg-muted/50 rounded-xl p-3 text-center">
                 <p className="text-[11px] text-muted-foreground">Wrong / Skipped</p>
                 <p className="text-lg font-bold text-rose-500">
-                  {Math.max(0, (assessment?.total_marks ?? 0) - (assessment?.score ?? 0))}
+                  {Math.max(0, totalMarks - score)}
                 </p>
               </div>
               <div className="bg-muted/50 rounded-xl p-3 text-center">
@@ -721,13 +793,13 @@ export default function EntryAssessment() {
                         {course.category || 'Professional'}
                       </Badge>
                       <div className={`px-2.5 py-1 rounded-full text-xs font-extrabold shrink-0 ${
-                        rec.recommendation_percentage >= 80
+                        (Number(rec.recommendation_percentage) || 0) >= 80
                           ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30'
-                          : rec.recommendation_percentage >= 65
+                          : (Number(rec.recommendation_percentage) || 0) >= 65
                           ? 'bg-blue-500/15 text-blue-600 border border-blue-500/30'
                           : 'bg-amber-500/15 text-amber-600 border border-amber-500/30'
                       }`}>
-                        {rec.recommendation_percentage}% Match
+                        {(Number(rec.recommendation_percentage) || 0).toFixed(0)}% Match
                       </div>
                     </div>
 
@@ -804,7 +876,7 @@ export default function EntryAssessment() {
                     <div className="flex items-baseline justify-between mb-4 pt-1">
                       <span className="text-[11px] text-muted-foreground">Course Fee</span>
                       <span className="text-xl font-extrabold gradient-text">
-                        ₹{course.fee.toLocaleString()}
+                        ₹{(Number(course.fee) || 0).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -882,7 +954,7 @@ export default function EntryAssessment() {
                 </div>
                 <div className="bg-muted/60 rounded-xl p-3">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Course Fee</span>
-                  <p className="font-bold text-foreground mt-0.5">₹{detailCourse.fee.toLocaleString()}</p>
+                  <p className="font-bold text-foreground mt-0.5">₹{(Number(detailCourse.fee) || 0).toLocaleString()}</p>
                 </div>
                 <div className="bg-muted/60 rounded-xl p-3">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Seats Available</span>

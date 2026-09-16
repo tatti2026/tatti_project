@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getNotifications, markNotificationRead, getAllStudents, createNotification } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
@@ -15,7 +15,8 @@ import {
 } from 'lucide-react';
 import {
   sendChatMessage, getAllConversationsForAdmin,
-  fetchMessagesFromAPI, sendMessageViaAPI, markMessagesReadViaAPI, fetchConversationsFromAPI
+  fetchMessagesFromAPI, sendMessageViaAPI, markMessagesReadViaAPI, fetchConversationsFromAPI,
+  playNotificationSound
 } from '@/services/messagingService';
 import FileAttachment from '@/components/chat/FileAttachment';
 import ChatInput from '@/components/chat/ChatInput';
@@ -126,8 +127,22 @@ export default function AdminNotifications() {
   const [activeTab, setActiveTab] = useState<AdminTab>('conversations');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
-  const [conversations, setConversations] = useState<StudentConversation[]>(MOCK_STUDENT_CONVS);
-  const [activeConvId, setActiveConvId] = useState<string | null>('sc-1');
+  const [conversations, setConversations] = useState<StudentConversation[]>([]);
+  const [activeConvId, _setActiveConvId] = useState<string | null>(null);
+  const activeConvIdRef = useRef<string | null>(null);
+  const adminChoseConvRef = useRef<boolean>(false);
+  const processedMsgIdsRef = useRef<Set<string>>(new Set());
+  const studentsRef = useRef<Student[]>([]);
+
+  const setActiveConvId = useCallback((id: string | null) => {
+    activeConvIdRef.current = id;
+    _setActiveConvId(id);
+  }, []);
+
+  const handleSelectConv = (convId: string) => {
+    adminChoseConvRef.current = true;
+    setActiveConvId(convId);
+  };
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -178,7 +193,7 @@ export default function AdminNotifications() {
     ];
   });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!profile) return;
     try {
       const [notifs, { data: studList }] = await Promise.all([
@@ -187,6 +202,8 @@ export default function AdminNotifications() {
       ]);
       setNotifications(notifs);
       setStudents(studList);
+      studentsRef.current = studList;
+
       if (studList.length > 0) {
         if (!singleStudentId) setSingleStudentId(studList[0].id);
         const liveConvs = getAllConversationsForAdmin(studList);
@@ -204,59 +221,91 @@ export default function AdminNotifications() {
               timestamp: new Date(m.timestamp),
             })),
           }));
-          setConversations(mapped);
-          if (!activeConvId) {
-            setActiveConvId(mapped[0]?.id || null);
+
+          setConversations(prev => {
+            const prevMap = new Map(prev.map(c => [c.id, c.messages]));
+            return mapped.map(c => ({
+              ...c,
+              messages: (prevMap.get(c.id)?.length ? prevMap.get(c.id) : c.messages) || [],
+            }));
+          });
+
+          // ONLY auto-select first conversation if admin has NEVER explicitly chosen one and no active conv is set
+          if (!adminChoseConvRef.current && !activeConvIdRef.current) {
+            const initialId = mapped[0]?.id || null;
+            activeConvIdRef.current = initialId;
+            _setActiveConvId(initialId);
           }
         }
       }
     } catch {
       // ignore
     }
-  };
+  }, [profile, singleStudentId]);
 
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
-  }, [profile]);
+  }, [loadData]);
 
   // Real-time listener for incoming messages
   useEffect(() => {
-    const handleNewMsg = () => {
-      if (students.length > 0) {
-        const liveConvs = getAllConversationsForAdmin(students);
-        setConversations(liveConvs.map(c => ({
-          id: c.id,
-          studentId: c.studentId,
-          studentName: c.studentName,
-          studentEmail: c.studentEmail || '',
-          lastMessage: c.lastMessage,
-          lastMessageTime: new Date(c.lastMessageTime),
-          unreadCount: c.unreadCount,
-          messages: c.messages.map(m => ({
-            ...m,
-            timestamp: new Date(m.timestamp),
-          })),
-        })));
+    const handleNewMsg = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const incomingMsg = detail?.message;
+
+      const currentStudents = studentsRef.current;
+      if (currentStudents.length > 0) {
+        const liveConvs = getAllConversationsForAdmin(currentStudents);
+        setConversations(prev => {
+          const prevMap = new Map(prev.map(c => [c.id, c.messages]));
+          return liveConvs.map(c => ({
+            id: c.id,
+            studentId: c.studentId,
+            studentName: c.studentName,
+            studentEmail: c.studentEmail || '',
+            lastMessage: c.lastMessage,
+            lastMessageTime: new Date(c.lastMessageTime),
+            unreadCount: c.unreadCount,
+            messages: (prevMap.get(c.id)?.length
+              ? prevMap.get(c.id)
+              : c.messages.map(m => ({ ...m, timestamp: new Date(m.timestamp) }))) || [],
+          }));
+        });
+      }
+
+      // Play sound only for incoming messages from students, deduped
+      if (
+        incomingMsg &&
+        incomingMsg.senderType === 'student' &&
+        !processedMsgIdsRef.current.has(incomingMsg.id)
+      ) {
+        processedMsgIdsRef.current.add(incomingMsg.id);
+        playNotificationSound();
       }
     };
     window.addEventListener('tatti_new_message', handleNewMsg);
     return () => window.removeEventListener('tatti_new_message', handleNewMsg);
-  }, [students]);
+  }, []);
 
   const activeConv = conversations.find(c => c.id === activeConvId);
 
   // When active conversation changes, fetch its latest messages from API & mark read
   useEffect(() => {
-    if (!activeConv) return;
+    if (!activeConvId) return;
     const fetchActiveMsgs = async () => {
+      const currentConvId = activeConvIdRef.current;
+      if (!currentConvId) return;
+      const conv = conversations.find(c => c.id === currentConvId);
+      if (!conv) return;
+
       try {
-        const msgs = await fetchMessagesFromAPI(activeConv.studentId);
+        const msgs = await fetchMessagesFromAPI(conv.studentId);
         if (msgs && msgs.length > 0) {
           setConversations(prev =>
             prev.map(c => {
-              if (c.studentId === activeConv.studentId) {
+              if (c.studentId === conv.studentId) {
                 return {
                   ...c,
                   messages: msgs.map(m => ({
@@ -269,7 +318,7 @@ export default function AdminNotifications() {
             })
           );
         }
-        await markMessagesReadViaAPI(activeConv.studentId, 'admin');
+        await markMessagesReadViaAPI(conv.studentId, 'admin');
       } catch {
         // ignore
       }
@@ -277,21 +326,25 @@ export default function AdminNotifications() {
     fetchActiveMsgs();
     const activeInterval = setInterval(fetchActiveMsgs, 5000);
     return () => clearInterval(activeInterval);
-  }, [activeConv?.studentId]);
+  }, [activeConvId]);
 
   const handleAdminSendChat = async (text: string) => {
-    if (!activeConv) return;
+    const currentConv = conversations.find(c => c.id === activeConvIdRef.current) || activeConv;
+    if (!currentConv) return;
+    const targetStudentId = currentConv.studentId;
+    const targetConvId = currentConv.id;
+
     await sendMessageViaAPI({
-      studentId: activeConv.studentId,
+      studentId: targetStudentId,
       senderId: profile?.id || 'admin',
       senderName: profile?.full_name || 'TATTI Admin',
       senderType: 'admin',
       text,
     });
-    const msgs = await fetchMessagesFromAPI(activeConv.studentId);
+    const msgs = await fetchMessagesFromAPI(targetStudentId);
     setConversations(prev =>
       prev.map(c => {
-        if (c.studentId === activeConv.studentId) {
+        if (c.id === targetConvId || c.studentId === targetStudentId) {
           return {
             ...c,
             lastMessage: text,
@@ -305,9 +358,13 @@ export default function AdminNotifications() {
   };
 
   const handleAdminSendDoc = async (file: UploadedFileData) => {
-    if (!activeConv) return;
+    const currentConv = conversations.find(c => c.id === activeConvIdRef.current) || activeConv;
+    if (!currentConv) return;
+    const targetStudentId = currentConv.studentId;
+    const targetConvId = currentConv.id;
+
     await sendMessageViaAPI({
-      studentId: activeConv.studentId,
+      studentId: targetStudentId,
       senderId: profile?.id || 'admin',
       senderName: profile?.full_name || 'TATTI Admin',
       senderType: 'admin',
@@ -319,10 +376,10 @@ export default function AdminNotifications() {
         url: file.url,
       },
     });
-    const msgs = await fetchMessagesFromAPI(activeConv.studentId);
+    const msgs = await fetchMessagesFromAPI(targetStudentId);
     setConversations(prev =>
       prev.map(c => {
-        if (c.studentId === activeConv.studentId) {
+        if (c.id === targetConvId || c.studentId === targetStudentId) {
           return {
             ...c,
             lastMessage: `Document: ${file.name}`,
@@ -777,13 +834,20 @@ export default function AdminNotifications() {
                     .map(conv => (
                       <button
                         key={conv.id}
-                        onClick={() => setActiveConvId(conv.id)}
+                        onClick={() => handleSelectConv(conv.id)}
                         className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 transition-colors text-left ${
                           activeConvId === conv.id ? 'bg-primary/10 border-l-4 border-l-primary' : ''
                         }`}
                       >
-                        <div className="w-9 h-9 rounded-full gradient-bg flex items-center justify-center text-white text-xs font-bold shrink-0">
-                          {conv.studentName[0]}
+                        <div className="relative shrink-0">
+                          <div className="w-9 h-9 rounded-full gradient-bg flex items-center justify-center text-white text-xs font-bold">
+                            {conv.studentName[0]}
+                          </div>
+                          {conv.unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                              {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
+                            </span>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-0.5">

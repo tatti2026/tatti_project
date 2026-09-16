@@ -60,6 +60,16 @@ export async function upsertApplication(req: Request, res: Response) {
       });
     }
 
+    // Validate course exists in database if course_id provided
+    let verifiedCourseName: string | null = null;
+    if (app.course_id) {
+      const courseRes = await query('SELECT id, course_name FROM courses WHERE id = $1', [app.course_id]);
+      if (courseRes.rows.length === 0) {
+        return res.status(400).json({ error: 'Selected course not found in course catalog.' });
+      }
+      verifiedCourseName = courseRes.rows[0].course_name;
+    }
+
     if (app.id) {
       const allowedFields = [
         'course_id', 'application_number', 'status', 'step', 'submitted_at'
@@ -82,6 +92,17 @@ export async function upsertApplication(req: Request, res: Response) {
       const queryStr = `UPDATE applications SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`;
       const updateRes = await query(queryStr, values);
       
+      // Update student's selected_course if a valid course was selected
+      if (verifiedCourseName) {
+        const appStudentRes = await query('SELECT student_id FROM applications WHERE id = $1', [app.id]);
+        const targetStudentId = studentId || appStudentRes.rows[0]?.student_id;
+        if (targetStudentId) {
+          await query("UPDATE students SET selected_course = $1, updated_at = now() WHERE id = $2", [
+            verifiedCourseName, targetStudentId
+          ]);
+        }
+      }
+
       const fullRes = await query(`
         SELECT a.*, row_to_json(c.*) as course 
         FROM applications a 
@@ -103,10 +124,18 @@ export async function upsertApplication(req: Request, res: Response) {
 
       const inserted = result.rows[0];
 
-      // Update student application_status
-      await query("UPDATE students SET application_status = $1, updated_at = now() WHERE id = $2", [
-        inserted.status, studentId
-      ]);
+      // Update student application_status and selected_course
+      if (verifiedCourseName) {
+        await query(
+          "UPDATE students SET application_status = $1, selected_course = $2, updated_at = now() WHERE id = $3",
+          [inserted.status, verifiedCourseName, studentId]
+        );
+      } else {
+        await query(
+          "UPDATE students SET application_status = $1, updated_at = now() WHERE id = $2",
+          [inserted.status, studentId]
+        );
+      }
 
       if (inserted.status === 'submitted') {
         createSystemNotification(
@@ -142,6 +171,14 @@ export async function submitApplication(req: Request, res: Response) {
     });
   }
 
+  let verifiedCourseName: string | null = null;
+  if (courseId) {
+    const courseRes = await query('SELECT id, course_name FROM courses WHERE id = $1', [courseId]);
+    if (courseRes.rows.length > 0) {
+      verifiedCourseName = courseRes.rows[0].course_name;
+    }
+  }
+
   const appNumber = `APP${new Date().getFullYear()}${Math.floor(100000 + Math.random() * 900000)}`;
 
   try {
@@ -151,7 +188,17 @@ export async function submitApplication(req: Request, res: Response) {
       RETURNING *;
     `, [studentId, courseId || null, appNumber]);
 
-    await query("UPDATE students SET application_status = 'submitted', updated_at = now() WHERE id = $1", [studentId]);
+    if (verifiedCourseName) {
+      await query(
+        "UPDATE students SET application_status = 'submitted', selected_course = $1, updated_at = now() WHERE id = $2",
+        [verifiedCourseName, studentId]
+      );
+    } else {
+      await query(
+        "UPDATE students SET application_status = 'submitted', updated_at = now() WHERE id = $1",
+        [studentId]
+      );
+    }
 
     createSystemNotification(
       studentId,
@@ -171,4 +218,3 @@ export async function submitApplication(req: Request, res: Response) {
     res.status(500).json({ error: 'Internal server error' });
   }
 }
-

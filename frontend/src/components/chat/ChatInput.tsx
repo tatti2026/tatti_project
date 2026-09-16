@@ -148,6 +148,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         onBackspace={handleVirtualBackspace}
         onSpace={handleVirtualSpace}
         onEnter={handleVirtualEnter}
+        onUploadDoc={() => setDocModalOpen(true)}
       />
     </>
   );

@@ -466,7 +466,7 @@ export default function StudentDetails() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-muted-foreground font-medium">Selected Course</p>
-                  <p className="text-xs font-semibold text-primary">{viewStudent.selected_course || 'Full Stack Web Development'}</p>
+                  <p className="text-xs font-semibold text-primary">{viewStudent.selected_course || 'Not Selected'}</p>
                 </div>
               </div>
 

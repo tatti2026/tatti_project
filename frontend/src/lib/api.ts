@@ -1,4 +1,3 @@
-import { getApplicationAccess, isApplicationUnlocked } from '@/services/applicationAccessService';
 import type {
   Student, Assessment, Course, Question,
   CourseRecommendation, Application, Payment,
@@ -26,13 +25,7 @@ export async function getStudentByProfileId(profileId: string): Promise<Student 
   if (!res.ok) return null;
   const data = await res.json();
   if (!data) return null;
-  const access = getApplicationAccess(data.id);
-  return {
-    ...data,
-    application_access_status: access.status,
-    application_unlocked_by: access.unlocked_by,
-    application_unlocked_at: access.unlocked_at,
-  } as Student;
+  return data as Student;
 }
 
 export async function createStudent(data: Partial<Student>): Promise<Student | null> {
@@ -44,13 +37,7 @@ export async function createStudent(data: Partial<Student>): Promise<Student | n
   if (!res.ok) return null;
   const result = await res.json();
   if (!result) return null;
-  const access = getApplicationAccess(result.id);
-  return {
-    ...result,
-    application_access_status: access.status,
-    application_unlocked_by: access.unlocked_by,
-    application_unlocked_at: access.unlocked_at,
-  } as Student;
+  return result as Student;
 }
 
 export async function updateStudent(id: string, data: Partial<Student>): Promise<void> {
@@ -68,20 +55,20 @@ export async function deleteStudent(id: string): Promise<void> {
   });
 }
 
-export async function unlockStudentApplication(studentId: string, adminName?: string): Promise<{ success: boolean; message?: string }> {
-  const res = await fetch(`${API_BASE}/admin/students/${studentId}/unlock`, {
-    method: 'POST',
+export async function unlockStudentApplication(studentId: string, adminName?: string): Promise<{ success: boolean; applicationAccess?: boolean; message?: string }> {
+  const res = await fetch(`${API_BASE}/students/${studentId}/application-access`, {
+    method: 'PATCH',
     headers: getHeaders(),
-    body: JSON.stringify({ adminName: adminName || 'TATTI Admin' }),
+    body: JSON.stringify({ unlocked: true, adminName: adminName || 'TATTI Head Administrator' }),
   });
   return res.json();
 }
 
-export async function lockStudentApplication(studentId: string, adminName?: string): Promise<{ success: boolean; message?: string }> {
-  const res = await fetch(`${API_BASE}/admin/students/${studentId}/lock`, {
-    method: 'POST',
+export async function lockStudentApplication(studentId: string, adminName?: string): Promise<{ success: boolean; applicationAccess?: boolean; message?: string }> {
+  const res = await fetch(`${API_BASE}/students/${studentId}/application-access`, {
+    method: 'PATCH',
     headers: getHeaders(),
-    body: JSON.stringify({ adminName: adminName || 'TATTI Admin' }),
+    body: JSON.stringify({ unlocked: false, adminName: adminName || 'TATTI Head Administrator' }),
   });
   return res.json();
 }
@@ -234,10 +221,6 @@ export async function getStudentApplication(studentId: string): Promise<Applicat
 }
 
 export async function upsertApplication(app: Partial<Application>): Promise<Application | null> {
-  if (app.student_id && !isApplicationUnlocked(app.student_id)) {
-    throw new Error('Application process is locked by TATTI Admin. Application cannot be modified or submitted.');
-  }
-
   const endpoint = app.id ? `${API_BASE}/applications/${app.id}` : `${API_BASE}/applications`;
   const method = app.id ? 'PUT' : 'POST';
 
@@ -263,10 +246,6 @@ export async function getStudentPayment(studentId: string): Promise<Payment | nu
 }
 
 export async function createPayment(payment: Partial<Payment>): Promise<Payment | null> {
-  if (payment.student_id && !isApplicationUnlocked(payment.student_id)) {
-    throw new Error('Application process is locked by TATTI Admin. Payment cannot be initiated.');
-  }
-
   const res = await fetch(`${API_BASE}/payments`, {
     method: 'POST',
     headers: getHeaders(),

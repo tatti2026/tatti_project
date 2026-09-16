@@ -15,32 +15,21 @@ export async function requireApplicationUnlocked(
   }
 
   try {
-    // Check PostgreSQL database first
     const dbRes = await query('SELECT application_access_status FROM students WHERE id = $1', [studentId]);
-    if (dbRes.rows.length > 0) {
-      const status = dbRes.rows[0].application_access_status;
-      if (status === 'locked' || !status) {
-        return res.status(403).json({
-          error: 'Application process is locked by TATTI Admin. Unauthorized attempt to modify or submit application.',
-          code: 'APPLICATION_LOCKED',
-          status: 'locked',
-        });
-      }
-      return next();
+    if (dbRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Student record not found.' });
     }
+    const status = dbRes.rows[0].application_access_status;
+    if (status !== 'unlocked') {
+      return res.status(403).json({
+        error: 'Application process is locked by TATTI Admin. Unauthorized attempt to modify or submit application.',
+        code: 'APPLICATION_LOCKED',
+        status: 'locked',
+      });
+    }
+    return next();
   } catch (err) {
     console.error('Database check error in requireApplicationUnlocked:', err);
+    return res.status(500).json({ error: 'Internal server error validating application access.' });
   }
-
-  // Fallback to cache
-  const isUnlocked = isStudentApplicationUnlocked(studentId);
-  if (!isUnlocked) {
-    return res.status(403).json({
-      error: 'Application process is locked by TATTI Admin. Unauthorized attempt to modify or submit application.',
-      code: 'APPLICATION_LOCKED',
-      status: 'locked',
-    });
-  }
-
-  next();
 }

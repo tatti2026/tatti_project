@@ -16,7 +16,7 @@ interface KeyboardRowProps {
 
 export const KeyboardRow: React.FC<KeyboardRowProps> = ({ keys, onKeyClick, className = '' }) => {
   return (
-    <div className={`flex items-center justify-center gap-1 sm:gap-1.5 w-full ${className}`}>
+    <div className={`flex items-center justify-center gap-0.5 sm:gap-1 w-full ${className}`}>
       {keys.map((item, idx) => {
         const config: KeyConfig = typeof item === 'string' ? { key: item, label: item } : item;
         const keyId = `${config.key}-${idx}`;
@@ -39,7 +39,7 @@ export const KeyboardRow: React.FC<KeyboardRowProps> = ({ keys, onKeyClick, clas
               e.stopPropagation();
               onKeyClick(config.key);
             }}
-            className={`select-none h-10 sm:h-11 rounded-lg flex items-center justify-center text-xs sm:text-sm font-medium transition-all duration-75 active:scale-90 active:bg-slate-500 focus:outline-none ${
+            className={`select-none h-7 sm:h-8 rounded-md flex items-center justify-center text-[11px] sm:text-xs font-medium transition-all duration-75 active:scale-90 active:bg-slate-500 focus:outline-none ${
               config.width || 'flex-1'
             } ${variantStyle}`}
           >

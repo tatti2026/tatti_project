@@ -63,6 +63,8 @@ export default function Notifications() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const prevNotifIdsRef = useRef<Set<string>>(new Set());
+  const isInitialMountRef = useRef(true);
 
   // Load student, notifications & messages
   const loadData = async () => {
@@ -73,6 +75,18 @@ export default function Notifications() {
       const studentId = s?.id || 'default';
 
       const notifs = await getNotifications(profile.id);
+
+      // Play chime only when a genuinely new unread notification arrives
+      if (!isInitialMountRef.current) {
+        const hasNewUnread = notifs.some(n => !n.is_read && !prevNotifIdsRef.current.has(n.id));
+        if (hasNewUnread) {
+          playNotificationSound();
+        }
+      } else {
+        isInitialMountRef.current = false;
+      }
+      prevNotifIdsRef.current = new Set(notifs.map(n => n.id));
+
       setNotifications(notifs);
 
       const msgs = await fetchMessagesFromAPI(studentId);

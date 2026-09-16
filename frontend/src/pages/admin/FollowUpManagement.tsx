@@ -15,8 +15,8 @@ import {
 import { toast } from 'sonner';
 import type { Student, FollowUp } from '@/types/index';
 import {
-  ClipboardList, Plus, Pencil, Loader2, Trophy, Target,
-  TrendingDown, CalendarPlus2, Eye, Calendar, Clock, Lock, Unlock, Shield
+  Plus, Pencil, Loader2, Trophy, Target,
+  TrendingDown, CalendarPlus2, Eye, Calendar, Lock, Unlock
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -74,7 +74,14 @@ export default function FollowUpManagement() {
     fetchData();
   }, []);
 
+  const getStudentFU = (studentId: string) => followUps.find(f => f.student_id === studentId);
+
   const openAdd = (intent: string, studentId?: string) => {
+    const existing = studentId ? getStudentFU(studentId) : null;
+    if (existing) {
+      openEdit(existing);
+      return;
+    }
     setEditFU(null);
     setForm({
       student_id: studentId || '',
@@ -90,7 +97,7 @@ export default function FollowUpManagement() {
     setEditFU(fu);
     setForm({
       student_id: fu.student_id,
-      intent_level: fu.intent_level,
+      intent_level: fu.intent_level || 'medium',
       followup_date: fu.followup_date || '',
       followup_status: fu.followup_status || 'pending',
       notes: fu.notes || ''
@@ -104,28 +111,30 @@ export default function FollowUpManagement() {
       return;
     }
     setSaving(true);
+    const existing = editFU || getStudentFU(form.student_id);
     await upsertFollowUp({
-      ...editFU,
+      ...(existing ? { id: existing.id } : {}),
       ...form,
       intent_level: form.intent_level as FollowUp['intent_level']
     });
     setSaving(false);
     setShowForm(false);
     toast.success('Follow-up record saved successfully');
-    fetchData();
+    await fetchData();
   };
 
-  // Segment students
-  const high = students.filter(s =>
-    s.assessment_status === 'completed' &&
-    (s.payment_status === 'paid' || s.application_status === 'submitted')
-  );
-  const medium = students.filter(s =>
-    s.assessment_status === 'completed' && s.payment_status !== 'paid'
-  );
-  const low = students.filter(s => s.assessment_status !== 'completed');
+  // Intent segmentation based on saved intent_level in follow_ups
+  const getStudentIntent = (studentId: string): 'high' | 'medium' | 'low' => {
+    const fu = getStudentFU(studentId);
+    if (fu?.intent_level === 'high') return 'high';
+    if (fu?.intent_level === 'medium') return 'medium';
+    if (fu?.intent_level === 'low') return 'low';
+    return 'low'; // Default unassigned students to low intent
+  };
 
-  const getStudentFU = (studentId: string) => followUps.find(f => f.student_id === studentId);
+  const high = students.filter(s => getStudentIntent(s.id) === 'high');
+  const medium = students.filter(s => getStudentIntent(s.id) === 'medium');
+  const low = students.filter(s => getStudentIntent(s.id) === 'low');
 
   const segments = [
     { key: 'high', label: 'HIGH INTENT', students: high, icon: Trophy, color: 'text-success', bgColor: 'bg-success/10 border-success/20', tagColor: 'bg-success/20 text-success' },
@@ -149,10 +158,10 @@ export default function FollowUpManagement() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">Follow-up Management</h1>
-            <p className="text-muted-foreground text-sm">Track admissions progress, schedule follow-ups, and update student status</p>
+            <p className="text-muted-foreground text-sm">Track admissions progress, follow-ups, and update student status</p>
           </div>
           <Button onClick={() => openAdd('medium')} className="gradient-bg border-0 text-white text-xs">
-            <Plus className="w-4 h-4 mr-1.5" /> Schedule Follow-up
+            <Plus className="w-4 h-4 mr-1.5" /> Follow-up
           </Button>
         </div>
 
@@ -180,135 +189,163 @@ export default function FollowUpManagement() {
                   No students in this segment
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {seg.map(s => {
-                    const fu = getStudentFU(s.id);
-                    return (
-                      <div key={s.id} className="glass-card rounded-xl p-4 hover:border-primary/30 transition-all">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex items-start gap-3 min-w-0">
-                            <div className="w-9 h-9 rounded-full gradient-bg flex items-center justify-center shrink-0 shadow-sm">
-                              <span className="text-xs font-bold text-white">{(s.full_name || s.email || 'S')[0].toUpperCase()}</span>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-sm font-semibold text-foreground">{s.full_name || 'Student'}</p>
-                                <span className="text-[11px] font-mono text-muted-foreground px-1.5 py-0.2 rounded bg-muted">
-                                  {s.student_id || '-'}
-                                </span>
-                              </div>
-                              <p className="text-xs text-muted-foreground truncate">{s.email || '-'}</p>
+                <div className="glass-card rounded-xl overflow-hidden border border-border">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50 border-b border-border text-muted-foreground">
+                        <tr>
+                          <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Student Name</th>
+                          <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Student ID</th>
+                          <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Career Fit Assessment</th>
+                          <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Counselling</th>
+                          <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Notes</th>
+                          <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Application Access</th>
+                          <th className="px-3.5 py-3 text-right font-bold uppercase tracking-wider text-[10px]">Update Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/60">
+                        {seg.map(s => {
+                          const fu = getStudentFU(s.id);
+                          return (
+                            <tr key={s.id} className="hover:bg-muted/40 transition-colors">
+                              {/* 1. Student Name */}
+                              <td className="px-3.5 py-3 whitespace-nowrap">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-full gradient-bg flex items-center justify-center shrink-0 shadow-sm text-xs font-bold text-white">
+                                    {(s.full_name || s.email || 'S')[0].toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => setViewStudent(s)}
+                                      className="font-semibold text-foreground text-xs hover:text-primary transition-colors flex items-center gap-1 text-left"
+                                      title="View Student Details"
+                                    >
+                                      <span className="truncate max-w-[150px]">{s.full_name || 'Unnamed Student'}</span>
+                                      <Eye className="w-3 h-3 text-muted-foreground hover:text-primary shrink-0" />
+                                    </button>
+                                    <p className="text-[11px] text-muted-foreground truncate max-w-[150px]">{s.email || '-'}</p>
+                                  </div>
+                                </div>
+                              </td>
 
-                              {fu && (
-                                <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                                  {fu.followup_date && (
-                                    <span className="flex items-center gap-1 font-medium text-foreground">
-                                      <Calendar className="w-3 h-3 text-primary" /> {fu.followup_date}
-                                    </span>
+                              {/* 2. Student ID */}
+                              <td className="px-3.5 py-3 font-mono font-bold text-primary whitespace-nowrap">
+                                {s.student_id || '-'}
+                              </td>
+
+                              {/* 3. Career Fit Assessment */}
+                              <td className="px-3.5 py-3 whitespace-nowrap">
+                                <StatusBadge status={s.assessment_status || 'not_started'} />
+                              </td>
+
+                              {/* 4. Counselling */}
+                              <td className="px-3.5 py-3 whitespace-nowrap">
+                                <StatusBadge status={s.counselling_status || 'not_scheduled'} />
+                              </td>
+
+                              {/* 5. Notes */}
+                              <td className="px-3.5 py-3">
+                                <div className="flex items-center gap-1.5 min-w-[170px] max-w-[240px]">
+                                  <div className="flex-1 min-w-0">
+                                    {fu?.notes ? (
+                                      <p className="truncate text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded border border-border/40" title={fu.notes}>
+                                        {fu.notes}
+                                      </p>
+                                    ) : (
+                                      <span className="text-[11px] text-muted-foreground italic">No notes</span>
+                                    )}
+                                    {fu?.followup_date && (
+                                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
+                                        <Calendar className="w-2.5 h-2.5 text-primary shrink-0" />
+                                        <span>{fu.followup_date}</span>
+                                        {fu.followup_status && (
+                                          <span className="capitalize font-medium">({fu.followup_status.replace(/_/g, ' ')})</span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 w-7 p-0 text-muted-foreground hover:text-primary shrink-0"
+                                    title={fu?.notes ? 'Edit Note' : 'Add Note'}
+                                    onClick={() => (fu ? openEdit(fu) : openAdd(key, s.id))}
+                                  >
+                                    <CalendarPlus2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
+                              </td>
+
+                              {/* 6. Application Access */}
+                              <td className="px-3.5 py-3 whitespace-nowrap">
+                                <div className="flex items-center gap-2">
+                                  {s.application_access_status === 'unlocked' ? (
+                                    <>
+                                      <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium text-[11px]" title={s.application_unlocked_by ? `Unlocked by ${s.application_unlocked_by}` : 'Application Unlocked'}>
+                                        <Unlock className="w-3 h-3" />
+                                        <span>Unlocked</span>
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 px-2 text-[11px] text-rose-500 border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400"
+                                        title="Lock student application access"
+                                        onClick={() => setConfirmDialog({ open: true, student: s, action: 'lock' })}
+                                      >
+                                        <Lock className="w-3 h-3 mr-1" /> Lock
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="flex items-center gap-1 text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full font-medium text-[11px]" title="Application Locked">
+                                        <Lock className="w-3 h-3" />
+                                        <span>Locked</span>
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 px-2 text-[11px] text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400"
+                                        title="Unlock student application access"
+                                        onClick={() => setConfirmDialog({ open: true, student: s, action: 'unlock' })}
+                                      >
+                                        <Unlock className="w-3 h-3 mr-1" /> Unlock
+                                      </Button>
+                                    </>
                                   )}
-                                  {fu.followup_status && <StatusBadge status={fu.followup_status} />}
-                                  {fu.notes && (
-                                    <span className="truncate max-w-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded">
-                                      Note: {fu.notes}
-                                    </span>
-                                  )}
                                 </div>
-                              )}
-                            </div>
-                          </div>
+                              </td>
 
-                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
-                            <StatusBadge status={s.payment_status} />
-                            <StatusBadge status={s.assessment_status} />
-
-                            {/* Application Access Badge */}
-                            <div className="flex flex-col items-start text-[11px]">
-                              {s.application_access_status === 'unlocked' ? (
-                                <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium" title={s.application_unlocked_by ? `Unlocked by ${s.application_unlocked_by}` : 'Application Unlocked'}>
-                                  <Unlock className="w-3 h-3" />
-                                  <span>Unlocked</span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-1 text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full font-medium" title="Application Locked">
-                                  <Lock className="w-3 h-3" />
-                                  <span>Locked</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Lock / Unlock Application Process Action Button */}
-                            {s.application_access_status === 'unlocked' ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 px-2.5 text-xs text-rose-500 border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400"
-                                title="Lock student application access"
-                                onClick={() => setConfirmDialog({ open: true, student: s, action: 'lock' })}
-                              >
-                                <Lock className="w-3.5 h-3.5 mr-1" /> Lock Application
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 px-2.5 text-xs text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400"
-                                title="Unlock student application access"
-                                onClick={() => setConfirmDialog({ open: true, student: s, action: 'unlock' })}
-                              >
-                                <Unlock className="w-3.5 h-3.5 mr-1" /> Unlock Application
-                              </Button>
-                            )}
-
-                            {/* Action Buttons: View Student, Add Note / Schedule Follow-up, Update Status */}
-                            {/* Strictly NO Call, Email or Message icon buttons */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 px-2.5 text-xs hover:text-primary"
-                              title="View Student Details"
-                              onClick={() => setViewStudent(s)}
-                            >
-                              <Eye className="w-3.5 h-3.5 mr-1" /> View Student
-                            </Button>
-
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 px-2.5 text-xs"
-                              title="Add Note or Schedule Follow-up"
-                              onClick={() => openAdd(key, s.id)}
-                            >
-                              <CalendarPlus2 className="w-3.5 h-3.5 mr-1 text-primary" /> Add Note
-                            </Button>
-
-                            {fu && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 px-2.5 text-xs text-foreground"
-                                title="Update Follow-up Status"
-                                onClick={() => openEdit(fu)}
-                              >
-                                <Pencil className="w-3.5 h-3.5 mr-1 text-primary" /> Update Status
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                              {/* 7. Update Status */}
+                              <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2.5 text-xs text-foreground hover:border-primary hover:text-primary"
+                                  title="Update Follow-up Status"
+                                  onClick={() => (fu ? openEdit(fu) : openAdd(key, s.id))}
+                                >
+                                  <Pencil className="w-3 h-3 mr-1 text-primary" /> Update Status
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </TabsContent>
           ))}
         </Tabs>
 
-        {/* ── SCHEDULE / EDIT FOLLOW-UP DIALOG ── */}
+        {/* ── FOLLOW-UP / EDIT DIALOG ── */}
         <Dialog open={showForm} onOpenChange={setShowForm}>
           <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-md bg-card border-border">
             <DialogHeader>
               <DialogTitle className="text-base font-bold text-foreground">
-                {editFU ? 'Update Follow-up Status' : 'Schedule Follow-up & Add Note'}
+                {editFU ? 'Update Follow-up Status' : 'Follow-up & Add Note'}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3.5 pt-2">
@@ -427,6 +464,10 @@ export default function FollowUpManagement() {
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Career Fit Assessment:</span>
                     <StatusBadge status={viewStudent.assessment_status} />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Counselling Status:</span>
+                    <StatusBadge status={viewStudent.counselling_status} />
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Payment Status:</span>

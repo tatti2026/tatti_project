@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { query } from '../database/pgPool.js';
+import { calculateReminderDatetime } from '../services/counsellingReminderService.js';
 
 export async function getStudentCounselling(req: Request, res: Response) {
   try {
@@ -28,6 +29,18 @@ export async function getAllCounselling(_req: Request, res: Response) {
 export async function upsertCounselling(req: Request, res: Response) {
   try {
     const c = req.body;
+    const reminderOpt = c.reminder_option || c.reminder || '1 day before';
+    const dateStr = c.scheduled_date || '';
+    const timeStr = c.scheduled_time || '10:30 AM';
+
+    const { reminderDatetime, isPast } = calculateReminderDatetime(dateStr, timeStr, reminderOpt);
+
+    // If reminder is already in the past, mark elapsed so worker won't send an outdated notification
+    const reminderSent = isPast;
+    const notifStatus = isPast ? 'elapsed' : 'pending';
+
+    let counsellingRow: any;
+
     if (c.id) {
       const allowedFields = [
         'counsellor_name', 'scheduled_date', 'scheduled_time', 'mode',
@@ -45,26 +58,69 @@ export async function upsertCounselling(req: Request, res: Response) {
         }
       }
 
+      // Update reminder fields
+      updates.push(`reminder_option = $${idx}`);
+      values.push(reminderOpt);
+      idx++;
+
+      updates.push(`reminder_datetime = $${idx}`);
+      values.push(reminderDatetime);
+      idx++;
+
+      updates.push(`reminder_sent = $${idx}`);
+      values.push(reminderSent);
+      idx++;
+
+      updates.push(`notification_status = $${idx}`);
+      values.push(notifStatus);
+      idx++;
+
       updates.push('updated_at = now()');
       values.push(c.id);
 
       const queryStr = `UPDATE counselling SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`;
       const result = await query(queryStr, values);
-      return res.json(result.rows[0]);
+      counsellingRow = result.rows[0];
     } else {
       const result = await query(`
         INSERT INTO counselling (
           student_id, counsellor_name, scheduled_date, scheduled_time,
-          mode, venue_or_link, instructions, notes, status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          mode, venue_or_link, instructions, notes, status,
+          reminder_option, reminder_datetime, reminder_sent, notification_status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         RETURNING *;
       `, [
-        c.student_id, c.counsellor_name || '', c.scheduled_date || null,
-        c.scheduled_time || null, c.mode || 'Online', c.venue_or_link || '',
-        c.instructions || '', c.notes || '', c.status || 'not_scheduled'
+        c.student_id, c.counsellor_name || 'TATTI Counsellor', c.scheduled_date || null,
+        c.scheduled_time || '10:30 AM', c.mode || 'Online', c.venue_or_link || '',
+        c.instructions || '', c.notes || '', c.status || 'scheduled',
+        reminderOpt, reminderDatetime, reminderSent, notifStatus
       ]);
-      return res.status(201).json(result.rows[0]);
+      counsellingRow = result.rows[0];
     }
+
+    // Always ensure student's counselling_status in students table is updated
+    if (c.student_id) {
+      await query(
+        "UPDATE students SET counselling_status = $1, updated_at = now() WHERE id = $2",
+        [c.status || 'scheduled', c.student_id]
+      );
+
+      // Create immediate counselling notification for the student
+      const studentRes = await query('SELECT profile_id, full_name FROM students WHERE id = $1', [c.student_id]);
+      const profileId = studentRes.rows[0]?.profile_id;
+
+      if (profileId && dateStr) {
+        const counsellor = c.counsellor_name || 'TATTI Counsellor';
+        const notifMsg = `Your TATTI counselling session is scheduled for ${dateStr} at ${timeStr} with ${counsellor}.`;
+        
+        await query(`
+          INSERT INTO notifications (profile_id, title, message, type, is_read)
+          VALUES ($1, $2, $3, 'counselling', false);
+        `, [profileId, '📅 Counselling Scheduled', notifMsg]);
+      }
+    }
+
+    return res.status(c.id ? 200 : 201).json(counsellingRow);
   } catch (err) {
     console.error('Error upserting counselling:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -78,7 +134,8 @@ export async function updateCounselling(req: Request, res: Response) {
 
     const allowedFields = [
       'counsellor_name', 'scheduled_date', 'scheduled_time', 'mode',
-      'venue_or_link', 'instructions', 'notes', 'status'
+      'venue_or_link', 'instructions', 'notes', 'status',
+      'reminder_option', 'reminder_datetime', 'reminder_sent', 'notification_status'
     ];
     const updates: string[] = [];
     const values: any[] = [];

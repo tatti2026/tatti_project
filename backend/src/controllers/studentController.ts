@@ -5,20 +5,54 @@ import { getStudentApplicationAccess } from '../services/applicationAccessServic
 export async function getStudentByProfileId(req: Request, res: Response) {
   try {
     const { profileId } = req.params;
-    const result = await query('SELECT * FROM students WHERE profile_id = $1', [profileId]);
+    const result = await query(`
+      SELECT s.*, 
+        (SELECT row_to_json(c.*) FROM courses c 
+         JOIN applications a ON a.course_id = c.id 
+         WHERE a.student_id = s.id ORDER BY a.created_at DESC LIMIT 1) as course_info
+      FROM students s
+      WHERE s.profile_id = $1
+    `, [profileId]);
     if (result.rows.length === 0) {
       return res.json(null);
     }
     const student = result.rows[0];
-    const access = getStudentApplicationAccess(student.id);
+    const appCourse = student.course_info?.course_name || null;
+    const computedCourse = appCourse || student.selected_course || null;
     return res.json({
       ...student,
-      application_access_status: access.status,
-      application_unlocked_by: access.unlockedBy,
-      application_unlocked_at: access.unlockedAt,
+      selected_course: computedCourse,
+      application_access_status: student.application_access_status || 'locked',
+      application_unlocked_by: student.application_unlocked_by || null,
+      application_unlocked_at: student.application_unlocked_at || null,
     });
   } catch (err) {
     console.error('Error fetching student by profile id:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+export async function getStudentApplicationAccessStatus(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const result = await query(
+      'SELECT id, full_name, application_access_status, application_unlocked_by, application_unlocked_at FROM students WHERE id = $1',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    const student = result.rows[0];
+    const isUnlocked = student.application_access_status === 'unlocked';
+    return res.json({
+      success: true,
+      applicationAccess: isUnlocked,
+      application_access_status: student.application_access_status || 'locked',
+      unlocked_by: student.application_unlocked_by || null,
+      unlocked_at: student.application_unlocked_at || null,
+    });
+  } catch (err) {
+    console.error('Error fetching student application access status:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -47,7 +81,7 @@ export async function createStudent(req: Request, res: Response) {
     `, [
       profile_id || null, code, full_name || '', email || '', phone || '',
       date_of_birth || null, address || '', city || '', state || '', pincode || '',
-      parent_name || '', parent_phone || '', selected_course || 'Full Stack Web Development',
+      parent_name || '', parent_phone || '', selected_course || null,
       assessment_status || 'not_started', application_status || 'not_started',
       payment_status || 'unpaid', admission_status || 'not_applied'
     ]);
@@ -142,9 +176,8 @@ export async function getAllStudents(req: Request, res: Response) {
     const dataRes = await query(dataQueryStr, [...queryParams, ps, p * ps]);
 
     const enriched = dataRes.rows.map((s: any) => {
-      const access = getStudentApplicationAccess(s.id);
       const appCourse = s.course_info?.course_name || null;
-      const computedCourse = s.selected_course || appCourse || 'Full Stack Web Development';
+      const computedCourse = appCourse || s.selected_course || null;
       const computedParentName = s.parent_name || (s.full_name ? `R. ${s.full_name.split(' ')[0]} (Parent)` : 'Parent / Guardian');
       const computedParentPhone = s.parent_phone || (s.phone ? `+91 94441 ${s.phone.slice(-4).padStart(4, '0')}` : '+91 94441 55667');
 
@@ -153,9 +186,9 @@ export async function getAllStudents(req: Request, res: Response) {
         parent_name: computedParentName,
         parent_phone: computedParentPhone,
         selected_course: computedCourse,
-        application_access_status: access.status,
-        application_unlocked_by: access.unlockedBy,
-        application_unlocked_at: access.unlockedAt,
+        application_access_status: s.application_access_status || 'locked',
+        application_unlocked_by: s.application_unlocked_by || null,
+        application_unlocked_at: s.application_unlocked_at || null,
       };
     });
 

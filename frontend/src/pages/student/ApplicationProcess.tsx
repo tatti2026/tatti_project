@@ -535,7 +535,7 @@ export default function ApplicationProcess() {
   };
 
   const handleStep2 = async () => {
-    if (!selectedCourse) { toast.error('No course selected. Please select a course from Career Fit Assessment recommendations.'); return; }
+    if (!selectedCourse) { toast.error('No course selected. Please select a course to continue.'); return; }
     setSaving(true);
     if (student) {
       let app = application;
@@ -545,6 +545,8 @@ export default function ApplicationProcess() {
         app = await upsertApplication({ ...app, course_id: selectedCourse.id, step: 2 });
       }
       setApplication(app);
+      await updateStudent(student.id, { selected_course: selectedCourse.course_name });
+      toast.success(`Course "${selectedCourse.course_name}" saved.`);
     }
     setSaving(false);
     setStep(3);
@@ -769,12 +771,35 @@ export default function ApplicationProcess() {
         {/* Step 2: Course Selection */}
         {step === 2 && (
           <div className="glass-card rounded-xl p-6">
-            <h2 className="text-lg font-bold text-foreground mb-4">Selected Course</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-lg font-bold text-foreground">Course Selection</h2>
+                <p className="text-xs text-muted-foreground">Select your desired training program from available courses</p>
+              </div>
+              <div className="w-full sm:w-72">
+                <select
+                  value={selectedCourse?.id || ''}
+                  onChange={e => {
+                    const c = courses.find(item => item.id === e.target.value);
+                    setSelectedCourse(c || null);
+                  }}
+                  className="w-full bg-input border border-border rounded-lg px-3 py-2 text-xs text-foreground outline-none"
+                >
+                  <option value="">-- Select from available courses --</option>
+                  {courses.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.course_name} (₹{c.fee.toLocaleString()})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             {selectedCourse ? (
-              <div className="bg-muted rounded-xl p-5 mb-4">
+              <div className="bg-muted rounded-xl p-5 mb-4 border border-border">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <h3 className="text-base font-bold text-foreground">{selectedCourse.course_name}</h3>
-                  <span className="text-xs bg-success/20 text-success px-2 py-1 rounded-full shrink-0">Selected</span>
+                  <span className="text-xs bg-success/20 text-success px-2.5 py-1 rounded-full shrink-0 font-medium">Selected</span>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">{selectedCourse.description}</p>
                 <div className="grid grid-cols-2 gap-3">
@@ -784,7 +809,7 @@ export default function ApplicationProcess() {
                     { label: 'Eligibility', value: selectedCourse.eligibility },
                     { label: 'Available Seats', value: selectedCourse.available_seats?.toString() },
                   ].filter(i => i.value).map(({ label, value }) => (
-                    <div key={label} className="bg-background rounded-lg p-3">
+                    <div key={label} className="bg-background rounded-lg p-3 border border-border/50">
                       <p className="text-xs text-muted-foreground">{label}</p>
                       <p className="text-sm font-medium text-foreground mt-0.5">{value}</p>
                     </div>
@@ -796,10 +821,15 @@ export default function ApplicationProcess() {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-8">
+              <div className="text-center py-8 bg-muted/30 rounded-xl border border-dashed border-border mb-4">
                 <BookOpen className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground text-sm">No course selected. Please select a course from your Career Fit Assessment recommendations.</p>
-                <Button onClick={() => navigate('/student/assessment?tab=recommendations')} variant="outline" className="mt-3" size="sm">Go to Career Fit Assessment</Button>
+                <p className="text-foreground text-sm font-semibold mb-1">No Course Selected</p>
+                <p className="text-muted-foreground text-xs max-w-sm mx-auto mb-4">
+                  Please select a course from the dropdown above, or review your Career Fit Assessment recommendations.
+                </p>
+                <Button onClick={() => navigate('/student/assessment?tab=recommendations')} variant="outline" size="sm">
+                  View Career Recommendations
+                </Button>
               </div>
             )}
             <div className="flex gap-3 mt-4">

@@ -183,7 +183,6 @@ export async function sendMessageViaAPI(params: {
         attachment: sent.attachment,
       };
 
-      playNotificationSound();
       window.dispatchEvent(new CustomEvent('tatti_new_message', { detail: { message: msg } }));
       return msg;
     }
@@ -203,15 +202,20 @@ export async function sendMessageViaAPI(params: {
 
 /**
  * Mark messages as read through PostgreSQL API
+ * Guards against non-UUID studentId values (e.g. mock/code IDs like TATTI20260001)
  */
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function markMessagesReadViaAPI(studentId: string, readerType: 'admin' | 'student' = 'student'): Promise<void> {
-  try {
-    await apiMarkMessagesRead(studentId);
-  } catch (err) {
-    console.warn('markMessagesReadViaAPI failed:', err);
+  if (UUID_REGEX.test(studentId)) {
+    try {
+      await apiMarkMessagesRead(studentId);
+    } catch (err) {
+      console.warn('markMessagesReadViaAPI failed:', err);
+    }
   }
   markConversationAsRead(studentId, readerType);
 }
+
 
 /**
  * Fetch all conversations for Admin from PostgreSQL API

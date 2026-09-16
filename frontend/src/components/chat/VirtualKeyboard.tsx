@@ -6,10 +6,10 @@ import {
   Send,
   Delete,
   ArrowBigUp,
-  X,
   ChevronDown,
   Volume2,
   VolumeX,
+  Paperclip,
 } from 'lucide-react';
 import { KeyboardRow, KeyConfig } from './KeyboardRow';
 
@@ -20,6 +20,7 @@ export interface VirtualKeyboardProps {
   onBackspace: () => void;
   onEnter: () => void;
   onSpace: () => void;
+  onUploadDoc?: () => void;
 }
 
 const COMMON_EMOJIS = [
@@ -35,8 +36,10 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
   onBackspace,
   onEnter,
   onSpace,
+  onUploadDoc,
 }) => {
   const [mode, setMode] = useState<'alpha' | 'symbols'>('alpha');
+  const [lang, setLang] = useState<'EN' | 'TA'>('EN');
   const [shift, setShift] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const [showEmojis, setShowEmojis] = useState(false);
@@ -77,7 +80,6 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
     if (!open) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        // Only close if clicked outside keyboard and not inside input
         const target = e.target as HTMLElement;
         if (!target.closest('input') && !target.closest('textarea') && !target.closest('button')) {
           onClose();
@@ -137,12 +139,46 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
       return;
     }
 
+    if (key === 'UPLOAD') {
+      onUploadDoc?.();
+      return;
+    }
+
+    if (key === 'GLOBE') {
+      setLang(prev => (prev === 'EN' ? 'TA' : 'EN'));
+      return;
+    }
+
+    if (key === 'MIC') {
+      const SpeechRecognition = (window as unknown as { SpeechRecognition?: any; webkitSpeechRecognition?: any }).SpeechRecognition ||
+        (window as unknown as { webkitSpeechRecognition?: any }).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = false;
+          recognition.interimResults = false;
+          recognition.lang = lang === 'TA' ? 'ta-IN' : 'en-IN';
+          recognition.onresult = (event: any) => {
+            const transcript = event.results?.[0]?.[0]?.transcript;
+            if (transcript) {
+              for (const ch of transcript) {
+                onKeyPress(ch);
+              }
+            }
+          };
+          recognition.start();
+        } catch {
+          // Speech recognition not permitted or active
+        }
+      }
+      return;
+    }
+
     // Normal character
     let char = key;
     if (mode === 'alpha') {
       const isUpper = capsLock || shift;
       char = isUpper ? key.toUpperCase() : key.toLowerCase();
-      // If single shift was active, revert back after one press
       if (shift && !capsLock) {
         setShift(false);
       }
@@ -171,37 +207,48 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
     {
       key: mode === 'alpha' ? 'MODE_SYMBOLS' : 'MODE_ALPHA',
       label: mode === 'alpha' ? '?123' : 'ABC',
-      width: 'w-12 sm:w-16 shrink-0',
+      width: 'w-9 sm:w-11 shrink-0',
       variant: 'special',
     },
     {
       key: 'GLOBE',
-      label: <Globe className="w-4 h-4 text-slate-300" />,
-      width: 'w-10 sm:w-12 shrink-0',
+      label: (
+        <span className="flex items-center gap-0.5 text-[10px]">
+          <Globe className="w-2.5 h-2.5 text-slate-300" />
+          <span className="text-[9px] font-bold text-slate-300">{lang}</span>
+        </span>
+      ),
+      width: 'w-8 sm:w-10 shrink-0',
+      variant: 'special',
+    },
+    {
+      key: 'UPLOAD',
+      label: <Paperclip className="w-3 h-3 text-slate-300" />,
+      width: 'w-7 sm:w-8 shrink-0',
       variant: 'special',
     },
     {
       key: 'SPACE',
-      label: <span className="text-slate-400 text-xs">English</span>,
+      label: <span className="text-slate-400 text-[10px]">{lang === 'EN' ? 'English' : 'Tamil'}</span>,
       width: 'flex-1',
       variant: 'space',
     },
     {
       key: 'TOGGLE_EMOJI',
-      label: <Smile className={`w-4 h-4 ${showEmojis ? 'text-amber-400' : 'text-slate-300'}`} />,
-      width: 'w-10 sm:w-12 shrink-0',
+      label: <Smile className={`w-3 h-3 ${showEmojis ? 'text-amber-400' : 'text-slate-300'}`} />,
+      width: 'w-7 sm:w-8 shrink-0',
       variant: 'special',
     },
     {
       key: 'MIC',
-      label: <Mic className="w-4 h-4 text-slate-400" />,
-      width: 'w-10 sm:w-12 shrink-0',
+      label: <Mic className="w-3 h-3 text-slate-400" />,
+      width: 'w-7 sm:w-8 shrink-0',
       variant: 'special',
     },
     {
       key: 'ENTER',
-      label: <Send className="w-4 h-4 text-white" />,
-      width: 'w-14 sm:w-20 shrink-0',
+      label: <Send className="w-3 h-3 text-white" />,
+      width: 'w-10 sm:w-12 shrink-0',
       variant: 'accent',
     },
   ];
@@ -209,45 +256,45 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
   return (
     <div
       ref={containerRef}
-      className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md border-t border-slate-700/80 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out transform translate-y-0"
+      className="w-full bg-slate-900/98 backdrop-blur-md border-t border-slate-700/80 shadow-[0_-6px_20px_rgba(0,0,0,0.4)]"
     >
-      {/* Top Bar with minimize & sound toggle */}
-      <div className="flex items-center justify-between px-4 py-1.5 border-b border-slate-800/80 bg-slate-950/40">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold text-slate-400 tracking-wide uppercase">
+      {/* Compact Top Bar */}
+      <div className="flex items-center justify-between px-3 py-1 border-b border-slate-800/80 bg-slate-950/40">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[9px] font-semibold text-slate-500 tracking-wide uppercase">
             Virtual Keyboard
           </span>
           {capsLock && (
-            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-              CAPS LOCK
+            <span className="px-1 py-px rounded text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              CAPS
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-1 rounded text-slate-400 hover:text-slate-200 transition-colors"
+            className="p-0.5 rounded text-slate-500 hover:text-slate-300 transition-colors"
             title={soundEnabled ? 'Mute tap sound' : 'Enable tap sound'}
           >
-            {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+            {soundEnabled ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center gap-1 px-2 py-0.5 rounded text-xs text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors"
             title="Minimize Keyboard"
           >
-            <ChevronDown className="w-4 h-4" />
-            <span className="text-[11px]">Hide</span>
+            <ChevronDown className="w-3 h-3" />
+            <span className="text-[10px]">Hide</span>
           </button>
         </div>
       </div>
 
       {/* Emoji Row if opened */}
       {showEmojis && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-slate-950/60 overflow-x-auto border-b border-slate-800 scrollbar-thin">
+        <div className="flex items-center gap-1 px-2 py-1 bg-slate-950/60 overflow-x-auto border-b border-slate-800 scrollbar-thin">
           {COMMON_EMOJIS.map(emoji => (
             <button
               key={emoji}
@@ -256,7 +303,7 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
                 playTapSound();
                 onKeyPress(emoji);
               }}
-              className="text-lg p-1.5 hover:scale-125 transition-transform rounded hover:bg-slate-800 shrink-0"
+              className="text-sm p-1 hover:scale-125 transition-transform rounded hover:bg-slate-800 shrink-0"
             >
               {emoji}
             </button>
@@ -264,8 +311,8 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
         </div>
       )}
 
-      {/* Main Keys Container */}
-      <div className="max-w-3xl mx-auto p-2 sm:p-3 space-y-1.5 sm:space-y-2 select-none">
+      {/* Main Keys Container — compact */}
+      <div className="max-w-3xl mx-auto px-1.5 py-1 space-y-0.5 sm:space-y-1 select-none">
         {/* Number Row */}
         <KeyboardRow keys={numberRow} onKeyClick={handleKey} />
 
@@ -275,16 +322,16 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
             <KeyboardRow keys={alphaRow1} onKeyClick={handleKey} />
 
             {/* Alpha Row 2 */}
-            <div className="px-2 sm:px-4">
+            <div className="px-1.5 sm:px-3">
               <KeyboardRow keys={alphaRow2} onKeyClick={handleKey} />
             </div>
 
             {/* Alpha Row 3 with Shift and Backspace */}
-            <div className="flex items-center justify-center gap-1 sm:gap-1.5 w-full">
+            <div className="flex items-center justify-center gap-0.5 sm:gap-1 w-full">
               <button
                 type="button"
                 onClick={() => handleKey('SHIFT')}
-                className={`select-none h-10 sm:h-11 rounded-lg flex items-center justify-center text-xs font-semibold transition-all duration-75 active:scale-95 w-12 sm:w-16 shrink-0 border-b-2 shadow-sm ${
+                className={`select-none h-7 sm:h-8 rounded-md flex items-center justify-center text-[10px] font-semibold transition-all duration-75 active:scale-95 w-9 sm:w-12 shrink-0 border-b-2 shadow-sm ${
                   capsLock
                     ? 'bg-amber-500 text-slate-950 border-amber-600'
                     : shift
@@ -292,16 +339,16 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
                     : 'bg-slate-800/90 text-slate-300 border-slate-950 hover:bg-slate-700'
                 }`}
               >
-                <ArrowBigUp className={`w-4 h-4 ${capsLock || shift ? 'fill-current' : ''}`} />
+                <ArrowBigUp className={`w-3 h-3 ${capsLock || shift ? 'fill-current' : ''}`} />
               </button>
 
-              <div className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5">
+              <div className="flex-1 flex items-center justify-center gap-0.5 sm:gap-1">
                 {alphaRow3.map(k => (
                   <button
                     key={k}
                     type="button"
                     onClick={() => handleKey(k)}
-                    className="select-none h-10 sm:h-11 rounded-lg flex items-center justify-center text-xs sm:text-sm font-medium transition-all duration-75 active:scale-90 bg-slate-700/80 hover:bg-slate-600 text-white shadow-sm border-b-2 border-slate-900/60 flex-1"
+                    className="select-none h-7 sm:h-8 rounded-md flex items-center justify-center text-[11px] sm:text-xs font-medium transition-all duration-75 active:scale-90 bg-slate-700/80 hover:bg-slate-600 text-white shadow-sm border-b-2 border-slate-900/60 flex-1"
                   >
                     {k}
                   </button>
@@ -311,9 +358,9 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
               <button
                 type="button"
                 onClick={() => handleKey('BACKSPACE')}
-                className="select-none h-10 sm:h-11 rounded-lg flex items-center justify-center text-xs font-semibold transition-all duration-75 active:scale-95 w-12 sm:w-16 shrink-0 bg-slate-800/90 hover:bg-slate-700 text-slate-300 border-b-2 border-slate-950 shadow-sm"
+                className="select-none h-7 sm:h-8 rounded-md flex items-center justify-center text-[10px] font-semibold transition-all duration-75 active:scale-95 w-9 sm:w-12 shrink-0 bg-slate-800/90 hover:bg-slate-700 text-slate-300 border-b-2 border-slate-950 shadow-sm"
               >
-                <Delete className="w-4 h-4" />
+                <Delete className="w-3 h-3" />
               </button>
             </div>
           </>
@@ -326,14 +373,14 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
             <KeyboardRow keys={symbolRow2} onKeyClick={handleKey} />
 
             {/* Symbol Row 3 with Backspace */}
-            <div className="flex items-center justify-center gap-1 sm:gap-1.5 w-full">
-              <div className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5">
+            <div className="flex items-center justify-center gap-0.5 sm:gap-1 w-full">
+              <div className="flex-1 flex items-center justify-center gap-0.5 sm:gap-1">
                 {symbolRow3.map(k => (
                   <button
                     key={k}
                     type="button"
                     onClick={() => handleKey(k)}
-                    className="select-none h-10 sm:h-11 rounded-lg flex items-center justify-center text-xs sm:text-sm font-medium transition-all duration-75 active:scale-90 bg-slate-700/80 hover:bg-slate-600 text-white shadow-sm border-b-2 border-slate-900/60 flex-1"
+                    className="select-none h-7 sm:h-8 rounded-md flex items-center justify-center text-[11px] sm:text-xs font-medium transition-all duration-75 active:scale-90 bg-slate-700/80 hover:bg-slate-600 text-white shadow-sm border-b-2 border-slate-900/60 flex-1"
                   >
                     {k}
                   </button>
@@ -343,9 +390,9 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
               <button
                 type="button"
                 onClick={() => handleKey('BACKSPACE')}
-                className="select-none h-10 sm:h-11 rounded-lg flex items-center justify-center text-xs font-semibold transition-all duration-75 active:scale-95 w-12 sm:w-16 shrink-0 bg-slate-800/90 hover:bg-slate-700 text-slate-300 border-b-2 border-slate-950 shadow-sm"
+                className="select-none h-7 sm:h-8 rounded-md flex items-center justify-center text-[10px] font-semibold transition-all duration-75 active:scale-95 w-9 sm:w-12 shrink-0 bg-slate-800/90 hover:bg-slate-700 text-slate-300 border-b-2 border-slate-950 shadow-sm"
               >
-                <Delete className="w-4 h-4" />
+                <Delete className="w-3 h-3" />
               </button>
             </div>
           </>

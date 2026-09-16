@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getAllStudents, getAllCounselling, upsertCounselling, updateStudent, createNotification } from '@/lib/api';
+import { getAllStudents, getAllCounselling, upsertCounselling, updateStudent } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import StatusBadge from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import type { Student, Counselling } from '@/types/index';
-import { Plus, Pencil, Loader2, Search, Calendar, Bell, Clock, User, CheckCircle2, Shield } from 'lucide-react';
-import { sendChatMessage } from '@/services/messagingService';
+import { Plus, Pencil, Loader2, Search, Calendar, Clock, User, CheckCircle2, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 
 type CounsForm = {
@@ -101,78 +100,16 @@ export default function CounsellingManagement() {
       scheduled_time: form.scheduled_time,
       mode: form.counselling_type,
       notes: form.notes,
+      reminder_option: form.reminder,
       status: 'scheduled' as const,
     };
 
     await upsertCounselling(payload as any);
     await updateStudent(form.student_id, { counselling_status: 'scheduled' });
 
-    // Send student notification & message
-    const student = students.find(s => s.id === form.student_id);
-    const messageContent = `Your counselling session has been scheduled.\nDate: ${form.scheduled_date}\nTime: ${form.scheduled_time}\nCounsellor: ${form.counsellor_name}\nType: ${form.counselling_type}${form.notes ? `\nNotes: ${form.notes}` : ''}`;
-
-    if (student) {
-      // 1. Send system notification to student profile
-      if (student.profile_id) {
-        await createNotification({
-          profile_id: student.profile_id,
-          title: '📅 Counselling Scheduled',
-          message: messageContent,
-          type: 'counselling',
-          is_read: false,
-        });
-      }
-
-      // 2. Also send chat message
-      sendChatMessage({
-        studentId: student.id,
-        senderId: 'admin',
-        senderName: 'TATTI Admin',
-        senderType: 'admin',
-        text: `📅 Counselling Scheduled: Your counselling session has been scheduled for ${form.scheduled_date} at ${form.scheduled_time} with ${form.counsellor_name}.`,
-      });
-    }
-
     setSaving(false);
     setShowForm(false);
     toast.success('Counselling scheduled and student notified!');
-    fetchData();
-  };
-
-  // Set Reminder Handler
-  const handleSetReminder = async () => {
-    if (!form.student_id) {
-      toast.error('Please select a student');
-      return;
-    }
-    setSaving(true);
-
-    const student = students.find(s => s.id === form.student_id);
-    const reminderMsg = `Your TATTI counselling session is scheduled for ${form.scheduled_date} at ${form.scheduled_time}.\nCounsellor: ${form.counsellor_name}\nReminder: ${form.reminder}`;
-
-    if (student) {
-      if (student.profile_id) {
-        await createNotification({
-          profile_id: student.profile_id,
-          title: '📅 Counselling Reminder',
-          message: reminderMsg,
-          type: 'counselling',
-          is_read: false,
-        });
-      }
-
-      sendChatMessage({
-        studentId: student.id,
-        senderId: 'admin',
-        senderName: 'TATTI Admin',
-        senderType: 'admin',
-        text: `🔔 Counselling Reminder: ${reminderMsg}`,
-      });
-    }
-
-    setSaving(false);
-    setShowForm(false);
-    toast.success(`Reminder set (${form.reminder}) and notification dispatched to student!`);
     fetchData();
   };
 
@@ -221,7 +158,7 @@ export default function CounsellingManagement() {
                       {s.full_name || s.email}
                       {s.student_id && <span className="text-xs text-muted-foreground ml-2 font-mono">[{s.student_id}]</span>}
                     </p>
-                    <p className="text-xs text-muted-foreground">{s.selected_course || 'Course Selected'}</p>
+                    <p className="text-xs text-muted-foreground">{s.selected_course || 'Not Selected'}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={s.counselling_status} />
@@ -431,17 +368,17 @@ export default function CounsellingManagement() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <Button
                   variant="outline"
-                  className="flex-1 text-xs"
-                  onClick={handleSetReminder}
-                  disabled={saving || !form.student_id}
+                  type="button"
+                  className="text-xs"
+                  onClick={() => setShowForm(false)}
                 >
-                  <Bell className="w-3.5 h-3.5 mr-1.5 text-warning" /> Set Reminder
+                  Cancel
                 </Button>
                 <Button
-                  className="flex-1 gradient-bg border-0 text-white text-xs font-semibold"
+                  className="gradient-bg border-0 text-white text-xs font-semibold px-5"
                   onClick={handleScheduleCounselling}
                   disabled={saving || !form.student_id}
                 >

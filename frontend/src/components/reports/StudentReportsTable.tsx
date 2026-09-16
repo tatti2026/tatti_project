@@ -75,7 +75,6 @@ export const StudentReportsTable: React.FC<StudentReportsTableProps> = ({
               <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Assessment</th>
               <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Application</th>
               <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Payment</th>
-              <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">App Access</th>
               <th className="px-3.5 py-3 text-right font-bold uppercase tracking-wider text-[10px]">Action</th>
             </tr>
           </thead>
@@ -107,9 +106,6 @@ export const StudentReportsTable: React.FC<StudentReportsTableProps> = ({
                 </td>
                 <td className="px-3.5 py-3 whitespace-nowrap">
                   {getBadge('payment', student.payment_status)}
-                </td>
-                <td className="px-3.5 py-3 whitespace-nowrap">
-                  {getBadge('access', student.application_access_status || 'locked')}
                 </td>
                 <td className="px-3.5 py-3 text-right whitespace-nowrap">
                   <Button

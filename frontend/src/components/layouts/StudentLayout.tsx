@@ -8,7 +8,6 @@ import {
   Bell, User, LogOut, Menu, GraduationCap, ChevronRight, Settings
 } from 'lucide-react';
 import { getNotifications, getStudentByProfileId } from '@/lib/api';
-import { getApplicationAccess } from '@/services/applicationAccessService';
 import { getStudentUnreadMessagesCount } from '@/services/messagingService';
 
 interface StudentLayoutProps {
@@ -164,8 +163,8 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
         const student = await getStudentByProfileId(profile.id);
         if (student && mounted) {
           setStudentId(student.id);
-          const access = getApplicationAccess(student.id);
-          setIsUnlocked(access.status === 'unlocked');
+          // Read access status directly from PostgreSQL-backed API response
+          setIsUnlocked(student.application_access_status === 'unlocked');
 
           // Fetch notifications count + unread chat messages
           const [notifs] = await Promise.all([getNotifications(profile.id)]);
@@ -199,10 +198,6 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
     };
 
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'tatti_application_access_records' && studentId) {
-        const access = getApplicationAccess(studentId);
-        setIsUnlocked(access.status === 'unlocked');
-      }
       if (e.key === 'tatti_chat_messages_v1' && studentId) {
         const chatUnread = getStudentUnreadMessagesCount(studentId);
         setUnreadCount(prev => prev + chatUnread);
