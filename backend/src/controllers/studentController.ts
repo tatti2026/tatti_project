@@ -146,11 +146,28 @@ export async function updateStudent(req: Request, res: Response) {
 
 export async function getAllStudents(req: Request, res: Response) {
   try {
-    const { page = 0, pageSize = 20, search = '' } = req.query;
-    const p = Number(page);
-    const ps = Number(pageSize);
+    const {
+      page = 1,
+      pageSize,
+      limit,
+      search = '',
+      assessment_status,
+      application_status,
+      payment_status,
+      admission_status,
+      sortField = 'created_at',
+      sortOrder = 'desc',
+      fromDate,
+      toDate,
+    } = req.query;
 
-    let countQueryStr = 'SELECT COUNT(*) FROM students';
+    // Support both 1-based and legacy 0-based page index
+    const rawPage = Number(page);
+    const p = isNaN(rawPage) || rawPage <= 0 ? 1 : rawPage;
+    const ps = Math.max(1, Number(limit || pageSize) || 10);
+    const offset = (p - 1) * ps;
+
+    let countQueryStr = 'SELECT COUNT(*) FROM students s';
     let dataQueryStr = `
       SELECT s.*, 
         (SELECT row_to_json(c.*) FROM courses c 
@@ -158,22 +175,75 @@ export async function getAllStudents(req: Request, res: Response) {
          WHERE a.student_id = s.id ORDER BY a.created_at DESC LIMIT 1) as course_info
       FROM students s
     `;
+
+    const conditions: string[] = [];
     const queryParams: any[] = [];
 
-    if (search) {
-      const searchStr = `%${search}%`;
-      const whereClause = ' WHERE s.full_name ILIKE $1 OR s.email ILIKE $1 OR s.student_id ILIKE $1';
-      countQueryStr += whereClause;
-      dataQueryStr += whereClause;
+    // Search filter across student ID, name, email, phone, parent
+    if (search && typeof search === 'string' && search.trim()) {
+      const searchStr = `%${search.trim()}%`;
       queryParams.push(searchStr);
+      conditions.push(`(s.full_name ILIKE $${queryParams.length} OR s.email ILIKE $${queryParams.length} OR s.student_id ILIKE $${queryParams.length} OR s.phone ILIKE $${queryParams.length} OR s.parent_name ILIKE $${queryParams.length} OR s.selected_course ILIKE $${queryParams.length})`);
     }
 
-    dataQueryStr += ` ORDER BY s.created_at DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+    // Assessment filter
+    if (assessment_status && assessment_status !== 'all') {
+      queryParams.push(assessment_status);
+      conditions.push(`s.assessment_status = $${queryParams.length}`);
+    }
+
+    // Application filter
+    if (application_status && application_status !== 'all') {
+      queryParams.push(application_status);
+      conditions.push(`s.application_status = $${queryParams.length}`);
+    }
+
+    // Payment filter
+    if (payment_status && payment_status !== 'all') {
+      queryParams.push(payment_status);
+      conditions.push(`s.payment_status = $${queryParams.length}`);
+    }
+
+    // Admission filter
+    if (admission_status && admission_status !== 'all') {
+      queryParams.push(admission_status);
+      conditions.push(`s.admission_status = $${queryParams.length}`);
+    }
+
+    // Date range
+    if (fromDate && typeof fromDate === 'string' && fromDate.trim()) {
+      queryParams.push(new Date(fromDate).toISOString());
+      conditions.push(`s.created_at >= $${queryParams.length}`);
+    }
+    if (toDate && typeof toDate === 'string' && toDate.trim()) {
+      const toDateObj = new Date(toDate);
+      toDateObj.setHours(23, 59, 59, 999);
+      queryParams.push(toDateObj.toISOString());
+      conditions.push(`s.created_at <= $${queryParams.length}`);
+    }
+
+    if (conditions.length > 0) {
+      const whereClause = ` WHERE ${conditions.join(' AND ')}`;
+      countQueryStr += whereClause;
+      dataQueryStr += whereClause;
+    }
+
+    // Sort order
+    const allowedSortFields: Record<string, string> = {
+      created_at: 's.created_at',
+      full_name: 's.full_name',
+      student_id: 's.student_id',
+      selected_course: 's.selected_course',
+    };
+    const validSortCol = allowedSortFields[String(sortField)] || 's.created_at';
+    const validSortDir = String(sortOrder).toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+
+    dataQueryStr += ` ORDER BY ${validSortCol} ${validSortDir} LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
 
     const countRes = await query(countQueryStr, queryParams);
     const totalCount = parseInt(countRes.rows[0].count, 10);
 
-    const dataRes = await query(dataQueryStr, [...queryParams, ps, p * ps]);
+    const dataRes = await query(dataQueryStr, [...queryParams, ps, offset]);
 
     const enriched = dataRes.rows.map((s: any) => {
       const appCourse = s.course_info?.course_name || null;
@@ -192,7 +262,16 @@ export async function getAllStudents(req: Request, res: Response) {
       };
     });
 
-    return res.json({ data: enriched, count: totalCount });
+    return res.json({
+      data: enriched,
+      pagination: {
+        page: p,
+        limit: ps,
+        total: totalCount,
+        totalPages: Math.max(1, Math.ceil(totalCount / ps)),
+      },
+      count: totalCount,
+    });
   } catch (err) {
     console.error('Error listing all students:', err);
     res.status(500).json({ error: 'Internal server error' });

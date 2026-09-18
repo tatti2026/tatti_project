@@ -16,9 +16,62 @@ export async function getStudentCounselling(req: Request, res: Response) {
   }
 }
 
-export async function getAllCounselling(_req: Request, res: Response) {
+export async function getAllCounselling(req: Request, res: Response) {
   try {
-    const result = await query('SELECT * FROM counselling ORDER BY created_at DESC');
+    const { page, pageSize, limit, search = '' } = req.query;
+    const isPaginated = page !== undefined || limit !== undefined || pageSize !== undefined;
+
+    const rawPage = Number(page);
+    const p = isNaN(rawPage) || rawPage <= 0 ? 1 : rawPage;
+    const ps = Math.max(1, Number(limit || pageSize) || 10);
+    const offset = (p - 1) * ps;
+
+    let baseWhere = '1=1';
+    const queryParams: any[] = [];
+
+    if (search && typeof search === 'string' && search.trim()) {
+      const searchStr = `%${search.trim()}%`;
+      queryParams.push(searchStr);
+      baseWhere += ` AND (c.counsellor_name ILIKE $${queryParams.length} OR s.full_name ILIKE $${queryParams.length} OR s.email ILIKE $${queryParams.length} OR s.student_id ILIKE $${queryParams.length} OR c.mode ILIKE $${queryParams.length})`;
+    }
+
+    const countRes = await query(`
+      SELECT COUNT(*) 
+      FROM counselling c
+      LEFT JOIN students s ON s.id = c.student_id
+      WHERE ${baseWhere}
+    `, queryParams);
+    const totalCount = parseInt(countRes.rows[0].count, 10);
+
+    let dataQuery = `
+      SELECT 
+        c.*,
+        s.full_name as student_name,
+        s.student_id as student_code,
+        s.email as student_email,
+        s.phone as student_phone,
+        s.selected_course
+      FROM counselling c
+      LEFT JOIN students s ON s.id = c.student_id
+      WHERE ${baseWhere}
+      ORDER BY c.scheduled_date DESC NULLS LAST, c.created_at DESC
+    `;
+
+    if (isPaginated) {
+      dataQuery += ` LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+      const result = await query(dataQuery, [...queryParams, ps, offset]);
+      return res.json({
+        data: result.rows,
+        pagination: {
+          page: p,
+          limit: ps,
+          total: totalCount,
+          totalPages: Math.max(1, Math.ceil(totalCount / ps)),
+        },
+      });
+    }
+
+    const result = await query(dataQuery, queryParams);
     return res.json(result.rows);
   } catch (err) {
     console.error('Error getting all counselling:', err);

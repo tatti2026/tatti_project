@@ -65,9 +65,9 @@ export const StudentReportsTable: React.FC<StudentReportsTableProps> = ({
 
   return (
     <div className="glass-card rounded-2xl overflow-hidden border border-border">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-auto max-h-[560px]">
         <table className="w-full text-xs">
-          <thead className="bg-muted/50 border-b border-border text-muted-foreground">
+          <thead className="sticky top-0 bg-muted/95 backdrop-blur z-10 border-b border-border text-muted-foreground shadow-sm">
             <tr>
               <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">#</th>
               <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Roll No</th>

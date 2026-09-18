@@ -477,11 +477,17 @@ export default function Notifications() {
                 const conf = systemNotifConfig[item.sysType || 'general'] || systemNotifConfig.general;
                 const timeAgo = formatDistanceToNow(item.timestamp, { addSuffix: true });
                 const isUnlockNotif = item.title.includes('Unlocked') || item.title.includes('Application Process Unlocked');
+                const isPaymentConfirmation = item.title.includes('Application Confirmed') || item.title.includes('Payment Verification') || item.sysType === 'payment';
 
                 return (
                   <div
                     key={item.id}
-                    className={`flex items-start gap-4 p-4 md:p-5 rounded-2xl border transition-all ${
+                    onClick={() => {
+                      if (!item.isRead && item.rawNotif) {
+                        handleMarkSingleRead(item.rawNotif.id);
+                      }
+                    }}
+                    className={`flex items-start gap-4 p-4 md:p-5 rounded-2xl border transition-all cursor-pointer ${
                       !item.isRead
                         ? 'bg-primary/5 border-primary/30 shadow-sm'
                         : 'glass-card border-border/80 hover:bg-muted/30'
@@ -522,7 +528,7 @@ export default function Notifications() {
                       </p>
 
                       {/* Action buttons on notification cards */}
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <div className="mt-3 flex flex-wrap items-center gap-2" onClick={e => e.stopPropagation()}>
                         {isUnlockNotif && (
                           <Button
                             size="sm"
@@ -530,6 +536,19 @@ export default function Notifications() {
                             className="gradient-bg border-0 text-white text-xs h-8 px-3 font-semibold shadow-sm"
                           >
                             <Unlock className="w-3.5 h-3.5 mr-1.5" /> Start Application
+                          </Button>
+                        )}
+
+                        {isPaymentConfirmation && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (!item.isRead && item.rawNotif) handleMarkSingleRead(item.rawNotif.id);
+                              navigate('/student/application');
+                            }}
+                            className="gradient-bg border-0 text-white text-xs h-8 px-3 font-semibold shadow-sm"
+                          >
+                            <CreditCard className="w-3.5 h-3.5 mr-1.5" /> View Application
                           </Button>
                         )}
 
@@ -548,7 +567,10 @@ export default function Notifications() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleMarkSingleRead(item.rawNotif!.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkSingleRead(item.rawNotif!.id);
+                            }}
                             className="text-xs h-8 px-2 text-muted-foreground hover:text-foreground"
                           >
                             Mark as read

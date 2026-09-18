@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { getAllStudents, updateStudent, deleteStudent } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import StatusBadge from '@/components/common/StatusBadge';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TablePagination, getSessionPageSize, setSessionPageSize } from '@/components/common/TablePagination';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -14,12 +15,17 @@ import {
 import { toast } from 'sonner';
 import type { Student, AssessmentStatus, ApplicationStatus, PaymentStatus } from '@/types/index';
 import {
-  Search, Eye, Pencil, Trash2, Download, ChevronLeft, ChevronRight,
-  Loader2, Filter, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw
+  Search, Eye, Pencil, Trash2, Download,
+  Loader2, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw, ChevronDown
 } from 'lucide-react';
 import { format } from 'date-fns';
-
-const PAGE_SIZE = 10;
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { exportStudentExcel, exportStudentPDF } from '@/lib/api';
 
 type SortField = 'student_id' | 'full_name' | 'created_at' | 'selected_course';
 type SortOrder = 'asc' | 'desc';
@@ -27,7 +33,10 @@ type SortOrder = 'asc' | 'desc';
 export default function StudentDetails() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(() => getSessionPageSize('student-details', 10));
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
 
   // Filters
@@ -44,17 +53,30 @@ export default function StudentDetails() {
   const [editStudent, setEditStudent] = useState<Student | null>(null);
   const [deleteStudentId, setDeleteStudentId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
-    const result = await getAllStudents(0, 1000);
-    setStudents(result.data);
+    const result = await getAllStudents({
+      page,
+      pageSize,
+      search,
+      assessment_status: filterAssessment,
+      application_status: filterApplication,
+      payment_status: filterPayment,
+      sortField,
+      sortOrder,
+    });
+    setStudents(result.data || []);
+    setTotalCount(result.pagination?.total ?? result.count ?? 0);
+    setTotalPages(result.pagination?.totalPages ?? 1);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [page, pageSize, search, filterAssessment, filterApplication, filterPayment, sortField, sortOrder]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -91,52 +113,21 @@ export default function StudentDetails() {
     setFilterPayment('all');
     setSortField('created_at');
     setSortOrder('desc');
-    setPage(0);
+    setPage(1);
   };
 
-  // Filtered and Sorted Students
-  const processedStudents = useMemo(() => {
-    return students
-      .filter(s => {
-        // Text search
-        if (search) {
-          const q = search.toLowerCase();
-          const matchName = (s.full_name || '').toLowerCase().includes(q);
-          const matchEmail = (s.email || '').toLowerCase().includes(q);
-          const matchId = (s.student_id || '').toLowerCase().includes(q);
-          const matchPhone = (s.phone || '').toLowerCase().includes(q);
-          const matchParent = (s.parent_name || '').toLowerCase().includes(q);
-          const matchParentPhone = (s.parent_phone || '').toLowerCase().includes(q);
-          const matchCourse = (s.selected_course || '').toLowerCase().includes(q);
-          if (!matchName && !matchEmail && !matchId && !matchPhone && !matchParent && !matchParentPhone && !matchCourse) {
-            return false;
-          }
-        }
-        // Assessment filter
-        if (filterAssessment !== 'all' && s.assessment_status !== filterAssessment) return false;
-        // Application filter
-        if (filterApplication !== 'all' && s.application_status !== filterApplication) return false;
-        // Payment filter
-        if (filterPayment !== 'all' && s.payment_status !== filterPayment) return false;
-        return true;
-      })
-      .sort((a, b) => {
-        let valA = a[sortField] || '';
-        let valB = b[sortField] || '';
-        if (sortField === 'created_at') {
-          const dateA = new Date(valA).getTime() || 0;
-          const dateB = new Date(valB).getTime() || 0;
-          return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-        }
-        const strA = String(valA).toLowerCase();
-        const strB = String(valB).toLowerCase();
-        return sortOrder === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
-      });
-  }, [students, search, filterAssessment, filterApplication, filterPayment, sortField, sortOrder]);
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setSessionPageSize('student-details', newSize);
+    setPage(1);
+  };
 
-  const total = processedStudents.length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const paginatedStudents = processedStudents.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const stickyStudentIdWidth = 180;
+  const stickyStudentIdClass = 'sticky left-0 z-30 bg-background/95 backdrop-blur-sm border-r border-border/60';
+  const stickyStudentNameClass = 'sticky z-20 bg-background/95 backdrop-blur-sm border-r border-border/60';
+
+  const stickyStudentIdStyle = { minWidth: `${stickyStudentIdWidth}px`, width: `${stickyStudentIdWidth}px` } as const;
+  const stickyStudentNameStyle = { left: `${stickyStudentIdWidth}px`, minWidth: '200px', width: '200px' } as const;
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -145,36 +136,41 @@ export default function StudentDetails() {
       setSortField(field);
       setSortOrder('asc');
     }
-    setPage(0);
+    setPage(1);
   };
 
-  const exportCSV = () => {
-    const headers = [
-      'Student ID', 'Student Name', 'Email', 'Phone Number',
-      'Parent Name', 'Parent Phone Number', 'Selected Course',
-      'Assessment Status', 'Application Status', 'Payment Status', 'Created Date'
-    ];
-    const rows = processedStudents.map(s => [
-      s.student_id || '',
-      s.full_name || '',
-      s.email || '',
-      s.phone || '',
-      s.parent_name || '',
-      s.parent_phone || '',
-      s.selected_course || '',
-      s.assessment_status || '',
-      s.application_status || '',
-      s.payment_status || '',
-      s.created_at ? format(new Date(s.created_at), 'dd-MM-yyyy') : ''
-    ]);
-    const csv = [headers, ...rows].map(r => r.map(v => `"${v || ''}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `tatti-students-${format(new Date(), 'yyyyMMdd')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleDownloadExcel = async () => {
+    setExportingExcel(true);
+    try {
+      await exportStudentExcel({
+        search,
+        assessmentStatus: filterAssessment,
+        applicationStatus: filterApplication,
+        paymentStatus: filterPayment,
+      });
+      toast.success('Student detail export downloaded successfully');
+    } catch {
+      toast.error('Unable to generate the file. Please try again.');
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    setExportingPdf(true);
+    try {
+      await exportStudentPDF({
+        search,
+        assessmentStatus: filterAssessment,
+        applicationStatus: filterApplication,
+        paymentStatus: filterPayment,
+      });
+      toast.success('Student detail PDF downloaded successfully');
+    } catch {
+      toast.error('Unable to generate the file. Please try again.');
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   const tableHeaders: { label: string; field?: SortField }[] = [
@@ -200,13 +196,42 @@ export default function StudentDetails() {
           <div>
             <h1 className="text-xl font-bold text-foreground">Student Details</h1>
             <p className="text-muted-foreground text-xs mt-0.5">
-              {total} student{total === 1 ? '' : 's'} found • Institute admissions record
+              {totalCount} student{totalCount === 1 ? '' : 's'} found • Institute admissions record
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={exportCSV} className="text-xs">
-              <Download className="w-3.5 h-3.5 mr-1.5" /> Export CSV
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="text-xs h-9 border-border bg-background hover:border-primary/50">
+                  Export
+                  <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52 rounded-xl border border-border bg-popover p-1 shadow-lg">
+                <DropdownMenuItem
+                  onSelect={event => {
+                    event.preventDefault();
+                    void handleDownloadExcel();
+                  }}
+                  className="flex items-center gap-2 cursor-pointer rounded-md px-2 py-2 text-xs"
+                  disabled={exportingExcel || exportingPdf}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  {exportingExcel ? 'Generating Excel...' : 'Download as Excel'}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={event => {
+                    event.preventDefault();
+                    void handleDownloadPdf();
+                  }}
+                  className="flex items-center gap-2 cursor-pointer rounded-md px-2 py-2 text-xs"
+                  disabled={exportingExcel || exportingPdf}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  {exportingPdf ? 'Generating PDF...' : 'Download as PDF'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -219,7 +244,7 @@ export default function StudentDetails() {
               <Input
                 placeholder="Search by ID, name, email, phone, parent, course..."
                 value={search}
-                onChange={e => { setSearch(e.target.value); setPage(0); }}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
                 className="pl-9 bg-input border-border text-xs h-9"
               />
             </div>
@@ -228,7 +253,7 @@ export default function StudentDetails() {
             <div className="w-36">
               <select
                 value={filterAssessment}
-                onChange={e => { setFilterAssessment(e.target.value); setPage(0); }}
+                onChange={e => { setFilterAssessment(e.target.value); setPage(1); }}
                 className="w-full bg-input border border-border rounded-md px-2.5 py-2 text-xs text-foreground outline-none"
               >
                 <option value="all">Assessment: All</option>
@@ -242,7 +267,7 @@ export default function StudentDetails() {
             <div className="w-36">
               <select
                 value={filterApplication}
-                onChange={e => { setFilterApplication(e.target.value); setPage(0); }}
+                onChange={e => { setFilterApplication(e.target.value); setPage(1); }}
                 className="w-full bg-input border border-border rounded-md px-2.5 py-2 text-xs text-foreground outline-none"
               >
                 <option value="all">Application: All</option>
@@ -259,7 +284,7 @@ export default function StudentDetails() {
             <div className="w-32">
               <select
                 value={filterPayment}
-                onChange={e => { setFilterPayment(e.target.value); setPage(0); }}
+                onChange={e => { setFilterPayment(e.target.value); setPage(1); }}
                 className="w-full bg-input border border-border rounded-md px-2.5 py-2 text-xs text-foreground outline-none"
               >
                 <option value="all">Payment: All</option>
@@ -290,28 +315,34 @@ export default function StudentDetails() {
             <table className="w-full text-xs">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  {tableHeaders.map(({ label, field }) => (
-                    <th
-                      key={label}
-                      onClick={() => field && handleSort(field)}
-                      className={`px-3 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap ${
-                        field ? 'cursor-pointer hover:text-foreground transition-colors select-none' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span>{label}</span>
-                        {field && (
-                          <span className="text-muted-foreground/60">
-                            {sortField === field ? (
-                              sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-primary" /> : <ArrowDown className="w-3 h-3 text-primary" />
-                            ) : (
-                              <ArrowUpDown className="w-3 h-3 opacity-40" />
-                            )}
-                          </span>
-                        )}
-                      </div>
-                    </th>
-                  ))}
+                  {tableHeaders.map(({ label, field }) => {
+                    const isStudentId = label === 'Student ID';
+                    const isStudentName = label === 'Student Name';
+
+                    return (
+                      <th
+                        key={label}
+                        onClick={() => field && handleSort(field)}
+                        style={isStudentId ? stickyStudentIdStyle : isStudentName ? stickyStudentNameStyle : undefined}
+                        className={`px-3 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap ${
+                          field ? 'cursor-pointer hover:text-foreground transition-colors select-none' : ''
+                        } ${isStudentId ? stickyStudentIdClass : ''} ${isStudentName ? stickyStudentNameClass : ''}`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>{label}</span>
+                          {field && (
+                            <span className="text-muted-foreground/60">
+                              {sortField === field ? (
+                                sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-primary" /> : <ArrowDown className="w-3 h-3 text-primary" />
+                              ) : (
+                                <ArrowUpDown className="w-3 h-3 opacity-40" />
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -322,22 +353,22 @@ export default function StudentDetails() {
                       <p className="mt-2 text-xs">Loading student records...</p>
                     </td>
                   </tr>
-                ) : paginatedStudents.length === 0 ? (
+                ) : students.length === 0 ? (
                   <tr>
                     <td colSpan={tableHeaders.length} className="py-12 text-center text-muted-foreground">
                       No students found matching your search or filter criteria.
                     </td>
                   </tr>
                 ) : (
-                  paginatedStudents.map(s => (
+                  students.map(s => (
                     <tr key={s.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                       {/* 1. Student ID */}
-                      <td className="px-3 py-3 whitespace-nowrap font-mono font-medium text-foreground">
+                      <td style={stickyStudentIdStyle} className={`px-3 py-3 whitespace-nowrap font-mono font-medium text-foreground ${stickyStudentIdClass}`}>
                         {s.student_id || '-'}
                       </td>
 
                       {/* 2. Student Name */}
-                      <td className="px-3 py-3 whitespace-nowrap font-semibold text-foreground">
+                      <td style={stickyStudentNameStyle} className={`px-3 py-3 whitespace-nowrap font-semibold text-foreground ${stickyStudentNameClass}`}>
                         {s.full_name || '-'}
                       </td>
 
@@ -427,20 +458,16 @@ export default function StudentDetails() {
             </table>
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-card/40">
-              <span className="text-xs text-muted-foreground">Page {page + 1} of {totalPages} ({total} total)</span>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)} className="h-7 text-xs">
-                  <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
-                </Button>
-                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} className="h-7 text-xs">
-                  Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <TablePagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={totalCount}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={handlePageSizeChange}
+            itemName="students"
+            loading={loading}
+          />
         </div>
       </div>
 

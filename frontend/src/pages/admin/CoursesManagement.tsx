@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react';
-import { getAllCourses, upsertCourse, deleteCourse } from '@/lib/api';
+import { getAllCourses, upsertCourse } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import StatusBadge from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import type { Course } from '@/types/index';
-import { Plus, Pencil, Trash2, BookOpen, Loader2, Search, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, Pencil, BookOpen, Loader2, Search, ToggleLeft, ToggleRight } from 'lucide-react';
 
 const emptyCourse = (): Partial<Course> => ({
   course_name: '', course_code: '', description: '', duration: '',
@@ -62,12 +61,6 @@ export default function CoursesManagement() {
     setSaving(false);
     setShowForm(false);
     toast.success(formData.id ? 'Course updated' : 'Course added');
-    fetchData();
-  };
-
-  const handleDelete = async (id: string) => {
-    await deleteCourse(id);
-    toast.success('Course deleted');
     fetchData();
   };
 
@@ -152,23 +145,6 @@ export default function CoursesManagement() {
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(c)}>
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="max-w-[calc(100%-2rem)] md:max-w-lg bg-card border-border">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Course?</AlertDialogTitle>
-                          <AlertDialogDescription>This will permanently delete "{c.course_name}".</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(c.id)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
                   </div>
                 </div>
               </div>

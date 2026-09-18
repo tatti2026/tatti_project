@@ -1,8 +1,26 @@
 import type { AdminAuditLogRecord, ApplicationAccessStatus } from '../models/index.js';
+import { query } from '../database/pgPool.js';
 
 // In-memory / cache fallback for fast access & audit trail
 const accessCache = new Map<string, { status: ApplicationAccessStatus; unlockedBy?: string; unlockedAt?: string }>();
 const auditLogs: AdminAuditLogRecord[] = [];
+
+// Preload accessCache from PostgreSQL
+export async function initAccessCache() {
+  try {
+    const res = await query("SELECT id, application_access_status, application_unlocked_by, application_unlocked_at FROM students WHERE application_access_status = 'unlocked'");
+    for (const r of res.rows) {
+      accessCache.set(r.id, {
+        status: 'unlocked',
+        unlockedBy: r.application_unlocked_by || 'TATTI Admin',
+        unlockedAt: r.application_unlocked_at,
+      });
+    }
+  } catch (err) {
+    // ignore
+  }
+}
+initAccessCache();
 
 export function getStudentApplicationAccess(studentId: string): {
   status: ApplicationAccessStatus;

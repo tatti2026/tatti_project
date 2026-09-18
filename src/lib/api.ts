@@ -101,10 +101,6 @@ export async function upsertCourse(course: Partial<Course>): Promise<void> {
   }
 }
 
-export async function deleteCourse(id: string): Promise<void> {
-  await supabase.from('courses').delete().eq('id', id);
-}
-
 // ── QUESTIONS ──────────────────────────────────────────────
 export async function getActiveQuestions(): Promise<Question[]> {
   const { data } = await supabase

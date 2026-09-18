@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TablePagination, getSessionPageSize, setSessionPageSize } from '@/components/common/TablePagination';
 import { toast } from 'sonner';
 import type { Student, Counselling } from '@/types/index';
-import { Plus, Pencil, Loader2, Search, Calendar, Clock, User, CheckCircle2, Shield } from 'lucide-react';
+import { Plus, Pencil, Loader2, Search, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 
 type CounsForm = {
@@ -30,6 +31,10 @@ export default function CounsellingManagement() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [editCounselling, setEditCounselling] = useState<Counselling | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(() => getSessionPageSize('counselling', 10));
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [form, setForm] = useState<CounsForm>({
     student_id: '',
@@ -44,15 +49,21 @@ export default function CounsellingManagement() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data }, cList] = await Promise.all([getAllStudents(0, 1000), getAllCounselling()]);
-    setStudents(data);
-    setCounsellings(cList);
+    const [{ data }, cList] = await Promise.all([
+      getAllStudents(1, 1000),
+      getAllCounselling(page, pageSize, search),
+    ]);
+    setStudents(data || []);
+    const rows = Array.isArray(cList?.data) ? cList.data : Array.isArray(cList) ? cList : [];
+    setCounsellings(rows);
+    setTotalCount(cList?.pagination?.total ?? rows.length ?? 0);
+    setTotalPages(cList?.pagination?.totalPages ?? 1);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [page, pageSize, search]);
 
   const openSchedule = (studentId?: string) => {
     setEditCounselling(null);
@@ -118,15 +129,13 @@ export default function CounsellingManagement() {
     (s.counselling_status === 'pending' || s.counselling_status === 'not_scheduled')
   );
 
-  const filteredCounsellings = counsellings.filter(c => {
-    const s = students.find(st => st.id === c.student_id);
-    if (!search) return true;
-    return (
-      (s?.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
-      (s?.email || '').toLowerCase().includes(search.toLowerCase()) ||
-      (s?.student_id || '').toLowerCase().includes(search.toLowerCase())
-    );
-  });
+  const filteredCounsellings = counsellings;
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setSessionPageSize('counselling', newSize);
+    setPage(1);
+  };
 
   return (
     <AdminLayout>
@@ -181,7 +190,7 @@ export default function CounsellingManagement() {
               <Input
                 placeholder="Search by student or ID..."
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
                 className="pl-8 w-52 bg-input border-border text-xs h-8"
               />
             </div>
@@ -255,6 +264,17 @@ export default function CounsellingManagement() {
               </tbody>
             </table>
           </div>
+
+          <TablePagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={totalCount}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={handlePageSizeChange}
+            itemName="sessions"
+            loading={loading}
+          />
         </div>
 
         {/* ── SCHEDULE COUNSELLING DIALOG ── */}

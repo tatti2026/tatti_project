@@ -73,20 +73,229 @@ export async function lockStudentApplication(studentId: string, adminName?: stri
   return res.json();
 }
 
-export async function getAllStudents(page = 0, pageSize = 20, search = '') {
-  const query = new URLSearchParams({
-    page: page.toString(),
-    pageSize: pageSize.toString(),
-    search: search || '',
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface ReportsSummary {
+  total_students: number;
+  assessed_count: number;
+  applications_count: number;
+  paid_count: number;
+  counselled_count: number;
+  admitted_count: number;
+  total_payments: number;
+}
+
+export async function getReportsSummary(): Promise<ReportsSummary | null> {
+  const res = await fetch(`${API_BASE}/admin/reports/summary`, {
+    headers: getHeaders(),
   });
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+function buildQueryString(filters: Record<string, string | undefined>) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value && value !== 'all') params.set(key, value);
+  });
+  return params.toString();
+}
+
+async function triggerDownload(url: string, fileName: string, expectedType: string) {
+  const res = await fetch(url, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error('Download failed');
+  }
+
+  const blob = await res.blob();
+  const downloadUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = downloadUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(downloadUrl);
+
+  if (!blob.type || !blob.type.includes(expectedType.replace(/\./g, ''))) {
+    const text = await blob.text();
+    if (text && text.toLowerCase().includes('error')) {
+      throw new Error('Download content invalid');
+    }
+  }
+}
+
+export async function exportReportCSV(filters: {
+  search?: string;
+  assessmentStatus?: string;
+  applicationStatus?: string;
+  paymentStatus?: string;
+  fromDate?: string;
+  toDate?: string;
+}) {
+  const query = buildQueryString({
+    search: filters.search,
+    assessment_status: filters.assessmentStatus,
+    application_status: filters.applicationStatus,
+    payment_status: filters.paymentStatus,
+    fromDate: filters.fromDate,
+    toDate: filters.toDate,
+  });
+  const date = new Date().toISOString().slice(0, 10);
+  await triggerDownload(`${API_BASE}/admin/reports/export/csv${query ? `?${query}` : ''}`, `tatti-report-${date}.csv`, 'csv');
+}
+
+export async function exportReportExcel(filters: {
+  search?: string;
+  assessmentStatus?: string;
+  applicationStatus?: string;
+  paymentStatus?: string;
+  fromDate?: string;
+  toDate?: string;
+}) {
+  const query = buildQueryString({
+    search: filters.search,
+    assessment_status: filters.assessmentStatus,
+    application_status: filters.applicationStatus,
+    payment_status: filters.paymentStatus,
+    fromDate: filters.fromDate,
+    toDate: filters.toDate,
+  });
+  const date = new Date().toISOString().slice(0, 10);
+  await triggerDownload(`${API_BASE}/admin/reports/export/excel${query ? `?${query}` : ''}`, `tatti-report-${date}.xlsx`, 'spreadsheet');
+}
+
+export async function exportReportPDF(filters: {
+  search?: string;
+  assessmentStatus?: string;
+  applicationStatus?: string;
+  paymentStatus?: string;
+  fromDate?: string;
+  toDate?: string;
+}) {
+  const query = buildQueryString({
+    search: filters.search,
+    assessment_status: filters.assessmentStatus,
+    application_status: filters.applicationStatus,
+    payment_status: filters.paymentStatus,
+    fromDate: filters.fromDate,
+    toDate: filters.toDate,
+  });
+  const date = new Date().toISOString().slice(0, 10);
+  await triggerDownload(`${API_BASE}/admin/reports/export/pdf${query ? `?${query}` : ''}`, `tatti-report-${date}.pdf`, 'pdf');
+}
+
+export async function exportStudentExcel(filters: {
+  search?: string;
+  assessmentStatus?: string;
+  applicationStatus?: string;
+  paymentStatus?: string;
+  fromDate?: string;
+  toDate?: string;
+}) {
+  const query = buildQueryString({
+    search: filters.search,
+    assessment_status: filters.assessmentStatus,
+    application_status: filters.applicationStatus,
+    payment_status: filters.paymentStatus,
+    fromDate: filters.fromDate,
+    toDate: filters.toDate,
+  });
+  const date = new Date().toISOString().slice(0, 10);
+  await triggerDownload(`${API_BASE}/admin/students/export/excel${query ? `?${query}` : ''}`, `tatti-student-details-${date}.xlsx`, 'spreadsheet');
+}
+
+export async function exportStudentPDF(filters: {
+  search?: string;
+  assessmentStatus?: string;
+  applicationStatus?: string;
+  paymentStatus?: string;
+  fromDate?: string;
+  toDate?: string;
+}) {
+  const query = buildQueryString({
+    search: filters.search,
+    assessment_status: filters.assessmentStatus,
+    application_status: filters.applicationStatus,
+    payment_status: filters.paymentStatus,
+    fromDate: filters.fromDate,
+    toDate: filters.toDate,
+  });
+  const date = new Date().toISOString().slice(0, 10);
+  await triggerDownload(`${API_BASE}/admin/students/export/pdf${query ? `?${query}` : ''}`, `tatti-student-details-${date}.pdf`, 'pdf');
+}
+
+export interface GetStudentsOptions {
+  page?: number;
+  pageSize?: number;
+  limit?: number;
+  search?: string;
+  assessment_status?: string;
+  application_status?: string;
+  payment_status?: string;
+  admission_status?: string;
+  sortField?: string;
+  sortOrder?: 'asc' | 'desc';
+  fromDate?: string;
+  toDate?: string;
+}
+
+export async function getAllStudents(
+  pageOrOptions: number | GetStudentsOptions = 1,
+  pageSize = 20,
+  search = ''
+) {
+  let queryObj: Record<string, string> = {};
+
+  if (typeof pageOrOptions === 'object' && pageOrOptions !== null) {
+    const opts = pageOrOptions;
+    const pageVal = opts.page ?? 1;
+    const limitVal = opts.limit ?? opts.pageSize ?? 20;
+    queryObj.page = pageVal.toString();
+    queryObj.limit = limitVal.toString();
+    if (opts.search) queryObj.search = opts.search;
+    if (opts.assessment_status && opts.assessment_status !== 'all') queryObj.assessment_status = opts.assessment_status;
+    if (opts.application_status && opts.application_status !== 'all') queryObj.application_status = opts.application_status;
+    if (opts.payment_status && opts.payment_status !== 'all') queryObj.payment_status = opts.payment_status;
+    if (opts.admission_status && opts.admission_status !== 'all') queryObj.admission_status = opts.admission_status;
+    if (opts.sortField) queryObj.sortField = opts.sortField;
+    if (opts.sortOrder) queryObj.sortOrder = opts.sortOrder;
+    if (opts.fromDate) queryObj.fromDate = opts.fromDate;
+    if (opts.toDate) queryObj.toDate = opts.toDate;
+  } else {
+    const rawPage = Number(pageOrOptions);
+    const p = rawPage <= 0 ? 1 : rawPage;
+    queryObj.page = p.toString();
+    queryObj.limit = pageSize.toString();
+    if (search) queryObj.search = search;
+  }
+
+  const query = new URLSearchParams(queryObj);
   const res = await fetch(`${API_BASE}/students?${query.toString()}`, {
     headers: getHeaders(),
   });
-  if (!res.ok) return { data: [], count: 0 };
+  if (!res.ok) return { data: [], count: 0, pagination: { page: 1, limit: 10, total: 0, totalPages: 1 } };
   const result = await res.json();
+  const data = (result.data || []) as Student[];
+  const count = result.count ?? data.length;
+  const pagination: PaginationMeta = result.pagination || {
+    page: Number(queryObj.page) || 1,
+    limit: Number(queryObj.limit) || 10,
+    total: count,
+    totalPages: Math.max(1, Math.ceil(count / (Number(queryObj.limit) || 10))),
+  };
+
   return {
-    data: (result.data || []) as Student[],
-    count: result.count ?? 0,
+    data,
+    count,
+    pagination,
   };
 }
 
@@ -115,13 +324,6 @@ export async function upsertCourse(course: Partial<Course>): Promise<void> {
       body: JSON.stringify(course),
     });
   }
-}
-
-export async function deleteCourse(id: string): Promise<void> {
-  await fetch(`${API_BASE}/courses/${id}`, {
-    method: 'DELETE',
-    headers: getHeaders(),
-  });
 }
 
 // ── QUESTIONS ──────────────────────────────────────────────
@@ -245,7 +447,11 @@ export async function getStudentPayment(studentId: string): Promise<Payment | nu
   return await res.json();
 }
 
-export async function createPayment(payment: Partial<Payment>): Promise<Payment | null> {
+export async function createPayment(payment: Partial<Payment> & {
+  screenshot?: string;
+  utr_number?: string;
+  course_id?: string;
+}): Promise<Payment | null> {
   const res = await fetch(`${API_BASE}/payments`, {
     method: 'POST',
     headers: getHeaders(),
@@ -258,21 +464,200 @@ export async function createPayment(payment: Partial<Payment>): Promise<Payment 
   return await res.json();
 }
 
-export async function getAllPayments(page = 0, pageSize = 20) {
-  const query = new URLSearchParams({
-    page: page.toString(),
-    pageSize: pageSize.toString(),
-  });
+export interface GetPaymentsOptions {
+  page?: number;
+  pageSize?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+}
+
+export async function getAllPayments(pageOrOptions: number | GetPaymentsOptions = 1, pageSize = 20) {
+  let queryObj: Record<string, string> = {};
+
+  if (typeof pageOrOptions === 'object' && pageOrOptions !== null) {
+    const opts = pageOrOptions;
+    const pageVal = opts.page ?? 1;
+    const limitVal = opts.limit ?? opts.pageSize ?? 20;
+    queryObj.page = pageVal.toString();
+    queryObj.limit = limitVal.toString();
+    if (opts.status && opts.status !== 'all') queryObj.status = opts.status;
+    if (opts.search) queryObj.search = opts.search;
+  } else {
+    const rawPage = Number(pageOrOptions);
+    const p = rawPage <= 0 ? 1 : rawPage;
+    queryObj.page = p.toString();
+    queryObj.limit = pageSize.toString();
+  }
+
+  const query = new URLSearchParams(queryObj);
   const res = await fetch(`${API_BASE}/payments?${query.toString()}`, {
     headers: getHeaders(),
   });
-  if (!res.ok) return { data: [], count: 0 };
+  if (!res.ok) return { data: [], count: 0, pagination: { page: 1, limit: 10, total: 0, totalPages: 1 } };
   const result = await res.json();
+  const data = (result.data || []) as Payment[];
+  const count = result.count ?? data.length;
+  const pagination: PaginationMeta = result.pagination || {
+    page: Number(queryObj.page) || 1,
+    limit: Number(queryObj.limit) || 10,
+    total: count,
+    totalPages: Math.max(1, Math.ceil(count / (Number(queryObj.limit) || 10))),
+  };
+
   return {
-    data: (result.data || []) as Payment[],
-    count: result.count ?? 0,
+    data,
+    count,
+    pagination,
   };
 }
+
+// ── ADMIN PAYMENT VERIFICATION ─────────────────────────────
+
+export interface PendingPayment {
+  id: string;
+  student_id: string;
+  application_id: string | null;
+  course_id: string | null;
+  payment_id: string | null;
+  transaction_id: string | null;
+  utr_number: string | null;
+  amount: number;
+  payment_method: string | null;
+  screenshot_url: string | null;
+  status: string;
+  submitted_at: string | null;
+  created_at: string;
+  student_name: string | null;
+  student_code: string | null;
+  student_email: string | null;
+  student_phone: string | null;
+  student_avatar: string | null;
+  course_name: string | null;
+  course_fee: number | null;
+  application_status: string | null;
+}
+
+export interface RejectedPayment extends PendingPayment {
+  rejected_by: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
+}
+
+export interface PaymentDetails {
+  id: string;
+  student_id: string;
+  application_id: string | null;
+  course_id: string | null;
+  amount: number;
+  utr_number: string | null;
+  transaction_id: string | null;
+  payment_id: string | null;
+  status: string;
+  submitted_at: string | null;
+  screenshot_url: string | null;
+  screenshot_path: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  payment_verified_at: string | null;
+  rejected_by: string | null;
+  rejected_at: string | null;
+  rejection_reason: string | null;
+  student: {
+    id: string;
+    profile_id: string | null;
+    full_name: string | null;
+    student_id: string | null;
+    email: string | null;
+    phone: string | null;
+    avatar_url: string | null;
+  };
+  course: {
+    id: string | null;
+    course_name: string | null;
+    fee: number | null;
+  };
+  application: {
+    id: string | null;
+    status: string | null;
+    step: number | null;
+    submitted_at: string | null;
+    confirmed_at: string | null;
+  };
+}
+
+export async function getPendingPayments(page?: number, limit?: number, search?: string): Promise<any> {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.set('page', page.toString());
+  if (limit !== undefined) params.set('limit', limit.toString());
+  if (search) params.set('search', search);
+
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${API_BASE}/admin/payments/pending${qs}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    if (page !== undefined) return { data: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 1 } };
+    return [];
+  }
+  return await res.json();
+}
+
+export async function getRejectedPayments(page?: number, limit?: number, search?: string): Promise<any> {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.set('page', page.toString());
+  if (limit !== undefined) params.set('limit', limit.toString());
+  if (search) params.set('search', search);
+
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${API_BASE}/admin/payments/rejected${qs}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    if (page !== undefined) return { data: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 1 } };
+    return [];
+  }
+  return await res.json();
+}
+
+export async function getPaymentDetails(id: string): Promise<PaymentDetails | null> {
+  const res = await fetch(`${API_BASE}/admin/payments/${id}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+export async function approvePayment(id: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/admin/payments/${id}/approve`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Failed to approve payment');
+  return data;
+}
+
+export async function rejectPayment(id: string, reason: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/admin/payments/${id}/reject`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ reason }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Failed to reject payment');
+  return data;
+}
+
+export function getPaymentScreenshotUrl(paymentId: string, isAdmin = false): string {
+  if (isAdmin) {
+    return `${API_BASE}/admin/payments/${paymentId}/screenshot`;
+  }
+  return `${API_BASE}/payments/${paymentId}/screenshot`;
+}
+
+
 
 // ── COUNSELLING ────────────────────────────────────────────
 export async function getStudentCounselling(studentId: string): Promise<Counselling | null> {
@@ -299,13 +684,21 @@ export async function upsertCounselling(c: Partial<Counselling>): Promise<void> 
   }
 }
 
-export async function getAllCounselling(): Promise<Counselling[]> {
-  const res = await fetch(`${API_BASE}/counselling`, {
+export async function getAllCounselling(page?: number, limit?: number, search?: string): Promise<any> {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.set('page', page.toString());
+  if (limit !== undefined) params.set('limit', limit.toString());
+  if (search) params.set('search', search);
+
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${API_BASE}/counselling${qs}`, {
     headers: getHeaders(),
   });
-  if (!res.ok) return [];
-  const data = await res.json();
-  return (Array.isArray(data) ? data : []) as Counselling[];
+  if (!res.ok) {
+    if (page !== undefined) return { data: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 1 } };
+    return [];
+  }
+  return await res.json();
 }
 
 // ── NOTIFICATIONS ──────────────────────────────────────────
@@ -334,13 +727,22 @@ export async function createNotification(n: Partial<Notification>): Promise<void
 }
 
 // ── FOLLOW-UPS ─────────────────────────────────────────────
-export async function getFollowUps(): Promise<FollowUp[]> {
-  const res = await fetch(`${API_BASE}/follow-ups`, {
+export async function getFollowUps(page?: number, limit?: number, intent?: string, search?: string): Promise<any> {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.set('page', page.toString());
+  if (limit !== undefined) params.set('limit', limit.toString());
+  if (intent) params.set('intent', intent);
+  if (search) params.set('search', search);
+
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${API_BASE}/follow-ups${qs}`, {
     headers: getHeaders(),
   });
-  if (!res.ok) return [];
-  const data = await res.json();
-  return (Array.isArray(data) ? data : []) as FollowUp[];
+  if (!res.ok) {
+    if (page !== undefined) return { data: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 1 } };
+    return [];
+  }
+  return await res.json();
 }
 
 export async function upsertFollowUp(f: Partial<FollowUp>): Promise<void> {

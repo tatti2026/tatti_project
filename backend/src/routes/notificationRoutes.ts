@@ -10,6 +10,7 @@ import {
 
 const router = Router();
 
+router.get('/', getNotifications);
 router.get('/profile/:profileId', getNotifications);
 router.get('/:profileId', getNotifications);
 router.put('/:id/read', markNotificationRead);

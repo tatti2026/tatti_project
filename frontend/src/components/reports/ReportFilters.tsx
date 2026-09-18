@@ -1,6 +1,12 @@
 import React from 'react';
-import { Search, RotateCcw, Download, Calendar, Filter } from 'lucide-react';
+import { Search, RotateCcw, Download, Calendar, Filter, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export interface ReportFilterValues {
   search: string;
@@ -15,16 +21,24 @@ interface ReportFiltersProps {
   filters: ReportFilterValues;
   onChange: (filters: ReportFilterValues) => void;
   onReset: () => void;
-  onExport: () => void;
-  exporting?: boolean;
+  onExportCsv: () => void;
+  onDownloadExcel: () => void;
+  onDownloadPdf: () => void;
+  exportingCsv?: boolean;
+  exportingExcel?: boolean;
+  exportingPdf?: boolean;
 }
 
 export const ReportFilters: React.FC<ReportFiltersProps> = ({
   filters,
   onChange,
   onReset,
-  onExport,
-  exporting = false,
+  onExportCsv,
+  onDownloadExcel,
+  onDownloadPdf,
+  exportingCsv = false,
+  exportingExcel = false,
+  exportingPdf = false,
 }) => {
   const updateField = (field: keyof ReportFilterValues, val: string) => {
     onChange({ ...filters, [field]: val });
@@ -45,8 +59,8 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
           />
         </div>
 
-        {/* Action Buttons: Reset & Export CSV */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Action Buttons: Reset & Exports */}
+        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
           <Button
             type="button"
             variant="outline"
@@ -57,16 +71,55 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
             <RotateCcw className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
             Reset
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={onExport}
-            disabled={exporting}
-            className="gradient-bg border-0 text-white font-semibold text-xs h-9 px-4 shadow-sm hover:opacity-95"
-          >
-            <Download className="w-3.5 h-3.5 mr-1.5" />
-            {exporting ? 'Exporting...' : 'Export CSV'}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={exportingCsv || exportingExcel || exportingPdf}
+                className="text-xs h-9 border-border bg-background hover:border-primary/50"
+              >
+                Export
+                <ChevronDown className="w-3.5 h-3.5 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 rounded-xl border border-border bg-popover p-1 shadow-lg">
+              <DropdownMenuItem
+                onSelect={event => {
+                  event.preventDefault();
+                  void onExportCsv();
+                }}
+                className="flex items-center gap-2 cursor-pointer rounded-md px-2 py-2 text-xs"
+                disabled={exportingCsv || exportingExcel || exportingPdf}
+              >
+                <Download className="w-3.5 h-3.5" />
+                {exportingCsv ? 'Exporting CSV...' : 'Export as CSV'}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={event => {
+                  event.preventDefault();
+                  void onDownloadExcel();
+                }}
+                className="flex items-center gap-2 cursor-pointer rounded-md px-2 py-2 text-xs"
+                disabled={exportingCsv || exportingExcel || exportingPdf}
+              >
+                <Download className="w-3.5 h-3.5" />
+                {exportingExcel ? 'Generating Excel...' : 'Download as Excel'}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={event => {
+                  event.preventDefault();
+                  void onDownloadPdf();
+                }}
+                className="flex items-center gap-2 cursor-pointer rounded-md px-2 py-2 text-xs"
+                disabled={exportingCsv || exportingExcel || exportingPdf}
+              >
+                <Download className="w-3.5 h-3.5" />
+                {exportingPdf ? 'Generating PDF...' : 'Download as PDF'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

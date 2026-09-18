@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TablePagination, getSessionPageSize, setSessionPageSize } from '@/components/common/TablePagination';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -27,6 +28,10 @@ export default function FollowUpManagement() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editFU, setEditFU] = useState<FollowUp | null>(null);
+  const [pageSize, setPageSize] = useState(() => getSessionPageSize('followup', 10));
+  const [pageBySegment, setPageBySegment] = useState<Record<string, number>>({ high: 1, medium: 1, low: 1 });
+  const [totalsBySegment, setTotalsBySegment] = useState<Record<string, number>>({ high: 0, medium: 0, low: 0 });
+  const [segmentPages, setSegmentPages] = useState<Record<string, number>>({ high: 1, medium: 1, low: 1 });
   const [viewStudent, setViewStudent] = useState<Student | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -64,15 +69,28 @@ export default function FollowUpManagement() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data }, fus] = await Promise.all([getAllStudents(0, 1000), getFollowUps()]);
-    setStudents(data);
-    setFollowUps(fus);
+    const [{ data }, fus] = await Promise.all([getAllStudents(1, 1000), getFollowUps()]);
+    setStudents(data || []);
+    setFollowUps(Array.isArray(fus) ? fus : fus?.data || []);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      const nextTotals: Record<string, number> = { high: 0, medium: 0, low: 0 };
+      for (const key of Object.keys(nextTotals) as Array<keyof typeof nextTotals>) {
+        const result = await getFollowUps(pageBySegment[key] ?? 1, pageSize, key, '');
+        const rows = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+        nextTotals[key] = result?.pagination?.total ?? rows.length ?? 0;
+      }
+      setTotalsBySegment(nextTotals);
+      setSegmentPages({ high: Math.max(1, Math.ceil((nextTotals.high || 0) / pageSize)), medium: Math.max(1, Math.ceil((nextTotals.medium || 0) / pageSize)), low: Math.max(1, Math.ceil((nextTotals.low || 0) / pageSize)) });
+    })();
+  }, [pageSize, pageBySegment]);
 
   const getStudentFU = (studentId: string) => followUps.find(f => f.student_id === studentId);
 
@@ -136,6 +154,18 @@ export default function FollowUpManagement() {
   const medium = students.filter(s => getStudentIntent(s.id) === 'medium');
   const low = students.filter(s => getStudentIntent(s.id) === 'low');
 
+  const segmentData = {
+    high: high.slice((pageBySegment.high - 1) * pageSize, (pageBySegment.high) * pageSize),
+    medium: medium.slice((pageBySegment.medium - 1) * pageSize, (pageBySegment.medium) * pageSize),
+    low: low.slice((pageBySegment.low - 1) * pageSize, (pageBySegment.low) * pageSize),
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setSessionPageSize('followup', newSize);
+    setPageBySegment(prev => ({ ...prev, high: 1, medium: 1, low: 1 }));
+  };
+
   const segments = [
     { key: 'high', label: 'HIGH INTENT', students: high, icon: Trophy, color: 'text-success', bgColor: 'bg-success/10 border-success/20', tagColor: 'bg-success/20 text-success' },
     { key: 'medium', label: 'MEDIUM INTENT', students: medium, icon: Target, color: 'text-warning', bgColor: 'bg-warning/10 border-warning/20', tagColor: 'bg-warning/20 text-warning' },
@@ -190,9 +220,9 @@ export default function FollowUpManagement() {
                 </div>
               ) : (
                 <div className="glass-card rounded-xl overflow-hidden border border-border">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto max-h-[540px]">
                     <table className="w-full text-xs">
-                      <thead className="bg-muted/50 border-b border-border text-muted-foreground">
+                      <thead className="bg-muted/50 border-b border-border text-muted-foreground sticky top-0 z-10">
                         <tr>
                           <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Student Name</th>
                           <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Student ID</th>
@@ -204,7 +234,7 @@ export default function FollowUpManagement() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border/60">
-                        {seg.map(s => {
+                        {segmentData[key].map(s => {
                           const fu = getStudentFU(s.id);
                           return (
                             <tr key={s.id} className="hover:bg-muted/40 transition-colors">
@@ -334,6 +364,16 @@ export default function FollowUpManagement() {
                       </tbody>
                     </table>
                   </div>
+                  <TablePagination
+                    currentPage={pageBySegment[key] ?? 1}
+                    totalPages={Math.max(1, Math.ceil((seg.length || 0) / pageSize))}
+                    totalItems={seg.length}
+                    pageSize={pageSize}
+                    onPageChange={page => setPageBySegment(prev => ({ ...prev, [key]: page }))}
+                    onPageSizeChange={handlePageSizeChange}
+                    itemName="students"
+                    loading={loading}
+                  />
                 </div>
               )}
             </TabsContent>

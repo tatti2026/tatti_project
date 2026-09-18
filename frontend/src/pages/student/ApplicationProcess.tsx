@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -16,7 +16,8 @@ import {
   CheckCircle2, User, BookOpen, CreditCard, Loader2,
   Shield, ChevronRight, Download, Eye, FileText, Receipt,
   CalendarDays, Clock, BadgeCheck, Hash, Banknote, GraduationCap,
-  Lock, Unlock, QrCode, Smartphone, AtSign, Copy, Check
+  Lock, Unlock, QrCode, Smartphone, AtSign, Copy, Check,
+  Upload, AlertCircle, HourglassIcon, ImageIcon, XCircle
 } from 'lucide-react';
 import { getApplicationAccess } from '@/services/applicationAccessService';
 import { format } from 'date-fns';
@@ -246,7 +247,8 @@ function PaymentSuccessView({ form, application, payment, selectedCourse, onNavi
     { icon: Hash, label: 'Transaction ID / Order ID', value: payment.transaction_id || 'N/A' },
     { icon: CalendarDays, label: 'Payment Date', value: paymentDate },
     { icon: Clock, label: 'Payment Time', value: paymentTime },
-    { icon: BadgeCheck, label: 'Payment Status', value: 'PAID', isStatus: true },
+    { icon: BadgeCheck, label: 'Payment Status', value: 'Approved', isStatus: true },
+    { icon: FileText, label: 'Application Status', value: 'Confirmed', isStatus: true },
   ];
 
   return (
@@ -267,13 +269,13 @@ function PaymentSuccessView({ form, application, payment, selectedCourse, onNavi
               <CheckCircle2 className="w-10 h-10 text-success" strokeWidth={2.5} />
             </div>
           </div>
-          <h1 className="text-3xl font-extrabold text-foreground mb-2">Payment Successful</h1>
+          <h1 className="text-3xl font-extrabold text-foreground mb-2">Application Confirmed</h1>
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-success/15 border border-success/30 mb-4">
             <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            <span className="text-success text-xs font-bold tracking-widest">PAYMENT CONFIRMED</span>
+            <span className="text-success text-xs font-bold tracking-widest">PAYMENT APPROVED • APPLICATION CONFIRMED</span>
           </div>
           <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
-            Your payment has been successfully completed and your application has been submitted.
+            Your UPI payment has been verified and your admission application has been confirmed.
           </p>
         </div>
       </div>
@@ -286,7 +288,7 @@ function PaymentSuccessView({ form, application, payment, selectedCourse, onNavi
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Payment Status</p>
-            <p className="text-sm font-bold text-success">PAID</p>
+            <p className="text-sm font-bold text-success">Approved</p>
           </div>
         </div>
         <div className="glass-card rounded-xl p-4 flex items-center gap-3">
@@ -295,7 +297,7 @@ function PaymentSuccessView({ form, application, payment, selectedCourse, onNavi
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Application Status</p>
-            <p className="text-sm font-bold text-primary">SUBMITTED</p>
+            <p className="text-sm font-bold text-primary">Confirmed</p>
           </div>
         </div>
       </div>
@@ -421,6 +423,11 @@ export default function ApplicationProcess() {
   const [upiIdInput, setUpiIdInput] = useState('');
   const [copiedVpa, setCopiedVpa] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
+  // UTR & screenshot for UPI verification
+  const [utrNumber, setUtrNumber] = useState('');
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     full_name: '', student_id_text: '', email: '', phone: '',
@@ -468,9 +475,13 @@ export default function ApplicationProcess() {
             if (c) setSelectedCourse(c);
           }
         }
-        if (existingPay?.status === 'paid') {
+        if (existingPay?.status === 'paid' || existingPay?.status === 'Approved') {
           setPayment(existingPay);
           setStep(4);
+        } else if (existingPay?.status === 'pending' || existingPay?.status === 'Pending' ||
+                   existingPay?.status === 'Pending Verification' || existingPay?.status === 'pending_verification') {
+          setPayment(existingPay);
+          setStep(4); // Show pending state on step 4
         } else if (existingApp?.step) {
           setStep((Math.min(existingApp.step, 3)) as Step);
         }
@@ -518,6 +529,39 @@ export default function ApplicationProcess() {
     };
   }, [student, profile]);
 
+  // Poll payment status for pending payments — auto-transition when admin approves/rejects
+  useEffect(() => {
+    if (!student || !payment) return;
+    const isPending = (
+      payment.status === 'pending' || payment.status === 'Pending' ||
+      payment.status === 'Pending Verification' || payment.status === 'pending_verification'
+    );
+    if (!isPending) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const latestPay = await getStudentPayment(student.id);
+        if (!latestPay) return;
+        const status = latestPay.status;
+        const isApproved = status === 'paid' || status === 'Approved';
+        const isRejected = status === 'Rejected' || status === 'failed';
+        if (isApproved || isRejected) {
+          setPayment(latestPay);
+          if (isApproved) {
+            toast.success('🎉 Your payment has been confirmed by the admin! Admission confirmed.', { duration: 6000 });
+          } else {
+            toast.error('Your payment was not verified. Please check notifications for details.', { duration: 6000 });
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [student, payment?.id, payment?.status]);
+
+
   const handleStep1 = async () => {
     if (!form.full_name || !form.email || !form.phone) { toast.error('Please fill in required fields'); return; }
     setSaving(true);
@@ -558,27 +602,48 @@ export default function ApplicationProcess() {
       toast.error('Please enter a valid UPI ID / VPA (e.g. yourname@okaxis, 9876543210@paytm)');
       return;
     }
+    if (!utrNumber.trim() || utrNumber.trim().length < 6) {
+      toast.error('Please enter a valid UTR number (12-character transaction reference)');
+      return;
+    }
+    if (!screenshotFile) {
+      toast.error('Please upload your UPI payment screenshot for verification');
+      return;
+    }
     setSaving(true);
-    await new Promise(r => setTimeout(r, 2000));
-    const upiDescriptor = upiSubMethod === 'upi_app'
-      ? `UPI (${selectedUpiApp.toUpperCase()})`
-      : upiSubMethod === 'upi_qr'
-      ? 'UPI (QR Code)'
-      : `UPI (${upiIdInput.trim()})`;
-    const pay = await createPayment({
-      application_id: application.id,
-      student_id: student.id,
-      amount: selectedCourse.fee,
-      payment_method: 'UPI',
-      status: 'paid',
-      paid_at: new Date().toISOString(),
-    });
-    await upsertApplication({ ...application, status: 'submitted', step: 4, submitted_at: new Date().toISOString() });
-    await updateStudent(student.id, { payment_status: 'paid', application_status: 'submitted' });
-    setPayment(pay);
-    setSaving(false);
-    setStep(4);
-    toast.success(`UPI Payment of ₹${selectedCourse.fee.toLocaleString()} verified! Application submitted.`);
+    try {
+      // Convert screenshot to base64
+      const base64Screenshot = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(screenshotFile);
+      });
+      const upiDescriptor = upiSubMethod === 'upi_app'
+        ? `UPI (${selectedUpiApp.toUpperCase()})`
+        : upiSubMethod === 'upi_qr'
+        ? 'UPI (QR Code)'
+        : `UPI (${upiIdInput.trim()})`;
+      const pay = await createPayment({
+        application_id: application.id,
+        student_id: student.id,
+        course_id: selectedCourse.id,
+        amount: selectedCourse.fee,
+        payment_method: upiDescriptor,
+        status: 'pending',
+        utr_number: utrNumber.trim(),
+        screenshot: base64Screenshot,
+      });
+      await upsertApplication({ ...application, status: 'submitted', step: 4, submitted_at: new Date().toISOString() });
+      await updateStudent(student.id, { payment_status: 'pending', application_status: 'submitted' });
+      setPayment(pay);
+      setStep(4);
+      toast.success('Payment submitted for verification! Admin will review and confirm your admission.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to submit payment');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const steps = [
@@ -667,8 +732,8 @@ export default function ApplicationProcess() {
     );
   }
 
-  // Payment already completed — show success view
-  if (step === 4 && payment) {
+  // Payment completed (paid/approved) — show success view
+  if (step === 4 && payment && (payment.status === 'paid' || payment.status === 'Approved')) {
     return (
       <StudentLayout>
         <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
@@ -689,6 +754,17 @@ export default function ApplicationProcess() {
             </div>
           </div>
 
+          {/* Admission Confirmed Banner */}
+          <div className="glass-card rounded-2xl p-5 border border-success/30 bg-success/5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-7 h-7 text-success" />
+            </div>
+            <div>
+              <p className="font-bold text-success text-base">Admission Confirmed by Admin</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Your UPI payment has been verified and your admission is now officially confirmed.</p>
+            </div>
+          </div>
+
           <PaymentSuccessView
             form={form}
             application={application}
@@ -697,6 +773,235 @@ export default function ApplicationProcess() {
             onNavigateDashboard={() => navigate('/student/dashboard')}
             onViewApplication={() => {/* stays on same page */ }}
           />
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  // Payment rejected — show rejection view
+  if (step === 4 && payment && (payment.status === 'Rejected' || payment.status === 'failed')) {
+    return (
+      <StudentLayout>
+        <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+          <div className="glass-card rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              {steps.map(({ n, label }, idx) => (
+                <div key={n} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 ${n < 4 ? 'bg-primary border-primary' : 'bg-destructive/20 border-destructive'}`}>
+                      {n < 4 ? <CheckCircle2 className="w-4 h-4 text-white" /> : <XCircle className="w-4 h-4 text-destructive" />}
+                    </div>
+                    <span className={`text-[10px] font-medium whitespace-nowrap hidden md:block ${n < 4 ? 'text-foreground' : 'text-destructive'}`}>{label}</span>
+                  </div>
+                  {idx < steps.length - 1 && <div className={`flex-1 h-0.5 mx-2 mb-4 ${n < 4 ? 'bg-primary' : 'bg-border'}`} />}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="glass-card rounded-2xl p-8 text-center relative overflow-hidden">
+            <div className="relative z-10">
+              <div className="w-24 h-24 rounded-full bg-destructive/20 flex items-center justify-center mx-auto mb-5 ring-4 ring-destructive/20">
+                <XCircle className="w-12 h-12 text-destructive" strokeWidth={2} />
+              </div>
+              <h1 className="text-3xl font-extrabold text-foreground mb-2">Payment Not Verified</h1>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-destructive/15 border border-destructive/30 mb-4">
+                <div className="w-2 h-2 rounded-full bg-destructive" />
+                <span className="text-destructive text-xs font-bold tracking-widest">VERIFICATION FAILED</span>
+              </div>
+              {payment.rejection_reason && (
+                <div className="mt-4 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-left max-w-sm mx-auto">
+                  <p className="text-xs font-semibold text-destructive mb-1">Reason provided by Admin:</p>
+                  <p className="text-sm text-foreground">{payment.rejection_reason}</p>
+                </div>
+              )}
+              <p className="text-muted-foreground text-sm max-w-sm mx-auto mt-4 leading-relaxed">
+                Please contact TATTI support or resubmit your payment with the correct UTR and screenshot.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
+            <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-foreground mb-1">What should you do?</p>
+              <ul className="text-muted-foreground space-y-1 text-xs list-disc list-inside">
+                <li>Check your UPI app for the correct UTR / transaction reference</li>
+                <li>Ensure the screenshot clearly shows the transaction details</li>
+                <li>Contact TATTI support if you believe this is an error</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => navigate('/student/notifications')}
+              className="flex-1 py-2.5 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              View Notifications
+            </button>
+            <button
+              onClick={() => {
+                setPayment(null);
+                setStep(3);
+              }}
+              className="flex-1 py-2.5 px-4 rounded-lg gradient-bg text-white text-sm font-semibold border-0 shadow-md"
+            >
+              Resubmit Payment
+            </button>
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  // Payment pending verification
+  if (step === 4 && payment && (
+    payment.status === 'pending' || payment.status === 'Pending' ||
+    payment.status === 'Pending Verification' || payment.status === 'pending_verification'
+  )) {
+    return (
+      <StudentLayout>
+        <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+          {/* Stepper (all active) */}
+          <div className="glass-card rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              {steps.map(({ n, label }, idx) => (
+                <div key={n} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 ${
+                      n < 4 ? 'bg-primary border-primary' : 'border-warning bg-warning/10'
+                    }`}>
+                      {n < 4 ? <CheckCircle2 className="w-4 h-4 text-white" /> : <HourglassIcon className="w-4 h-4 text-warning" />}
+                    </div>
+                    <span className={`text-[10px] font-medium whitespace-nowrap hidden md:block ${ n < 4 ? 'text-foreground' : 'text-warning'}`}>{label}</span>
+                  </div>
+                  {idx < steps.length - 1 && <div className={`flex-1 h-0.5 mx-2 mb-4 ${ n < 4 ? 'bg-primary' : 'bg-border'}`} />}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pending Verification Card */}
+          <div className="glass-card rounded-2xl p-8 text-center relative overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-72 h-72 rounded-full border border-warning/8" />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-52 h-52 rounded-full border border-warning/12" />
+              </div>
+            </div>
+            <div className="relative z-10">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-warning/30 to-amber-600/20 flex items-center justify-center mx-auto mb-5 ring-4 ring-warning/20">
+                <div className="w-16 h-16 rounded-full bg-warning/20 flex items-center justify-center">
+                  <HourglassIcon className="w-10 h-10 text-warning" strokeWidth={2} />
+                </div>
+              </div>
+              <h1 className="text-3xl font-extrabold text-foreground mb-2">Status: Pending verification</h1>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-warning/15 border border-warning/30 mb-4">
+                <div className="w-2 h-2 rounded-full bg-warning animate-pulse" />
+                <span className="text-warning text-xs font-bold tracking-widest">STATUS: PENDING VERIFICATION</span>
+              </div>
+              <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
+                Your UPI payment has been submitted and is awaiting admin verification.
+                You'll receive a notification once your payment is confirmed.
+              </p>
+            </div>
+          </div>
+
+          {/* Payment Info Summary */}
+          <div className="glass-card rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-border flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-warning/15 flex items-center justify-center">
+                <Receipt className="w-5 h-5 text-warning" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-foreground">Submission Details</h2>
+                <p className="text-xs text-muted-foreground">Your payment is pending admin confirmation</p>
+              </div>
+            </div>
+            <div className="p-6 space-y-0">
+              {[
+                { icon: Hash, label: 'UTR / Transaction Ref', value: payment.utr_number || payment.transaction_id || 'N/A' },
+                { icon: Banknote, label: 'Amount Submitted', value: `₹${payment.amount?.toLocaleString() || '0'}`, highlight: true },
+                { icon: CreditCard, label: 'Payment Method', value: payment.payment_method || 'UPI' },
+                { icon: CalendarDays, label: 'Submitted On', value: payment.submitted_at ? format(new Date(payment.submitted_at), 'dd MMM yyyy, hh:mm a') : (payment.created_at ? format(new Date(payment.created_at), 'dd MMM yyyy, hh:mm a') : 'N/A') },
+                { icon: AlertCircle, label: 'Payment Status', value: 'Pending verification', isStatus: true },
+                { icon: FileText, label: 'Application Status', value: 'Pending verification', isStatus: true },
+              ].map(({ icon: Icon, label, value, highlight, isStatus }, i, arr) => (
+                <div key={label}>
+                  <div className="flex items-center justify-between py-3 gap-4">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="text-sm text-muted-foreground">{label}</span>
+                    </div>
+                    {isStatus ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-warning/15 border border-warning/30 text-warning text-xs font-bold">
+                        <HourglassIcon className="w-3.5 h-3.5" /> {value}
+                      </span>
+                    ) : (
+                      <span className={`text-sm font-semibold text-right truncate max-w-[55%] ${highlight ? 'text-xl gradient-text' : 'text-foreground'}`}>
+                        {value}
+                      </span>
+                    )}
+                  </div>
+                  {i < arr.length - 1 && <div className="border-b border-border/40" />}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Screenshot preview if available */}
+          {payment.screenshot_url && (
+            <div className="glass-card rounded-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-border flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
+                  <ImageIcon className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-foreground">Uploaded Screenshot</h2>
+                  <p className="text-xs text-muted-foreground">Your submitted UPI payment proof</p>
+                </div>
+              </div>
+              <div className="p-6 flex justify-center">
+                <img
+                  src={payment.screenshot_url}
+                  alt="Payment Screenshot"
+                  className="max-w-xs w-full rounded-xl border border-border shadow-md"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Info note */}
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
+            <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold text-foreground mb-1">What happens next?</p>
+              <ul className="text-muted-foreground space-y-1 text-xs list-disc list-inside">
+                <li>The TATTI admin team will verify your UPI payment</li>
+                <li>You'll receive a notification in your portal once confirmed</li>
+                <li>After approval, your admission will be officially confirmed</li>
+                <li>If there's any issue, you'll be notified with the reason</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => navigate('/student/dashboard')}
+              className="flex-1 py-2.5 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              Return to Dashboard
+            </button>
+            <button
+              onClick={() => navigate('/student/notifications')}
+              className="flex-1 py-2.5 px-4 rounded-lg gradient-bg text-white text-sm font-semibold border-0 shadow-md"
+            >
+              View Notifications
+            </button>
+          </div>
         </div>
       </StudentLayout>
     );
@@ -844,10 +1149,10 @@ export default function ApplicationProcess() {
         {/* Step 3: Payment (UPI Exclusive) */}
         {step === 3 && selectedCourse && (
           <div className="glass-card rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
+                 <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-foreground">UPI Payment Gateway</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Pay securely using Unified Payments Interface (UPI)</p>
+                <h2 className="text-lg font-bold text-foreground">Scan and pay via UPI</h2>
+                <p className="text-xs text-muted-foreground mt-0.5 font-medium text-primary">Institute UPI ID: tatti.institute@upi</p>
               </div>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
                 <BadgeCheck className="w-3.5 h-3.5" /> Official UPI Gateway
@@ -922,7 +1227,7 @@ export default function ApplicationProcess() {
                     ))}
                   </div>
                   <p className="text-[11px] text-muted-foreground text-center">
-                    Clicking "Proceed to Pay" will trigger UPI checkout via <span className="font-semibold text-foreground">{selectedUpiApp.toUpperCase()}</span>.
+                    After paying via <span className="font-semibold text-foreground">{selectedUpiApp.toUpperCase()}</span>, enter the UTR/transaction reference below.
                   </p>
                 </div>
               )}
@@ -985,11 +1290,11 @@ export default function ApplicationProcess() {
 
                   {/* Merchant VPA & Copy */}
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted border border-border text-xs">
-                    <span className="text-muted-foreground font-mono">UPI ID: <strong className="text-foreground">tatti.admissions@icici</strong></span>
+                    <span className="text-muted-foreground font-mono">UPI ID: <strong className="text-foreground">tatti.institute@upi</strong></span>
                     <button
                       type="button"
                       onClick={() => {
-                        navigator.clipboard.writeText('tatti.admissions@icici');
+                        navigator.clipboard.writeText('tatti.institute@upi');
                         setCopiedVpa(true);
                         setTimeout(() => setCopiedVpa(false), 2000);
                         toast.success('UPI ID copied to clipboard');
@@ -1035,11 +1340,87 @@ export default function ApplicationProcess() {
               )}
             </div>
 
+            {/* UTR & Screenshot section */}
+            <div className="space-y-4 mb-6 p-4 rounded-xl bg-muted/50 border border-border">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
+                  <Upload className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">After Payment — Submit Proof</p>
+                  <p className="text-xs text-muted-foreground">Enter the UTR reference number and upload your payment screenshot</p>
+                </div>
+              </div>
+
+              {/* UTR Input */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-foreground">UPI transaction / reference number *</Label>
+                <Input
+                  placeholder="Enter 12-digit UTR number"
+                  value={utrNumber}
+                  onChange={e => setUtrNumber(e.target.value)}
+                  className="bg-input border-border text-sm font-mono"
+                  maxLength={30}
+                />
+                <p className="text-[11px] text-muted-foreground">Found in your UPI app → Transaction History → Reference No.</p>
+              </div>
+
+              {/* Screenshot Upload */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-foreground">Payment screenshot *</Label>
+                <div
+                  className="border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {screenshotPreview ? (
+                    <div className="relative">
+                      <img src={screenshotPreview} alt="Screenshot preview" className="max-h-40 mx-auto rounded-lg object-contain" />
+                      <button
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setScreenshotFile(null);
+                          setScreenshotPreview(null);
+                        }}
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-white flex items-center justify-center text-xs"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <ImageIcon className="w-10 h-10 text-muted-foreground mx-auto" />
+                      <p className="text-sm font-medium text-muted-foreground">Tap to upload screenshot</p>
+                      <p className="text-[11px] text-muted-foreground">JPG, PNG or WEBP • Max 5MB</p>
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > 5 * 1024 * 1024) {
+                        toast.error('Screenshot must be smaller than 5MB');
+                        return;
+                      }
+                      setScreenshotFile(file);
+                      const url = URL.createObjectURL(file);
+                      setScreenshotPreview(url);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
             {/* Security Guarantee */}
             <div className="flex items-center gap-2 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20 mb-5">
               <Shield className="w-4 h-4 text-emerald-500 shrink-0" />
               <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                🔒 100% Encrypted UPI Payment via NPCI (National Payments Corporation of India). Instant receipt generated upon payment.
+                🔒 100% Encrypted UPI Payment via NPCI. Admin will verify your screenshot & UTR before confirming admission.
               </p>
             </div>
 
@@ -1050,10 +1431,10 @@ export default function ApplicationProcess() {
                 {saving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Verifying UPI Payment...
+                    Submitting for verification...
                   </>
                 ) : (
-                  `Proceed to Pay ₹${selectedCourse.fee.toLocaleString()} via UPI`
+                  'Submit for verification'
                 )}
               </Button>
             </div>

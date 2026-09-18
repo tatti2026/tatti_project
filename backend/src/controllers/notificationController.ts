@@ -3,17 +3,39 @@ import { query } from '../database/pgPool.js';
 
 export async function getNotifications(req: Request, res: Response) {
   try {
-    const { profileId } = req.params;
-    const result = await query(
-      'SELECT * FROM notifications WHERE profile_id = $1 ORDER BY created_at DESC LIMIT 50',
-      [profileId]
-    );
+    const profileId = req.params.profileId || (req.query.profileId as string) || (req as any).user?.userId;
+    const studentId = req.query.studentId as string;
+
+    let result;
+    if (studentId) {
+      result = await query(
+        `SELECT * FROM notifications 
+         WHERE student_id = $1 
+            OR profile_id = (SELECT profile_id FROM students WHERE id = $1)
+         ORDER BY created_at DESC LIMIT 50`,
+        [studentId]
+      );
+    } else if (profileId) {
+      result = await query(
+        `SELECT * FROM notifications 
+         WHERE profile_id = $1 
+            OR student_id = (SELECT id FROM students WHERE profile_id = $1)
+         ORDER BY created_at DESC LIMIT 50`,
+        [profileId]
+      );
+    } else {
+      result = await query(
+        'SELECT * FROM notifications ORDER BY created_at DESC LIMIT 50'
+      );
+    }
+
     return res.json(result.rows);
   } catch (err) {
     console.error('Error getting notifications:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 }
+
 
 export async function markNotificationRead(req: Request, res: Response) {
   try {

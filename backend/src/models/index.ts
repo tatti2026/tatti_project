@@ -36,6 +36,7 @@ export interface StudentRecord {
   application_unlocked_by?: string | null;
   application_unlocked_at?: string | null;
   payment_status: PaymentStatus;
+  counselling_status?: string | null;
   admission_status: AdmissionStatus;
   created_at: string;
   updated_at: string;

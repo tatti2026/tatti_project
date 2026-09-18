@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS public.assessments (
 CREATE TABLE IF NOT EXISTS public.course_recommendations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
-    course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
+    course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
     recommendation_percentage NUMERIC(5, 2) NOT NULL,
     is_interested BOOLEAN DEFAULT false,
     is_selected BOOLEAN DEFAULT false,
@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS public.course_recommendations (
 CREATE TABLE IF NOT EXISTS public.applications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
-    course_id UUID REFERENCES public.courses(id),
+    course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
     application_number VARCHAR(50) UNIQUE,
     status VARCHAR(30) DEFAULT 'in_progress' CHECK (status IN ('not_started', 'in_progress', 'submitted', 'under_review', 'approved', 'rejected')),
     step INTEGER DEFAULT 1,
@@ -140,6 +140,7 @@ CREATE TABLE IF NOT EXISTS public.payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     application_id UUID REFERENCES public.applications(id) ON DELETE SET NULL,
     student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+    course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
     payment_id VARCHAR(100) UNIQUE,
     transaction_id VARCHAR(100) UNIQUE,
     amount NUMERIC(10, 2) NOT NULL,

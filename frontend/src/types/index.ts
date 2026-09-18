@@ -7,8 +7,8 @@ export interface Option {
 
 export type UserRole = 'student' | 'admin';
 export type AssessmentStatus = 'not_started' | 'in_progress' | 'completed';
-export type ApplicationStatus = 'not_started' | 'in_progress' | 'submitted' | 'under_review' | 'approved' | 'rejected';
-export type PaymentStatus = 'unpaid' | 'paid' | 'failed' | 'refunded';
+export type ApplicationStatus = 'not_started' | 'in_progress' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'confirmed' | 'Confirmed' | 'Pending Verification' | 'pending_verification';
+export type PaymentStatus = 'unpaid' | 'paid' | 'failed' | 'refunded' | 'pending' | 'Pending' | 'Approved' | 'Rejected' | 'Pending Verification' | 'pending_verification';
 export type CounsellingStatus = 'not_scheduled' | 'pending' | 'scheduled' | 'completed' | 'selected' | 'rejected' | 'follow_up_required';
 export type AdmissionStatus = 'not_applied' | 'application_submitted' | 'under_review' | 'counselling_pending' | 'counselling_completed' | 'selected' | 'admission_confirmed' | 'not_selected';
 export type DifficultyLevel = 'easy' | 'medium' | 'hard';
@@ -130,13 +130,24 @@ export interface Payment {
   id: string;
   application_id: string;
   student_id: string;
+  course_id?: string | null;
   payment_id: string | null;
   transaction_id: string | null;
+  utr_number?: string | null;
   amount: number;
   payment_method: string | null;
+  screenshot_url?: string | null;
+  screenshot_path?: string | null;
   status: PaymentStatus;
+  submitted_at?: string | null;
   paid_at: string | null;
   created_at: string;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  payment_verified_at?: string | null;
+  rejected_by?: string | null;
+  rejected_at?: string | null;
+  rejection_reason?: string | null;
 }
 
 export interface Counselling {
