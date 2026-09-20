@@ -4,11 +4,10 @@ import AdminLayout from '@/components/layouts/AdminLayout';
 import type { Student, Payment } from '@/types/index';
 import {
   Users,
-  CheckCircle2,
+  UserPlus,
   FileText,
   CreditCard,
   GraduationCap,
-  PhoneCall,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -23,7 +22,16 @@ import { getSessionPageSize, setSessionPageSize } from '@/components/common/Tabl
 export default function Reports() {
   const [students, setStudents] = useState<Student[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [summary, setSummary] = useState<{ total_students: number; assessed_count: number; applications_count: number; paid_count: number; counselled_count: number; admitted_count: number; total_payments: number } | null>(null);
+  const [summary, setSummary] = useState<{
+    total_students: number;
+    new_students_7d?: number;
+    assessed_count: number;
+    applications_count: number;
+    paid_count: number;
+    counselled_count: number;
+    admitted_count: number;
+    total_payments: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
@@ -154,12 +162,13 @@ export default function Reports() {
 
   // KPIs
   const totalStudents = summary?.total_students ?? students.length;
-  const assessedCount = summary?.assessed_count ?? students.filter(s => s.assessment_status === 'completed').length;
+  const newStudents7d = summary?.new_students_7d ?? students.filter(s => {
+    if (!s.created_at) return false;
+    const c = new Date(s.created_at);
+    return (Date.now() - c.getTime()) <= 7 * 24 * 60 * 60 * 1000;
+  }).length;
   const applicationsCount = summary?.applications_count ?? students.filter(s => s.application_status === 'submitted').length;
   const paidCount = summary?.paid_count ?? students.filter(s => s.payment_status === 'paid').length;
-  const counselledCount = summary?.counselled_count ?? students.filter(
-    s => s.counselling_status === 'completed' || s.counselling_status === 'selected'
-  ).length;
   const admittedCount = summary?.admitted_count ?? students.filter(
     s => s.admission_status === 'admission_confirmed'
   ).length;
@@ -180,8 +189,8 @@ export default function Reports() {
         {/* Loading Skeleton */}
         {loading ? (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {[1, 2, 3, 4, 5, 6].map(i => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className="h-24 rounded-2xl bg-muted/50 animate-pulse" />
               ))}
             </div>
@@ -190,7 +199,7 @@ export default function Reports() {
         ) : (
           <>
             {/* KPI Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               <ReportSummaryCard
                 title="Total Enrolled"
                 value={totalStudents}
@@ -199,14 +208,14 @@ export default function Reports() {
                 color="primary"
               />
               <ReportSummaryCard
-                title="Assessed"
-                value={assessedCount}
-                subtitle={`${totalStudents > 0 ? Math.round((assessedCount / totalStudents) * 100) : 0}% Complete`}
-                icon={CheckCircle2}
+                title="New Students (7D)"
+                value={newStudents7d}
+                subtitle="Recent 7 Days"
+                icon={UserPlus}
                 color="blue"
               />
               <ReportSummaryCard
-                title="Applications"
+                title="Applications Submitted"
                 value={applicationsCount}
                 subtitle="Form Submitted"
                 icon={FileText}
@@ -218,13 +227,6 @@ export default function Reports() {
                 subtitle={`${payments.length} Transactions`}
                 icon={CreditCard}
                 color="emerald"
-              />
-              <ReportSummaryCard
-                title="Counselled"
-                value={counselledCount}
-                subtitle="Sessions Handled"
-                icon={PhoneCall}
-                color="amber"
               />
               <ReportSummaryCard
                 title="Admitted"

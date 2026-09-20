@@ -66,7 +66,7 @@ export function generatePageNumbers(currentPage: number, totalPages: number): nu
   return Array.from({ length: safeTotalPages }, (_, index) => index + 1);
 }
 
-const TablePagination: React.FC<TablePaginationProps> = ({
+export const TablePagination: React.FC<TablePaginationProps> = ({
   currentPage,
   totalPages,
   totalItems,

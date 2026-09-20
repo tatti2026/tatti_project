@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAllStudents, getAllQuestions, getAllCounselling, getAllPayments } from '@/lib/api';
+import { getDashboardStats, DashboardStats } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -8,87 +8,79 @@ import {
 } from 'recharts';
 import {
   Users, ClipboardList, FileText, CreditCard,
-  Phone, Award, TrendingUp, UserPlus
+  Phone, Award, TrendingUp, UserPlus, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 
 const COLORS = ['#5D5FEF', '#06B6D4', '#10B981', '#F59E0B', '#EF4444'];
 
+const INITIAL_STATS: DashboardStats = {
+  totalStudents: 0,
+  newStudents7d: 0,
+  assessmentCompleted: 0,
+  assessmentPending: 0,
+  applicationsSubmitted: 0,
+  paidApplications: 0,
+  unpaidApplications: 0,
+  counsellingPending: 0,
+  admissionsConfirmed: 0,
+};
+
 export default function AdminDashboard() {
   const { profile } = useAuth();
-  const [stats, setStats] = useState({
-    totalStudents: 0, newStudents: 0,
-    assessmentCompleted: 0, assessmentPending: 0,
-    applicationsSubmitted: 0, paid: 0, unpaid: 0,
-    counsellingPending: 0, admissionsConfirmed: 0,
-  });
+  const [stats, setStats] = useState<DashboardStats>(INITIAL_STATS);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [regTrend, setRegTrend] = useState<{ date: string; count: number }[]>([]);
   const [performanceData, setPerformanceData] = useState<{ name: string; value: number }[]>([]);
   const [paymentData, setPaymentData] = useState<{ name: string; value: number }[]>([]);
 
-  useEffect(() => {
-    (async () => {
-      const [{ data: students }, { data: questions }, counselling, { data: payments }] = await Promise.all([
-        getAllStudents(0, 1000),
-        getAllStudents(0, 1000), // reuse
-        getAllCounselling(),
-        getAllPayments(0, 1000),
-      ]);
-      const allStudents = students;
+  const loadStats = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const dashboardStats = await getDashboardStats();
 
-      const now = new Date();
-      const trend = Array.from({ length: 7 }, (_, i) => {
-        const d = subDays(now, 6 - i);
-        const dateStr = format(d, 'MMM dd');
-        const count = allStudents.filter(s => {
-          const c = new Date(s.created_at);
-          return c.toDateString() === d.toDateString();
-        }).length;
-        return { date: dateStr, count };
-      });
+      const trend = dashboardStats.registrationTrend && dashboardStats.registrationTrend.length > 0
+        ? dashboardStats.registrationTrend
+        : Array.from({ length: 7 }, (_, i) => {
+            const d = subDays(new Date(), 6 - i);
+            return { date: format(d, 'MMM dd'), count: 0 };
+          });
 
-      const highPerf = allStudents.filter(s => s.assessment_status === 'completed').length;
-      const medPerf = Math.floor(highPerf * 0.4);
-      const lowPerf = Math.floor(highPerf * 0.25);
-
-      setStats({
-        totalStudents: allStudents.length,
-        newStudents: allStudents.filter(s => new Date(s.created_at) > subDays(now, 7)).length,
-        assessmentCompleted: allStudents.filter(s => s.assessment_status === 'completed').length,
-        assessmentPending: allStudents.filter(s => s.assessment_status !== 'completed').length,
-        applicationsSubmitted: allStudents.filter(s => s.application_status === 'submitted').length,
-        paid: allStudents.filter(s => s.payment_status === 'paid').length,
-        unpaid: allStudents.filter(s => s.payment_status === 'unpaid').length,
-        counsellingPending: allStudents.filter(s => s.counselling_status === 'pending' || s.counselling_status === 'not_scheduled').length,
-        admissionsConfirmed: allStudents.filter(s => s.admission_status === 'admission_confirmed').length,
-      });
+      setStats(dashboardStats);
       setRegTrend(trend);
       setPerformanceData([
-        { name: 'High Performers', value: highPerf },
-        { name: 'Medium', value: medPerf },
-        { name: 'Low', value: lowPerf },
+        { name: 'Completed', value: dashboardStats.assessmentCompleted },
+        { name: 'Pending', value: dashboardStats.assessmentPending },
       ]);
       setPaymentData([
-        { name: 'Paid', value: allStudents.filter(s => s.payment_status === 'paid').length },
-        { name: 'Unpaid', value: allStudents.filter(s => s.payment_status === 'unpaid').length },
-        { name: 'Pending', value: allStudents.filter(s => s.application_status === 'in_progress').length },
+        { name: 'Paid', value: dashboardStats.paidApplications },
+        { name: 'Unpaid', value: dashboardStats.unpaidApplications },
       ]);
+    } catch (err: any) {
+      console.error('Failed to load dashboard stats:', err);
+      setError(err?.message || 'Failed to load dashboard statistics. Please try again.');
+    } finally {
       setLoading(false);
-    })();
+    }
   }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   const kpiCards = [
     { label: 'Total Students', value: stats.totalStudents, icon: Users, color: 'text-primary' },
-    { label: 'New Students (7d)', value: stats.newStudents, icon: UserPlus, color: 'text-success' },
+    { label: 'New Students (7d)', value: stats.newStudents7d, icon: UserPlus, color: 'text-success' },
     { label: 'Career Fit Assessment Completed', value: stats.assessmentCompleted, icon: ClipboardList, color: 'text-info' },
     { label: 'Career Fit Assessment Pending', value: stats.assessmentPending, icon: ClipboardList, color: 'text-warning' },
     { label: 'Applications Submitted', value: stats.applicationsSubmitted, icon: FileText, color: 'text-primary' },
-    { label: 'Paid Applications', value: stats.paid, icon: CreditCard, color: 'text-success' },
-    { label: 'Unpaid Applications', value: stats.unpaid, icon: CreditCard, color: 'text-destructive' },
+    { label: 'Paid Applications', value: stats.paidApplications, icon: CreditCard, color: 'text-success' },
+    { label: 'Unpaid Applications', value: stats.unpaidApplications, icon: CreditCard, color: 'text-destructive' },
     { label: 'Counselling Pending', value: stats.counsellingPending, icon: Phone, color: 'text-warning' },
     { label: 'Admissions Confirmed', value: stats.admissionsConfirmed, icon: Award, color: 'text-success' },
   ];
@@ -107,10 +99,36 @@ export default function AdminDashboard() {
   return (
     <AdminLayout>
       <div className="space-y-6 animate-fade-in">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">{greeting}, {profile?.full_name || 'Admin'}!</h1>
-          <p className="text-muted-foreground text-sm">Manage students, assessments, courses and admissions.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">{greeting}, {profile?.full_name || 'Admin'}!</h1>
+            <p className="text-muted-foreground text-sm">Manage students, assessments, courses and admissions.</p>
+          </div>
+          <button
+            onClick={loadStats}
+            title="Refresh statistics"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Refresh
+          </button>
         </div>
+
+        {error && (
+          <div className="flex items-center justify-between p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+            <button
+              onClick={loadStats}
+              className="flex items-center gap-1.5 px-3 py-1 bg-destructive text-destructive-foreground rounded-md text-xs font-medium hover:bg-destructive/90 transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* KPI Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -184,7 +202,7 @@ export default function AdminDashboard() {
                 { label: 'Registered', value: stats.totalStudents, max: stats.totalStudents, color: 'bg-primary' },
                 { label: 'Assessed', value: stats.assessmentCompleted, max: stats.totalStudents, color: 'bg-info' },
                 { label: 'Applied', value: stats.applicationsSubmitted, max: stats.totalStudents, color: 'bg-warning' },
-                { label: 'Paid', value: stats.paid, max: stats.totalStudents, color: 'bg-success' },
+                { label: 'Paid', value: stats.paidApplications, max: stats.totalStudents, color: 'bg-success' },
                 { label: 'Confirmed', value: stats.admissionsConfirmed, max: stats.totalStudents, color: 'bg-success' },
               ].map(({ label, value, max, color }) => (
                 <div key={label}>

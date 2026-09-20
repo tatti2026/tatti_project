@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getAllStudents, getFollowUps, upsertFollowUp, unlockStudentApplication, lockStudentApplication } from '@/lib/api';
+import { getAllStudents, getFollowUps, getAllCounselling, upsertFollowUp, unlockStudentApplication, lockStudentApplication } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import StatusBadge from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -14,16 +14,46 @@ import {
   AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import type { Student, FollowUp } from '@/types/index';
+import type { Student, FollowUp, Counselling } from '@/types/index';
 import {
   Plus, Pencil, Loader2, Trophy, Target,
-  TrendingDown, CalendarPlus2, Eye, Calendar, Lock, Unlock
+  TrendingDown, Eye, Calendar, Lock, Unlock
 } from 'lucide-react';
 import { format } from 'date-fns';
+
+function formatCounsellingDateTime(scheduledDate?: string | null, scheduledTime?: string | null): string | null {
+  if (!scheduledDate) return null;
+  try {
+    const d = new Date(scheduledDate);
+    if (isNaN(d.getTime())) return null;
+
+    if (scheduledTime) {
+      const timeParts = scheduledTime.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(AM|PM))?$/i);
+      if (timeParts) {
+        let hours = parseInt(timeParts[1], 10);
+        const minutes = timeParts[2];
+        const ampm = timeParts[4]?.toUpperCase();
+        if (ampm) {
+          return `${format(d, 'dd MMM yyyy')}, ${hours}:${minutes} ${ampm}`;
+        } else {
+          const ampmCalculated = hours >= 12 ? 'PM' : 'AM';
+          const h12 = hours % 12 || 12;
+          return `${format(d, 'dd MMM yyyy')}, ${h12}:${minutes} ${ampmCalculated}`;
+        }
+      }
+      return `${format(d, 'dd MMM yyyy')}, ${scheduledTime}`;
+    }
+
+    return format(d, 'dd MMM yyyy');
+  } catch {
+    return null;
+  }
+}
 
 export default function FollowUpManagement() {
   const [students, setStudents] = useState<Student[]>([]);
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+  const [counsellings, setCounsellings] = useState<Counselling[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -69,10 +99,19 @@ export default function FollowUpManagement() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data }, fus] = await Promise.all([getAllStudents(1, 1000), getFollowUps()]);
-    setStudents(data || []);
-    setFollowUps(Array.isArray(fus) ? fus : fus?.data || []);
-    setLoading(false);
+    try {
+      const [{ data }, fus, cList] = await Promise.all([
+        getAllStudents(1, 1000),
+        getFollowUps(),
+        getAllCounselling(1, 1000),
+      ]);
+      setStudents(data || []);
+      setFollowUps(Array.isArray(fus) ? fus : fus?.data || []);
+      const cRows = Array.isArray(cList?.data) ? cList.data : Array.isArray(cList) ? cList : [];
+      setCounsellings(cRows);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -220,106 +259,91 @@ export default function FollowUpManagement() {
                 </div>
               ) : (
                 <div className="glass-card rounded-xl overflow-hidden border border-border">
-                  <div className="overflow-x-auto max-h-[540px]">
-                    <table className="w-full text-xs">
+                  <div className="hidden lg:block overflow-hidden">
+                    <table className="w-full table-fixed text-xs">
+                      <colgroup>
+                        <col className="w-[26%]" />
+                        <col className="w-[14%]" />
+                        <col className="w-[16%]" />
+                        <col className="w-[18%]" />
+                        <col className="w-[16%]" />
+                        <col className="w-[10%]" />
+                      </colgroup>
                       <thead className="bg-muted/50 border-b border-border text-muted-foreground sticky top-0 z-10">
                         <tr>
-                          <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Student Name</th>
-                          <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Student ID</th>
-                          <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Career Fit Assessment</th>
-                          <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Counselling</th>
-                          <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Notes</th>
-                          <th className="px-3.5 py-3 text-left font-bold uppercase tracking-wider text-[10px]">Application Access</th>
-                          <th className="px-3.5 py-3 text-right font-bold uppercase tracking-wider text-[10px]">Update Status</th>
+                          <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Student Name</th>
+                          <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Student ID</th>
+                          <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Career Fit Assessment</th>
+                          <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Counselling</th>
+                          <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Application Access</th>
+                          <th className="px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[10px]">Update</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border/60">
                         {segmentData[key].map(s => {
                           const fu = getStudentFU(s.id);
+                          const c = counsellings.find(couns => couns.student_id === s.id);
+                          const formattedDate = formatCounsellingDateTime(c?.scheduled_date, c?.scheduled_time);
+                          const isScheduled = c && c.status && c.status !== 'not_scheduled' && formattedDate;
+
                           return (
-                            <tr key={s.id} className="hover:bg-muted/40 transition-colors">
-                              {/* 1. Student Name */}
-                              <td className="px-3.5 py-3 whitespace-nowrap">
-                                <div className="flex items-center gap-2.5">
+                            <tr key={s.id} className="hover:bg-muted/40 transition-colors align-top">
+                              <td className="px-3 py-3">
+                                <div className="flex items-center gap-2.5 min-w-0">
                                   <div className="w-8 h-8 rounded-full gradient-bg flex items-center justify-center shrink-0 shadow-sm text-xs font-bold text-white">
                                     {(s.full_name || s.email || 'S')[0].toUpperCase()}
                                   </div>
-                                  <div className="min-w-0">
+                                  <div className="min-w-0 flex-1">
                                     <button
                                       type="button"
                                       onClick={() => setViewStudent(s)}
-                                      className="font-semibold text-foreground text-xs hover:text-primary transition-colors flex items-center gap-1 text-left"
+                                      className="font-semibold text-foreground text-xs hover:text-primary transition-colors flex items-center gap-1 text-left w-full min-w-0"
                                       title="View Student Details"
                                     >
-                                      <span className="truncate max-w-[150px]">{s.full_name || 'Unnamed Student'}</span>
+                                      <span className="truncate block max-w-[170px]">{s.full_name || 'Unnamed Student'}</span>
                                       <Eye className="w-3 h-3 text-muted-foreground hover:text-primary shrink-0" />
                                     </button>
-                                    <p className="text-[11px] text-muted-foreground truncate max-w-[150px]">{s.email || '-'}</p>
+                                    <p className="text-[11px] text-muted-foreground truncate max-w-[170px]" title={s.email || '-'}>{s.email || '-'}</p>
                                   </div>
                                 </div>
                               </td>
 
-                              {/* 2. Student ID */}
-                              <td className="px-3.5 py-3 font-mono font-bold text-primary whitespace-nowrap">
+                              <td className="px-3 py-3 font-mono font-bold text-primary text-[11px] whitespace-normal break-all">
                                 {s.student_id || '-'}
                               </td>
 
-                              {/* 3. Career Fit Assessment */}
-                              <td className="px-3.5 py-3 whitespace-nowrap">
+                              <td className="px-3 py-3">
                                 <StatusBadge status={s.assessment_status || 'not_started'} />
                               </td>
 
-                              {/* 4. Counselling */}
-                              <td className="px-3.5 py-3 whitespace-nowrap">
-                                <StatusBadge status={s.counselling_status || 'not_scheduled'} />
-                              </td>
-
-                              {/* 5. Notes */}
-                              <td className="px-3.5 py-3">
-                                <div className="flex items-center gap-1.5 min-w-[170px] max-w-[240px]">
-                                  <div className="flex-1 min-w-0">
-                                    {fu?.notes ? (
-                                      <p className="truncate text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded border border-border/40" title={fu.notes}>
-                                        {fu.notes}
-                                      </p>
-                                    ) : (
-                                      <span className="text-[11px] text-muted-foreground italic">No notes</span>
-                                    )}
-                                    {fu?.followup_date && (
-                                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
-                                        <Calendar className="w-2.5 h-2.5 text-primary shrink-0" />
-                                        <span>{fu.followup_date}</span>
-                                        {fu.followup_status && (
-                                          <span className="capitalize font-medium">({fu.followup_status.replace(/_/g, ' ')})</span>
-                                        )}
-                                      </div>
-                                    )}
+                              <td className="px-3 py-3">
+                                {isScheduled ? (
+                                  <div className="flex flex-col gap-1 items-start">
+                                    <StatusBadge status={c.status || s.counselling_status || 'scheduled'} />
+                                    <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
+                                      <Calendar className="w-3 h-3 text-primary shrink-0" />
+                                      {formattedDate}
+                                    </span>
                                   </div>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 w-7 p-0 text-muted-foreground hover:text-primary shrink-0"
-                                    title={fu?.notes ? 'Edit Note' : 'Add Note'}
-                                    onClick={() => (fu ? openEdit(fu) : openAdd(key, s.id))}
-                                  >
-                                    <CalendarPlus2 className="w-3.5 h-3.5" />
-                                  </Button>
-                                </div>
+                                ) : s.counselling_status && s.counselling_status !== 'not_scheduled' ? (
+                                  <StatusBadge status={s.counselling_status} />
+                                ) : (
+                                  <StatusBadge status="not_scheduled" />
+                                )}
                               </td>
 
-                              {/* 6. Application Access */}
-                              <td className="px-3.5 py-3 whitespace-nowrap">
-                                <div className="flex items-center gap-2">
+                              <td className="px-3 py-3 align-top">
+                                <div className="flex flex-col gap-2">
                                   {s.application_access_status === 'unlocked' ? (
                                     <>
-                                      <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium text-[11px]" title={s.application_unlocked_by ? `Unlocked by ${s.application_unlocked_by}` : 'Application Unlocked'}>
+                                      <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full font-medium text-[11px] w-fit" title={s.application_unlocked_by ? `Unlocked by ${s.application_unlocked_by}` : 'Application Unlocked'}>
                                         <Unlock className="w-3 h-3" />
                                         <span>Unlocked</span>
                                       </div>
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        className="h-7 px-2 text-[11px] text-rose-500 border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400"
+                                        className="h-7 px-2 text-[11px] text-rose-500 border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400 w-fit"
                                         title="Lock student application access"
                                         onClick={() => setConfirmDialog({ open: true, student: s, action: 'lock' })}
                                       >
@@ -328,14 +352,14 @@ export default function FollowUpManagement() {
                                     </>
                                   ) : (
                                     <>
-                                      <div className="flex items-center gap-1 text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full font-medium text-[11px]" title="Application Locked">
+                                      <div className="flex items-center gap-1 text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-full font-medium text-[11px] w-fit" title="Application Locked">
                                         <Lock className="w-3 h-3" />
                                         <span>Locked</span>
                                       </div>
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        className="h-7 px-2 text-[11px] text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400"
+                                        className="h-7 px-2 text-[11px] text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400 w-fit"
                                         title="Unlock student application access"
                                         onClick={() => setConfirmDialog({ open: true, student: s, action: 'unlock' })}
                                       >
@@ -346,16 +370,15 @@ export default function FollowUpManagement() {
                                 </div>
                               </td>
 
-                              {/* 7. Update Status */}
-                              <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                              <td className="px-3 py-3 text-right align-top">
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-7 px-2.5 text-xs text-foreground hover:border-primary hover:text-primary"
+                                  className="h-7 px-2.5 text-[11px] text-foreground hover:border-primary hover:text-primary"
                                   title="Update Follow-up Status"
                                   onClick={() => (fu ? openEdit(fu) : openAdd(key, s.id))}
                                 >
-                                  <Pencil className="w-3 h-3 mr-1 text-primary" /> Update Status
+                                  <Pencil className="w-3 h-3 mr-1 text-primary" /> Update
                                 </Button>
                               </td>
                             </tr>
@@ -364,6 +387,112 @@ export default function FollowUpManagement() {
                       </tbody>
                     </table>
                   </div>
+
+                  <div className="lg:hidden space-y-3 p-3">
+                    {segmentData[key].map(s => {
+                      const fu = getStudentFU(s.id);
+                      const c = counsellings.find(couns => couns.student_id === s.id);
+                      const formattedDate = formatCounsellingDateTime(c?.scheduled_date, c?.scheduled_time);
+                      const isScheduled = c && c.status && c.status !== 'not_scheduled' && formattedDate;
+
+                      return (
+                        <div key={s.id} className="rounded-xl border border-border bg-card/60 p-3 space-y-3">
+                          <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-full gradient-bg flex items-center justify-center shrink-0 shadow-sm text-sm font-bold text-white">
+                              {(s.full_name || s.email || 'S')[0].toUpperCase()}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <button
+                                type="button"
+                                onClick={() => setViewStudent(s)}
+                                className="font-semibold text-foreground text-sm hover:text-primary transition-colors flex items-center gap-1 text-left"
+                                title="View Student Details"
+                              >
+                                <span className="truncate block">{s.full_name || 'Unnamed Student'}</span>
+                                <Eye className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              </button>
+                              <p className="text-[11px] text-muted-foreground mt-0.5 break-all">{s.email || '-'}</p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2 text-[11px] text-muted-foreground">
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted/30 px-2 py-1.5 border border-border/40">
+                              <span>Student ID</span>
+                              <span className="font-mono font-bold text-primary text-right break-all">{s.student_id || '-'}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted/30 px-2 py-1.5 border border-border/40">
+                              <span>Assessment</span>
+                              <StatusBadge status={s.assessment_status || 'not_started'} />
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted/30 px-2 py-1.5 border border-border/40">
+                              <span>Counselling</span>
+                              <div className="flex flex-col items-end gap-1">
+                                {isScheduled ? (
+                                  <>
+                                    <StatusBadge status={c.status || s.counselling_status || 'scheduled'} />
+                                    <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                                      <Calendar className="w-2.5 h-2.5 text-primary shrink-0" />
+                                      {formattedDate}
+                                    </span>
+                                  </>
+                                ) : s.counselling_status && s.counselling_status !== 'not_scheduled' ? (
+                                  <StatusBadge status={s.counselling_status} />
+                                ) : (
+                                  <StatusBadge status="not_scheduled" />
+                                )}
+                              </div>
+                            </div>
+                            <div className="rounded-md bg-muted/30 px-2 py-1.5 border border-border/40">
+                              <div className="flex items-center justify-between gap-2 mb-2">
+                                <span>Application Access</span>
+                              </div>
+                              {s.application_access_status === 'unlocked' ? (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full font-medium text-[11px]">
+                                    <Unlock className="w-3 h-3" />
+                                    <span>Unlocked</span>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-2 text-[11px] text-rose-500 border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400"
+                                    onClick={() => setConfirmDialog({ open: true, student: s, action: 'lock' })}
+                                  >
+                                    <Lock className="w-3 h-3 mr-1" /> Lock
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="flex items-center gap-1 text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-full font-medium text-[11px]">
+                                    <Lock className="w-3 h-3" />
+                                    <span>Locked</span>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-2 text-[11px] text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400"
+                                    onClick={() => setConfirmDialog({ open: true, student: s, action: 'unlock' })}
+                                  >
+                                    <Unlock className="w-3 h-3 mr-1" /> Unlock
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full h-8 px-3 text-xs text-foreground hover:border-primary hover:text-primary"
+                            onClick={() => (fu ? openEdit(fu) : openAdd(key, s.id))}
+                          >
+                            <Pencil className="w-3 h-3 mr-1 text-primary" /> Update
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
                   <TablePagination
                     currentPage={pageBySegment[key] ?? 1}
                     totalPages={Math.max(1, Math.ceil((seg.length || 0) / pageSize))}

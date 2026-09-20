@@ -82,12 +82,47 @@ export interface PaginationMeta {
 
 export interface ReportsSummary {
   total_students: number;
+  new_students_7d?: number;
   assessed_count: number;
   applications_count: number;
   paid_count: number;
   counselled_count: number;
   admitted_count: number;
   total_payments: number;
+}
+
+export interface DashboardStats {
+  totalStudents: number;
+  newStudents7d: number;
+  assessmentCompleted: number;
+  assessmentPending: number;
+  applicationsSubmitted: number;
+  paidApplications: number;
+  unpaidApplications: number;
+  counsellingPending: number;
+  admissionsConfirmed: number;
+  /** 7-day registration trend, one entry per day oldest→newest */
+  registrationTrend?: { date: string; count: number }[];
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const res = await fetch(`${API_BASE}/admin/dashboard/stats`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    return {
+      totalStudents: 0,
+      newStudents7d: 0,
+      assessmentCompleted: 0,
+      assessmentPending: 0,
+      applicationsSubmitted: 0,
+      paidApplications: 0,
+      unpaidApplications: 0,
+      counsellingPending: 0,
+      admissionsConfirmed: 0,
+    };
+  }
+  return await res.json();
 }
 
 export async function getReportsSummary(): Promise<ReportsSummary | null> {
@@ -651,10 +686,52 @@ export async function rejectPayment(id: string, reason: string): Promise<{ succe
 }
 
 export function getPaymentScreenshotUrl(paymentId: string, isAdmin = false): string {
+  const token = localStorage.getItem('tatti_token');
+  const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
   if (isAdmin) {
-    return `${API_BASE}/admin/payments/${paymentId}/screenshot`;
+    return `${API_BASE}/admin/payments/${paymentId}/screenshot${tokenQuery}`;
   }
-  return `${API_BASE}/payments/${paymentId}/screenshot`;
+  return `${API_BASE}/payments/${paymentId}/screenshot${tokenQuery}`;
+}
+
+export function resolvePaymentScreenshotUrl(
+  urlOrPath: string | null | undefined,
+  paymentId?: string,
+  isAdmin = false
+): string | null {
+  const token = localStorage.getItem('tatti_token');
+  const tokenQuery = token ? `token=${encodeURIComponent(token)}` : '';
+
+  if (urlOrPath && urlOrPath.startsWith('data:')) {
+    return urlOrPath;
+  }
+
+  if (isAdmin && paymentId) {
+    return getPaymentScreenshotUrl(paymentId, true);
+  }
+
+  if (urlOrPath) {
+    if (urlOrPath.startsWith('/api')) {
+      const backendOrigin = API_BASE.replace(/\/api$/, '');
+      const fullUrl = `${backendOrigin}${urlOrPath}`;
+      if (tokenQuery && !fullUrl.includes('token=')) {
+        return fullUrl.includes('?') ? `${fullUrl}&${tokenQuery}` : `${fullUrl}?${tokenQuery}`;
+      }
+      return fullUrl;
+    }
+    if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+      if (tokenQuery && !urlOrPath.includes('token=')) {
+        return urlOrPath.includes('?') ? `${urlOrPath}&${tokenQuery}` : `${urlOrPath}?${tokenQuery}`;
+      }
+      return urlOrPath;
+    }
+  }
+
+  if (paymentId) {
+    return getPaymentScreenshotUrl(paymentId, isAdmin);
+  }
+
+  return null;
 }
 
 

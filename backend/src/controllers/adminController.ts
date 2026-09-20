@@ -506,15 +506,124 @@ export async function listAllStudents(req: Request, res: Response) {
   }
 }
 
+export async function getDashboardStats(_req: Request, res: Response) {
+  try {
+    // ── Single aggregate query from the students table ────────────────────────
+    const statsResult = await query(`
+      SELECT
+        -- 1. Total students
+        COUNT(*)::int AS total_students,
+
+        -- 2. New students registered in the last 7 days
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')::int AS new_students_7d,
+
+        -- 3. Assessment completed (authoritative field on students row)
+        COUNT(*) FILTER (WHERE assessment_status = 'completed')::int AS assessment_completed,
+
+        -- 4. Assessment pending = Total - Completed (clamped to 0)
+        GREATEST(0,
+          COUNT(*) - COUNT(*) FILTER (WHERE assessment_status = 'completed')
+        )::int AS assessment_pending,
+
+        -- 5. Applications submitted: any app beyond draft stage
+        --    (submitted / under_review / approved / rejected / Confirmed)
+        COALESCE((
+          SELECT COUNT(*)::int
+          FROM applications
+          WHERE LOWER(status) NOT IN ('not_started', 'in_progress')
+        ), 0) AS applications_submitted,
+
+        -- 6. Paid applications: use students.payment_status = 'paid'
+        --    This is set atomically by the payment approval transaction
+        COUNT(*) FILTER (WHERE payment_status = 'paid')::int AS paid_applications,
+
+        -- 7. Unpaid applications: students with a submitted app but payment_status != 'paid'
+        COALESCE((
+          SELECT COUNT(DISTINCT s2.id)::int
+          FROM students s2
+          WHERE s2.payment_status != 'paid'
+            AND EXISTS (
+              SELECT 1
+              FROM applications a2
+              WHERE a2.student_id = s2.id
+                AND LOWER(a2.status) NOT IN ('not_started', 'in_progress')
+            )
+        ), 0) AS unpaid_applications,
+
+        -- 8. Counselling pending: from students.admission_status
+        --    (more reliable than counselling.status which defaults to 'not_scheduled')
+        COUNT(*) FILTER (WHERE admission_status = 'counselling_pending')::int AS counselling_pending,
+
+        -- 9. Admissions confirmed: applications where status = 'Confirmed'
+        --    (set by the payment approval transaction)
+        COALESCE((
+          SELECT COUNT(*)::int
+          FROM applications
+          WHERE LOWER(status) = 'confirmed'
+        ), 0) AS admissions_confirmed
+
+      FROM students;
+    `);
+
+    const row = statsResult.rows[0] || {};
+
+    // ── 7-day registration trend: one row per day ─────────────────────────────
+    const trendResult = await query(`
+      SELECT
+        DATE_TRUNC('day', created_at AT TIME ZONE 'UTC') AS day,
+        COUNT(*)::int AS count
+      FROM students
+      WHERE created_at >= NOW() AT TIME ZONE 'UTC' - INTERVAL '6 days'
+      GROUP BY DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')
+      ORDER BY day ASC;
+    `);
+
+    // Build a map keyed by ISO date string (YYYY-MM-DD)
+    const trendMap: Record<string, number> = {};
+    for (const trow of trendResult.rows) {
+      const isoDay = new Date(trow.day).toISOString().slice(0, 10);
+      trendMap[isoDay] = Number(trow.count);
+    }
+
+    // Fill all 7 days (most recent first then ascending), filling gaps with 0
+    const registrationTrend: { date: string; count: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() - i);
+      const iso = d.toISOString().slice(0, 10);
+      // Format as "Sep 13" style label matching date-fns format('MMM dd')
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', timeZone: 'UTC' });
+      registrationTrend.push({ date: label, count: trendMap[iso] ?? 0 });
+    }
+
+    return res.json({
+      totalStudents: Number(row.total_students || 0),
+      newStudents7d: Number(row.new_students_7d || 0),
+      assessmentCompleted: Number(row.assessment_completed || 0),
+      assessmentPending: Number(row.assessment_pending || 0),
+      applicationsSubmitted: Number(row.applications_submitted || 0),
+      paidApplications: Number(row.paid_applications || 0),
+      unpaidApplications: Number(row.unpaid_applications || 0),
+      counsellingPending: Number(row.counselling_pending || 0),
+      admissionsConfirmed: Number(row.admissions_confirmed || 0),
+      registrationTrend,
+    });
+  } catch (err) {
+    console.error('Error getting dashboard stats:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
 export async function getReportsSummary(_req: Request, res: Response) {
   try {
     const result = await query(`
       SELECT 
         COUNT(*)::int as total_students,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')::int as new_students_7d,
         COUNT(*) FILTER (WHERE assessment_status = 'completed')::int as assessed_count,
         COUNT(*) FILTER (WHERE application_status = 'submitted')::int as applications_count,
         COUNT(*) FILTER (WHERE payment_status IN ('paid', 'Approved'))::int as paid_count,
-        COUNT(*) FILTER (WHERE counselling_status IN ('completed', 'selected'))::int as counselled_count,
+        COUNT(*) FILTER (WHERE admission_status IN ('counselling_completed', 'selected'))::int as counselled_count,
         COUNT(*) FILTER (WHERE admission_status = 'admission_confirmed')::int as admitted_count
       FROM students;
     `);
@@ -966,7 +1075,10 @@ export async function rejectPayment(req: Request, res: Response) {
 export async function getAdminPaymentScreenshot(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const result = await query('SELECT id, screenshot_path, screenshot_url FROM payments WHERE id = $1', [id]);
+    const result = await query(
+      'SELECT id, student_id, screenshot_path, screenshot_url FROM payments WHERE id::text = $1 OR payment_id = $1',
+      [id]
+    );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Payment not found' });
     }

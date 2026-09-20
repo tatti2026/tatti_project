@@ -9,6 +9,7 @@ import {
   approvePayment,
   rejectPayment,
   getPaymentScreenshotUrl,
+  resolvePaymentScreenshotUrl,
   type PendingPayment,
   type RejectedPayment,
   type PaymentDetails,
@@ -41,11 +42,9 @@ export default function Confirmations() {
   const [pendingPage, setPendingPage] = useState(1);
   const [rejectedPage, setRejectedPage] = useState(1);
   const [paidPage, setPaidPage] = useState(1);
-  const [yettopayPage, setYettopayPage] = useState(1);
   const [pendingTotalPages, setPendingTotalPages] = useState(1);
   const [rejectedTotalPages, setRejectedTotalPages] = useState(1);
   const [paidTotalPages, setPaidTotalPages] = useState(1);
-  const [yettopayTotalPages, setYettopayTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -54,7 +53,6 @@ export default function Confirmations() {
   const [pageSize, setPageSize] = useState(() => getSessionPageSize('confirmations', 10));
   const [pagePending, setPagePending] = useState(1);
   const [pagePaid, setPagePaid] = useState(1);
-  const [pageYettoPay, setPageYettoPay] = useState(1);
   const [pageRejected, setPageRejected] = useState(1);
 
   // View Payment Modal State
@@ -71,6 +69,41 @@ export default function Confirmations() {
   const [paymentToReject, setPaymentToReject] = useState<PendingPayment | PaymentDetails | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejecting, setRejecting] = useState(false);
+
+  // Dedicated Payment Proof Viewer State
+  interface PaymentProofViewerData {
+    imageUrl: string;
+    studentName?: string;
+    studentId?: string;
+    utrNumber?: string;
+    amount?: number;
+    paymentId?: string;
+  }
+  const [proofViewerData, setProofViewerData] = useState<PaymentProofViewerData | null>(null);
+  const [proofImageError, setProofImageError] = useState(false);
+
+  const openPaymentProofViewer = (item: {
+    id: string;
+    payment_id?: string | null;
+    utr_number?: string | null;
+    student_name?: string | null;
+    amount?: number;
+    screenshot_url?: string | null;
+  }) => {
+    setProofImageError(false);
+    const resolvedUrl = resolvePaymentScreenshotUrl(item.screenshot_url, item.id, true);
+    if (!resolvedUrl) {
+      toast.error('Payment proof is not available for this record');
+      return;
+    }
+    setProofViewerData({
+      imageUrl: resolvedUrl,
+      studentName: item.student_name || undefined,
+      utrNumber: item.utr_number || undefined,
+      amount: item.amount,
+      paymentId: item.payment_id || item.id,
+    });
+  };
 
   const loadData = async () => {
     try {
@@ -411,11 +444,11 @@ export default function Confirmations() {
           </div>
         </div>
 
-        {/* 4 Summary Stat Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* 3 Summary Stat Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {[
             {
-              label: 'PENDING VERIFICATION',
+              label: 'NEW PAYMENTS',
               count: pendingPayments.length,
               color: 'border-amber-500/30 bg-amber-500/10 text-amber-500',
               badge: pendingPayments.length > 0 ? 'Action Required' : 'Up to date',
@@ -427,13 +460,7 @@ export default function Confirmations() {
               badge: 'Admissions Confirmed',
             },
             {
-              label: 'YET TO PAY',
-              count: yetToPay.length,
-              color: 'border-blue-500/30 bg-blue-500/10 text-blue-500',
-              badge: 'In Progress',
-            },
-            {
-              label: 'PAYMENT REJECTED',
+              label: 'PAYMENT FAILED',
               count: rejectedPayments.length,
               color: 'border-destructive/30 bg-destructive/10 text-destructive',
               badge: rejectedPayments.length > 0 ? 'Needs Attention' : 'None',
@@ -458,23 +485,20 @@ export default function Confirmations() {
               <TabsList className="bg-muted">
                 <TabsTrigger value="pending" className="text-xs flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-amber-500" />
-                  Pending Payments ({pendingPayments.length})
+                  New Payments ({pendingPayments.length})
                 </TabsTrigger>
                 <TabsTrigger value="paid" className="text-xs flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-success" />
                   Paid ({paid.length})
                 </TabsTrigger>
-                <TabsTrigger value="yettopay" className="text-xs">
-                  Yet to Pay ({yetToPay.length})
-                </TabsTrigger>
                 <TabsTrigger value="paymentrejected" className="text-xs flex items-center gap-1.5">
                   <Ban className="w-3.5 h-3.5 text-destructive" />
-                  Payment Rejected ({rejectedPayments.length})
+                  Payment Failed ({rejectedPayments.length})
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            {/* TAB 1: PENDING PAYMENTS (UPI Verification) */}
+            {/* TAB 1: NEW PAYMENTS (UPI Verification) */}
             <TabsContent value="pending" className="mt-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -485,7 +509,7 @@ export default function Confirmations() {
                       <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Payment Amount</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">UTR / Reference No</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Submitted Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Screenshot</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Payment Proof</th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
@@ -494,14 +518,14 @@ export default function Confirmations() {
                       <tr>
                         <td colSpan={7} className="py-12 text-center">
                           <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground mt-2">Loading pending payments...</p>
+                          <p className="text-xs text-muted-foreground mt-2">Loading new payments...</p>
                         </td>
                       </tr>
                     ) : filterPending(pendingPayments).length === 0 ? (
                       <tr>
                         <td colSpan={7} className="py-12 text-center">
                           <ShieldCheck className="w-10 h-10 text-emerald-500/50 mx-auto mb-2" />
-                          <p className="text-sm font-semibold text-foreground">No Pending Payments</p>
+                          <p className="text-sm font-semibold text-foreground">No New Payments</p>
                           <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
                             All student UPI payment submissions have been reviewed and verified.
                           </p>
@@ -560,18 +584,19 @@ export default function Confirmations() {
                               {submittedDate}
                             </td>
 
-                            {/* Screenshot preview button */}
+                            {/* Payment Proof preview button */}
                             <td className="px-4 py-3 whitespace-nowrap">
                               {p.screenshot_url ? (
                                 <button
                                   type="button"
-                                  onClick={() => setSelectedPaymentId(p.id)}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-colors border border-primary/20"
+                                  onClick={() => openPaymentProofViewer(p)}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs hover:bg-primary/20 transition-colors border border-primary/20 font-medium"
+                                  title="View Payment Proof"
                                 >
-                                  <Eye className="w-3 h-3" /> View Proof
+                                  <Eye className="w-3.5 h-3.5" /> Payment Proof
                                 </button>
                               ) : (
-                                <span className="text-[11px] text-muted-foreground">None</span>
+                                <span className="text-[11px] text-muted-foreground italic">Payment Proof Not Available</span>
                               )}
                             </td>
 
@@ -617,12 +642,7 @@ export default function Confirmations() {
               <StudentTable list={paid} showPayment />
             </TabsContent>
 
-            {/* TAB 3: YET TO PAY */}
-            <TabsContent value="yettopay" className="mt-0">
-              <StudentTable list={yetToPay} />
-            </TabsContent>
-
-            {/* TAB 4: PAYMENT REJECTED (from real DB) */}
+            {/* TAB 3: PAYMENT FAILED (from real DB) */}
             <TabsContent value="paymentrejected" className="mt-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -633,8 +653,8 @@ export default function Confirmations() {
                       <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Amount</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">UTR / Reference No</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Rejected Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Rejected By</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Failed Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Failed By</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Reason</th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground whitespace-nowrap">Actions</th>
                     </tr>
@@ -644,22 +664,22 @@ export default function Confirmations() {
                       <tr>
                         <td colSpan={9} className="py-12 text-center">
                           <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground mt-2">Loading rejected payments...</p>
+                          <p className="text-xs text-muted-foreground mt-2">Loading failed payments...</p>
                         </td>
                       </tr>
                     ) : filterRejected(rejectedPayments).length === 0 ? (
                       <tr>
                         <td colSpan={9} className="py-12 text-center">
                           <CheckCircle2 className="w-10 h-10 text-emerald-500/50 mx-auto mb-2" />
-                          <p className="text-sm font-semibold text-foreground">No Rejected Payments</p>
+                          <p className="text-sm font-semibold text-foreground">No Failed Payments</p>
                           <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-                            No payment submissions have been rejected.
+                            No payment submissions have been failed.
                           </p>
                         </td>
                       </tr>
                     ) : (
                       filterRejected(rejectedPayments).map(p => {
-                        const rejectedDate = p.rejected_at
+                        const failedDate = p.rejected_at
                           ? format(new Date(p.rejected_at), 'dd MMM yyyy, hh:mm a')
                           : '—';
                         return (
@@ -698,9 +718,9 @@ export default function Confirmations() {
                             <td className="px-4 py-3 whitespace-nowrap">
                               <StatusBadge status={p.status} />
                             </td>
-                            {/* Rejected Date */}
-                            <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">{rejectedDate}</td>
-                            {/* Rejected By */}
+                            {/* Failed Date */}
+                            <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">{failedDate}</td>
+                            {/* Failed By */}
                             <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">{p.rejected_by || 'Admin'}</td>
                             {/* Reason */}
                             <td className="px-4 py-3 max-w-[180px]">
@@ -755,7 +775,7 @@ export default function Confirmations() {
                     : <Clock className="w-3.5 h-3.5" />
                   }
                   {paymentDetails.status === 'Rejected' || paymentDetails.status === 'failed'
-                    ? 'Payment Rejected'
+                    ? 'Payment Failed'
                     : paymentDetails.status}
                 </span>
               )}
@@ -849,48 +869,74 @@ export default function Confirmations() {
                 </div>
               </div>
 
-              {/* Section 4: Payment Screenshot */}
+              {/* Section 4: Payment Screenshot / Proof */}
               <div className="rounded-xl border border-border p-4 bg-muted/30">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Eye className="w-4 h-4 text-primary" />
-                    <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">Section 4: Payment Screenshot</h3>
+                    <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">Section 4: Payment Proof</h3>
                   </div>
                   {paymentDetails.screenshot_url && (
                     <span className="text-[11px] text-muted-foreground">Click image to enlarge</span>
                   )}
                 </div>
 
-                {paymentDetails.screenshot_url ? (
-                  <div className="text-center">
-                    <div
-                      className="relative inline-block group cursor-pointer border-2 border-border/70 rounded-xl overflow-hidden shadow-md hover:border-primary/50 transition-all bg-background"
-                      onClick={() => setEnlargedScreenshotUrl(
-                        paymentDetails.screenshot_url?.startsWith('data:')
-                          ? paymentDetails.screenshot_url
-                          : getPaymentScreenshotUrl(paymentDetails.id, true)
-                      )}
-                    >
-                      <img
-                        src={
-                          paymentDetails.screenshot_url.startsWith('data:')
-                            ? paymentDetails.screenshot_url
-                            : getPaymentScreenshotUrl(paymentDetails.id, true)
-                        }
-                        alt="Payment Proof"
-                        className="max-h-60 max-w-full rounded-lg object-contain mx-auto"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-semibold">
-                        <ZoomIn className="w-4 h-4" /> Enlarge Screenshot
+                {(() => {
+                  const resolvedUrl = resolvePaymentScreenshotUrl(paymentDetails.screenshot_url, paymentDetails.id, true);
+                  if (resolvedUrl) {
+                    return (
+                      <div className="text-center space-y-3">
+                        <div
+                          className="relative inline-block group cursor-pointer border-2 border-border/70 rounded-xl overflow-hidden shadow-md hover:border-primary/50 transition-all bg-background"
+                          onClick={() => openPaymentProofViewer({
+                            id: paymentDetails.id,
+                            payment_id: paymentDetails.payment_id,
+                            utr_number: paymentDetails.utr_number || paymentDetails.transaction_id,
+                            student_name: paymentDetails.student?.full_name,
+                            amount: paymentDetails.amount,
+                            screenshot_url: resolvedUrl,
+                          })}
+                        >
+                          <img
+                            src={resolvedUrl}
+                            alt="Payment Proof"
+                            className="max-h-60 max-w-full rounded-lg object-contain mx-auto"
+                            onError={(e) => {
+                              console.error('Failed to load inline payment proof image:', resolvedUrl, e);
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-semibold">
+                            <ZoomIn className="w-4 h-4" /> Open Payment Proof
+                          </div>
+                        </div>
+                        <div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-xs gap-1.5"
+                            onClick={() => openPaymentProofViewer({
+                              id: paymentDetails.id,
+                              payment_id: paymentDetails.payment_id,
+                              utr_number: paymentDetails.utr_number || paymentDetails.transaction_id,
+                              student_name: paymentDetails.student?.full_name,
+                              amount: paymentDetails.amount,
+                              screenshot_url: resolvedUrl,
+                            })}
+                          >
+                            <Eye className="w-3.5 h-3.5" /> View Payment Proof
+                          </Button>
+                        </div>
                       </div>
+                    );
+                  }
+                  return (
+                    <div className="py-8 text-center bg-card rounded-xl border border-dashed border-border text-muted-foreground text-xs">
+                      <AlertCircle className="w-6 h-6 mx-auto mb-1 text-muted-foreground" />
+                      Payment Proof Not Available
                     </div>
-                  </div>
-                ) : (
-                  <div className="py-8 text-center bg-card rounded-xl border border-dashed border-border text-muted-foreground text-xs">
-                    <AlertCircle className="w-6 h-6 mx-auto mb-1 text-muted-foreground" />
-                    Payment screenshot not available
-                  </div>
-                )}
+                  );
+                })()}
               </div>
 
               {/* Section 5: Action buttons / Audit */}
@@ -942,7 +988,7 @@ export default function Confirmations() {
                     <div className="grid grid-cols-3 gap-3">
                       <div>
                         <p className="text-[11px] text-destructive font-semibold">Payment Status</p>
-                        <p className="text-xs font-bold text-foreground mt-0.5">Payment Rejected</p>
+                        <p className="text-xs font-bold text-foreground mt-0.5">Payment Failed</p>
                       </div>
                       <div>
                         <p className="text-[11px] text-destructive font-semibold">Rejected Date</p>
@@ -1074,26 +1120,110 @@ export default function Confirmations() {
         </DialogContent>
       </Dialog>
 
-      {/* ── ENLARGED SCREENSHOT MODAL ────────────────────────────────────────── */}
-      <Dialog open={!!enlargedScreenshotUrl} onOpenChange={open => !open && setEnlargedScreenshotUrl(null)}>
-        <DialogContent className="max-w-3xl bg-card border-border p-4">
-          <DialogHeader className="flex items-center justify-between pb-2 border-b border-border">
-            <DialogTitle className="text-sm font-semibold">Payment Proof Screenshot</DialogTitle>
+      {/* ── DEDICATED PAYMENT PROOF VIEWER MODAL ────────────────────────────── */}
+      <Dialog open={!!proofViewerData} onOpenChange={open => {
+        if (!open) {
+          setProofViewerData(null);
+          setProofImageError(false);
+        }
+      }}>
+        <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-3xl bg-card border-border p-5 max-h-[92vh] flex flex-col">
+          <DialogHeader className="pb-3 border-b border-border flex flex-row items-center justify-between">
+            <div>
+              <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                <Eye className="w-4 h-4 text-primary" />
+                Payment Proof
+                {proofViewerData?.studentName && (
+                  <span className="text-xs font-normal text-muted-foreground">— {proofViewerData.studentName}</span>
+                )}
+              </DialogTitle>
+              <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-muted-foreground font-mono">
+                {proofViewerData?.utrNumber && (
+                  <span>UTR: <strong className="text-foreground">{proofViewerData.utrNumber}</strong></span>
+                )}
+                {proofViewerData?.amount !== undefined && (
+                  <span>Amount: <strong className="text-foreground">₹{proofViewerData.amount.toLocaleString()}</strong></span>
+                )}
+              </div>
+            </div>
           </DialogHeader>
-          <div className="p-2 flex justify-center items-center bg-black/5 rounded-xl">
-            {enlargedScreenshotUrl && (
+
+          {/* Screenshot Display Container */}
+          <div className="flex-1 my-3 min-h-[300px] max-h-[65vh] flex items-center justify-center bg-black/40 rounded-xl p-3 border border-border/50 overflow-hidden relative">
+            {proofImageError ? (
+              <div className="text-center p-6 space-y-2">
+                <AlertCircle className="w-10 h-10 text-destructive mx-auto" />
+                <p className="text-sm font-semibold text-foreground">Failed to Load Payment Proof</p>
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  The payment proof image could not be loaded from storage. Check the console or verify server permissions.
+                </p>
+              </div>
+            ) : proofViewerData?.imageUrl ? (
               <img
-                src={enlargedScreenshotUrl}
-                alt="Enlarged Payment Screenshot"
-                className="max-h-[75vh] max-w-full rounded-lg object-contain shadow-lg"
+                src={proofViewerData.imageUrl}
+                alt="Payment Proof Screenshot"
+                className="max-h-[60vh] max-w-full rounded-lg object-contain shadow-2xl mx-auto"
+                onError={(e) => {
+                  console.error('Failed to load payment proof screenshot from URL:', proofViewerData.imageUrl, e);
+                  setProofImageError(true);
+                }}
               />
+            ) : (
+              <div className="text-center p-6 space-y-1">
+                <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto" />
+                <p className="text-xs text-muted-foreground">Payment Proof Not Available</p>
+              </div>
             )}
           </div>
-          <DialogFooter className="pt-2 border-t border-border flex justify-end">
+
+          <DialogFooter className="pt-3 border-t border-border flex flex-row items-center justify-between sm:justify-between gap-2">
+            <div className="flex items-center gap-2">
+              {proofViewerData?.imageUrl && !proofImageError && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs gap-1.5"
+                    onClick={() => window.open(proofViewerData.imageUrl, '_blank')}
+                  >
+                    <ZoomIn className="w-3.5 h-3.5" /> Open Full Size
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs gap-1.5"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(proofViewerData.imageUrl);
+                        const blob = await res.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = `payment_proof_${proofViewerData.utrNumber || proofViewerData.paymentId || 'screenshot'}.png`;
+                        a.click();
+                        URL.revokeObjectURL(blobUrl);
+                        toast.success('Payment proof downloaded');
+                      } catch (err) {
+                        console.error('Download error:', err);
+                        window.open(proofViewerData.imageUrl, '_blank');
+                      }
+                    }}
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download Proof
+                  </Button>
+                </>
+              )}
+            </div>
             <Button
-              variant="outline"
+              type="button"
+              variant="secondary"
               size="sm"
-              onClick={() => setEnlargedScreenshotUrl(null)}
+              onClick={() => {
+                setProofViewerData(null);
+                setProofImageError(false);
+              }}
               className="text-xs"
             >
               Close

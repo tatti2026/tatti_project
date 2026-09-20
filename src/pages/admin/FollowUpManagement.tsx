@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getAllStudents, getFollowUps, upsertFollowUp } from '@/lib/api';
+import { getAllStudents, getFollowUps, getAllCounselling, upsertFollowUp, unlockStudentApplication, lockStudentApplication } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import StatusBadge from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -7,22 +7,68 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import type { Student, FollowUp } from '@/types/index';
+import { TablePagination, getSessionPageSize, setSessionPageSize } from '@/components/common/TablePagination';
 import {
-  ClipboardList, Plus, Pencil, Loader2, Trophy, Target,
-  TrendingDown, CalendarPlus2, Eye, Calendar, Clock
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+import type { Student, FollowUp, Counselling } from '@/types/index';
+import {
+  Plus, Pencil, Loader2, Trophy, Target,
+  TrendingDown, Eye, Calendar, Lock, Unlock
 } from 'lucide-react';
 import { format } from 'date-fns';
+
+function formatCounsellingDateTime(scheduledDate?: string | null, scheduledTime?: string | null): string | null {
+  if (!scheduledDate) return null;
+  try {
+    const d = new Date(scheduledDate);
+    if (isNaN(d.getTime())) return null;
+
+    if (scheduledTime) {
+      const timeParts = scheduledTime.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(AM|PM))?$/i);
+      if (timeParts) {
+        let hours = parseInt(timeParts[1], 10);
+        const minutes = timeParts[2];
+        const ampm = timeParts[4]?.toUpperCase();
+        if (ampm) {
+          return `${format(d, 'dd MMM yyyy')}, ${hours}:${minutes} ${ampm}`;
+        } else {
+          const ampmCalculated = hours >= 12 ? 'PM' : 'AM';
+          const h12 = hours % 12 || 12;
+          return `${format(d, 'dd MMM yyyy')}, ${h12}:${minutes} ${ampmCalculated}`;
+        }
+      }
+      return `${format(d, 'dd MMM yyyy')}, ${scheduledTime}`;
+    }
+
+    return format(d, 'dd MMM yyyy');
+  } catch {
+    return null;
+  }
+}
 
 export default function FollowUpManagement() {
   const [students, setStudents] = useState<Student[]>([]);
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+  const [counsellings, setCounsellings] = useState<Counselling[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editFU, setEditFU] = useState<FollowUp | null>(null);
+  const [pageSize, setPageSize] = useState(() => getSessionPageSize('followup', 10));
+  const [pageBySegment, setPageBySegment] = useState<Record<string, number>>({ high: 1, medium: 1, low: 1 });
+  const [totalsBySegment, setTotalsBySegment] = useState<Record<string, number>>({ high: 0, medium: 0, low: 0 });
+  const [segmentPages, setSegmentPages] = useState<Record<string, number>>({ high: 1, medium: 1, low: 1 });
   const [viewStudent, setViewStudent] = useState<Student | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    student: Student | null;
+    action: 'unlock' | 'lock';
+  }>({ open: false, student: null, action: 'unlock' });
+  const [actionLoading, setActionLoading] = useState(false);
   const [form, setForm] = useState({
     student_id: '',
     intent_level: 'medium',
@@ -31,19 +77,68 @@ export default function FollowUpManagement() {
     notes: ''
   });
 
+  const handleConfirmAction = async () => {
+    if (!confirmDialog.student) return;
+    setActionLoading(true);
+    try {
+      if (confirmDialog.action === 'unlock') {
+        await unlockStudentApplication(confirmDialog.student.id, 'TATTI Head Administrator');
+        toast.success(`Application unlocked for ${confirmDialog.student.full_name || 'student'}`);
+      } else {
+        await lockStudentApplication(confirmDialog.student.id, 'TATTI Head Administrator');
+        toast.success(`Application locked for ${confirmDialog.student.full_name || 'student'}`);
+      }
+      await fetchData();
+    } catch {
+      toast.error(`Failed to ${confirmDialog.action} application`);
+    } finally {
+      setActionLoading(false);
+      setConfirmDialog({ open: false, student: null, action: 'unlock' });
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
-    const [{ data }, fus] = await Promise.all([getAllStudents(0, 1000), getFollowUps()]);
-    setStudents(data);
-    setFollowUps(fus);
-    setLoading(false);
+    try {
+      const [{ data }, fus, cList] = await Promise.all([
+        getAllStudents(1, 1000),
+        getFollowUps(),
+        getAllCounselling(1, 1000),
+      ]);
+      setStudents(data || []);
+      setFollowUps(Array.isArray(fus) ? fus : fus?.data || []);
+      const cRows = Array.isArray(cList?.data) ? cList.data : Array.isArray(cList) ? cList : [];
+      setCounsellings(cRows);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      const nextTotals: Record<string, number> = { high: 0, medium: 0, low: 0 };
+      for (const key of Object.keys(nextTotals) as Array<keyof typeof nextTotals>) {
+        const result = await getFollowUps(pageBySegment[key] ?? 1, pageSize, key, '');
+        const rows = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+        nextTotals[key] = result?.pagination?.total ?? rows.length ?? 0;
+      }
+      setTotalsBySegment(nextTotals);
+      setSegmentPages({ high: Math.max(1, Math.ceil((nextTotals.high || 0) / pageSize)), medium: Math.max(1, Math.ceil((nextTotals.medium || 0) / pageSize)), low: Math.max(1, Math.ceil((nextTotals.low || 0) / pageSize)) });
+    })();
+  }, [pageSize, pageBySegment]);
+
+  const getStudentFU = (studentId: string) => followUps.find(f => f.student_id === studentId);
+
   const openAdd = (intent: string, studentId?: string) => {
+    const existing = studentId ? getStudentFU(studentId) : null;
+    if (existing) {
+      openEdit(existing);
+      return;
+    }
     setEditFU(null);
     setForm({
       student_id: studentId || '',
@@ -59,7 +154,7 @@ export default function FollowUpManagement() {
     setEditFU(fu);
     setForm({
       student_id: fu.student_id,
-      intent_level: fu.intent_level,
+      intent_level: fu.intent_level || 'medium',
       followup_date: fu.followup_date || '',
       followup_status: fu.followup_status || 'pending',
       notes: fu.notes || ''
@@ -73,28 +168,42 @@ export default function FollowUpManagement() {
       return;
     }
     setSaving(true);
+    const existing = editFU || getStudentFU(form.student_id);
     await upsertFollowUp({
-      ...editFU,
+      ...(existing ? { id: existing.id } : {}),
       ...form,
       intent_level: form.intent_level as FollowUp['intent_level']
     });
     setSaving(false);
     setShowForm(false);
     toast.success('Follow-up record saved successfully');
-    fetchData();
+    await fetchData();
   };
 
-  // Segment students
-  const high = students.filter(s =>
-    s.assessment_status === 'completed' &&
-    (s.payment_status === 'paid' || s.application_status === 'submitted')
-  );
-  const medium = students.filter(s =>
-    s.assessment_status === 'completed' && s.payment_status !== 'paid'
-  );
-  const low = students.filter(s => s.assessment_status !== 'completed');
+  // Intent segmentation based on saved intent_level in follow_ups
+  const getStudentIntent = (studentId: string): 'high' | 'medium' | 'low' => {
+    const fu = getStudentFU(studentId);
+    if (fu?.intent_level === 'high') return 'high';
+    if (fu?.intent_level === 'medium') return 'medium';
+    if (fu?.intent_level === 'low') return 'low';
+    return 'low'; // Default unassigned students to low intent
+  };
 
-  const getStudentFU = (studentId: string) => followUps.find(f => f.student_id === studentId);
+  const high = students.filter(s => getStudentIntent(s.id) === 'high');
+  const medium = students.filter(s => getStudentIntent(s.id) === 'medium');
+  const low = students.filter(s => getStudentIntent(s.id) === 'low');
+
+  const segmentData = {
+    high: high.slice((pageBySegment.high - 1) * pageSize, (pageBySegment.high) * pageSize),
+    medium: medium.slice((pageBySegment.medium - 1) * pageSize, (pageBySegment.medium) * pageSize),
+    low: low.slice((pageBySegment.low - 1) * pageSize, (pageBySegment.low) * pageSize),
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setSessionPageSize('followup', newSize);
+    setPageBySegment(prev => ({ ...prev, high: 1, medium: 1, low: 1 }));
+  };
 
   const segments = [
     { key: 'high', label: 'HIGH INTENT', students: high, icon: Trophy, color: 'text-success', bgColor: 'bg-success/10 border-success/20', tagColor: 'bg-success/20 text-success' },
@@ -118,10 +227,10 @@ export default function FollowUpManagement() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-foreground">Follow-up Management</h1>
-            <p className="text-muted-foreground text-sm">Track admissions progress, schedule follow-ups, and update student status</p>
+            <p className="text-muted-foreground text-sm">Track admissions progress, follow-ups, and update student status</p>
           </div>
           <Button onClick={() => openAdd('medium')} className="gradient-bg border-0 text-white text-xs">
-            <Plus className="w-4 h-4 mr-1.5" /> Schedule Follow-up
+            <Plus className="w-4 h-4 mr-1.5" /> Follow-up
           </Button>
         </div>
 
@@ -149,97 +258,263 @@ export default function FollowUpManagement() {
                   No students in this segment
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {seg.map(s => {
-                    const fu = getStudentFU(s.id);
-                    return (
-                      <div key={s.id} className="glass-card rounded-xl p-4 hover:border-primary/30 transition-all">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex items-start gap-3 min-w-0">
-                            <div className="w-9 h-9 rounded-full gradient-bg flex items-center justify-center shrink-0 shadow-sm">
-                              <span className="text-xs font-bold text-white">{(s.full_name || s.email || 'S')[0].toUpperCase()}</span>
+                <div className="glass-card rounded-xl overflow-hidden border border-border">
+                  <div className="hidden lg:block overflow-hidden">
+                    <table className="w-full table-fixed text-xs">
+                      <colgroup>
+                        <col className="w-[26%]" />
+                        <col className="w-[14%]" />
+                        <col className="w-[16%]" />
+                        <col className="w-[18%]" />
+                        <col className="w-[16%]" />
+                        <col className="w-[10%]" />
+                      </colgroup>
+                      <thead className="bg-muted/50 border-b border-border text-muted-foreground sticky top-0 z-10">
+                        <tr>
+                          <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Student Name</th>
+                          <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Student ID</th>
+                          <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Career Fit Assessment</th>
+                          <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Counselling</th>
+                          <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Application Access</th>
+                          <th className="px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[10px]">Update</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/60">
+                        {segmentData[key].map(s => {
+                          const fu = getStudentFU(s.id);
+                          const c = counsellings.find(couns => couns.student_id === s.id);
+                          const formattedDate = formatCounsellingDateTime(c?.scheduled_date, c?.scheduled_time);
+                          const isScheduled = c && c.status && c.status !== 'not_scheduled' && formattedDate;
+
+                          return (
+                            <tr key={s.id} className="hover:bg-muted/40 transition-colors align-top">
+                              <td className="px-3 py-3">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="w-8 h-8 rounded-full gradient-bg flex items-center justify-center shrink-0 shadow-sm text-xs font-bold text-white">
+                                    {(s.full_name || s.email || 'S')[0].toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => setViewStudent(s)}
+                                      className="font-semibold text-foreground text-xs hover:text-primary transition-colors flex items-center gap-1 text-left w-full min-w-0"
+                                      title="View Student Details"
+                                    >
+                                      <span className="truncate block max-w-[170px]">{s.full_name || 'Unnamed Student'}</span>
+                                      <Eye className="w-3 h-3 text-muted-foreground hover:text-primary shrink-0" />
+                                    </button>
+                                    <p className="text-[11px] text-muted-foreground truncate max-w-[170px]" title={s.email || '-'}>{s.email || '-'}</p>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="px-3 py-3 font-mono font-bold text-primary text-[11px] whitespace-normal break-all">
+                                {s.student_id || '-'}
+                              </td>
+
+                              <td className="px-3 py-3">
+                                <StatusBadge status={s.assessment_status || 'not_started'} />
+                              </td>
+
+                              <td className="px-3 py-3">
+                                {isScheduled ? (
+                                  <div className="flex flex-col gap-1 items-start">
+                                    <StatusBadge status={c.status || s.counselling_status || 'scheduled'} />
+                                    <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
+                                      <Calendar className="w-3 h-3 text-primary shrink-0" />
+                                      {formattedDate}
+                                    </span>
+                                  </div>
+                                ) : s.counselling_status && s.counselling_status !== 'not_scheduled' ? (
+                                  <StatusBadge status={s.counselling_status} />
+                                ) : (
+                                  <StatusBadge status="not_scheduled" />
+                                )}
+                              </td>
+
+                              <td className="px-3 py-3 align-top">
+                                <div className="flex flex-col gap-2">
+                                  {s.application_access_status === 'unlocked' ? (
+                                    <>
+                                      <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full font-medium text-[11px] w-fit" title={s.application_unlocked_by ? `Unlocked by ${s.application_unlocked_by}` : 'Application Unlocked'}>
+                                        <Unlock className="w-3 h-3" />
+                                        <span>Unlocked</span>
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 px-2 text-[11px] text-rose-500 border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400 w-fit"
+                                        title="Lock student application access"
+                                        onClick={() => setConfirmDialog({ open: true, student: s, action: 'lock' })}
+                                      >
+                                        <Lock className="w-3 h-3 mr-1" /> Lock
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="flex items-center gap-1 text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-full font-medium text-[11px] w-fit" title="Application Locked">
+                                        <Lock className="w-3 h-3" />
+                                        <span>Locked</span>
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 px-2 text-[11px] text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400 w-fit"
+                                        title="Unlock student application access"
+                                        onClick={() => setConfirmDialog({ open: true, student: s, action: 'unlock' })}
+                                      >
+                                        <Unlock className="w-3 h-3 mr-1" /> Unlock
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+
+                              <td className="px-3 py-3 text-right align-top">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2.5 text-[11px] text-foreground hover:border-primary hover:text-primary"
+                                  title="Update Follow-up Status"
+                                  onClick={() => (fu ? openEdit(fu) : openAdd(key, s.id))}
+                                >
+                                  <Pencil className="w-3 h-3 mr-1 text-primary" /> Update
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="lg:hidden space-y-3 p-3">
+                    {segmentData[key].map(s => {
+                      const fu = getStudentFU(s.id);
+                      const c = counsellings.find(couns => couns.student_id === s.id);
+                      const formattedDate = formatCounsellingDateTime(c?.scheduled_date, c?.scheduled_time);
+                      const isScheduled = c && c.status && c.status !== 'not_scheduled' && formattedDate;
+
+                      return (
+                        <div key={s.id} className="rounded-xl border border-border bg-card/60 p-3 space-y-3">
+                          <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-full gradient-bg flex items-center justify-center shrink-0 shadow-sm text-sm font-bold text-white">
+                              {(s.full_name || s.email || 'S')[0].toUpperCase()}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-sm font-semibold text-foreground">{s.full_name || 'Student'}</p>
-                                <span className="text-[11px] font-mono text-muted-foreground px-1.5 py-0.2 rounded bg-muted">
-                                  {s.student_id || '-'}
-                                </span>
-                              </div>
-                              <p className="text-xs text-muted-foreground truncate">{s.email || '-'}</p>
+                              <button
+                                type="button"
+                                onClick={() => setViewStudent(s)}
+                                className="font-semibold text-foreground text-sm hover:text-primary transition-colors flex items-center gap-1 text-left"
+                                title="View Student Details"
+                              >
+                                <span className="truncate block">{s.full_name || 'Unnamed Student'}</span>
+                                <Eye className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              </button>
+                              <p className="text-[11px] text-muted-foreground mt-0.5 break-all">{s.email || '-'}</p>
+                            </div>
+                          </div>
 
-                              {fu && (
-                                <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                                  {fu.followup_date && (
-                                    <span className="flex items-center gap-1 font-medium text-foreground">
-                                      <Calendar className="w-3 h-3 text-primary" /> {fu.followup_date}
+                          <div className="space-y-2 text-[11px] text-muted-foreground">
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted/30 px-2 py-1.5 border border-border/40">
+                              <span>Student ID</span>
+                              <span className="font-mono font-bold text-primary text-right break-all">{s.student_id || '-'}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted/30 px-2 py-1.5 border border-border/40">
+                              <span>Assessment</span>
+                              <StatusBadge status={s.assessment_status || 'not_started'} />
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-muted/30 px-2 py-1.5 border border-border/40">
+                              <span>Counselling</span>
+                              <div className="flex flex-col items-end gap-1">
+                                {isScheduled ? (
+                                  <>
+                                    <StatusBadge status={c.status || s.counselling_status || 'scheduled'} />
+                                    <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                                      <Calendar className="w-2.5 h-2.5 text-primary shrink-0" />
+                                      {formattedDate}
                                     </span>
-                                  )}
-                                  {fu.followup_status && <StatusBadge status={fu.followup_status} />}
-                                  {fu.notes && (
-                                    <span className="truncate max-w-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded">
-                                      Note: {fu.notes}
-                                    </span>
-                                  )}
+                                  </>
+                                ) : s.counselling_status && s.counselling_status !== 'not_scheduled' ? (
+                                  <StatusBadge status={s.counselling_status} />
+                                ) : (
+                                  <StatusBadge status="not_scheduled" />
+                                )}
+                              </div>
+                            </div>
+                            <div className="rounded-md bg-muted/30 px-2 py-1.5 border border-border/40">
+                              <div className="flex items-center justify-between gap-2 mb-2">
+                                <span>Application Access</span>
+                              </div>
+                              {s.application_access_status === 'unlocked' ? (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full font-medium text-[11px]">
+                                    <Unlock className="w-3 h-3" />
+                                    <span>Unlocked</span>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-2 text-[11px] text-rose-500 border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-400"
+                                    onClick={() => setConfirmDialog({ open: true, student: s, action: 'lock' })}
+                                  >
+                                    <Lock className="w-3 h-3 mr-1" /> Lock
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="flex items-center gap-1 text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-full font-medium text-[11px]">
+                                    <Lock className="w-3 h-3" />
+                                    <span>Locked</span>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-2 text-[11px] text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400"
+                                    onClick={() => setConfirmDialog({ open: true, student: s, action: 'unlock' })}
+                                  >
+                                    <Unlock className="w-3 h-3 mr-1" /> Unlock
+                                  </Button>
                                 </div>
                               )}
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                            <StatusBadge status={s.payment_status} />
-                            <StatusBadge status={s.assessment_status} />
-
-                            {/* Action Buttons: View Student, Add Note / Schedule Follow-up, Update Status */}
-                            {/* Strictly NO Call, Email or Message icon buttons */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 px-2.5 text-xs hover:text-primary"
-                              title="View Student Details"
-                              onClick={() => setViewStudent(s)}
-                            >
-                              <Eye className="w-3.5 h-3.5 mr-1" /> View Student
-                            </Button>
-
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 px-2.5 text-xs"
-                              title="Add Note or Schedule Follow-up"
-                              onClick={() => openAdd(key, s.id)}
-                            >
-                              <CalendarPlus2 className="w-3.5 h-3.5 mr-1 text-primary" /> Add Note
-                            </Button>
-
-                            {fu && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 px-2.5 text-xs text-foreground"
-                                title="Update Follow-up Status"
-                                onClick={() => openEdit(fu)}
-                              >
-                                <Pencil className="w-3.5 h-3.5 mr-1 text-primary" /> Update Status
-                              </Button>
-                            )}
-                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full h-8 px-3 text-xs text-foreground hover:border-primary hover:text-primary"
+                            onClick={() => (fu ? openEdit(fu) : openAdd(key, s.id))}
+                          >
+                            <Pencil className="w-3 h-3 mr-1 text-primary" /> Update
+                          </Button>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+
+                  <TablePagination
+                    currentPage={pageBySegment[key] ?? 1}
+                    totalPages={Math.max(1, Math.ceil((seg.length || 0) / pageSize))}
+                    totalItems={seg.length}
+                    pageSize={pageSize}
+                    onPageChange={page => setPageBySegment(prev => ({ ...prev, [key]: page }))}
+                    onPageSizeChange={handlePageSizeChange}
+                    itemName="students"
+                    loading={loading}
+                  />
                 </div>
               )}
             </TabsContent>
           ))}
         </Tabs>
 
-        {/* ── SCHEDULE / EDIT FOLLOW-UP DIALOG ── */}
+        {/* ── FOLLOW-UP / EDIT DIALOG ── */}
         <Dialog open={showForm} onOpenChange={setShowForm}>
           <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-md bg-card border-border">
             <DialogHeader>
               <DialogTitle className="text-base font-bold text-foreground">
-                {editFU ? 'Update Follow-up Status' : 'Schedule Follow-up & Add Note'}
+                {editFU ? 'Update Follow-up Status' : 'Follow-up & Add Note'}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3.5 pt-2">
@@ -360,6 +635,10 @@ export default function FollowUpManagement() {
                     <StatusBadge status={viewStudent.assessment_status} />
                   </div>
                   <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Counselling Status:</span>
+                    <StatusBadge status={viewStudent.counselling_status} />
+                  </div>
+                  <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Payment Status:</span>
                     <StatusBadge status={viewStudent.payment_status} />
                   </div>
@@ -375,6 +654,56 @@ export default function FollowUpManagement() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* ── LOCK / UNLOCK CONFIRMATION DIALOG ── */}
+        <AlertDialog open={confirmDialog.open} onOpenChange={open => !actionLoading && setConfirmDialog(d => ({ ...d, open }))}>
+          <AlertDialogContent className="bg-card border-border max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+                {confirmDialog.action === 'unlock' ? (
+                  <>
+                    <Unlock className="w-5 h-5 text-emerald-500" />
+                    Unlock Application Process?
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-5 h-5 text-rose-500" />
+                    Lock Application Process?
+                  </>
+                )}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-muted-foreground text-sm pt-1">
+                {confirmDialog.action === 'unlock'
+                  ? `Are you sure you want to allow ${confirmDialog.student?.full_name || 'this student'} to start the application process? They will be permitted to fill out their personal details, select courses, and proceed to payment.`
+                  : `Are you sure you want to prevent ${confirmDialog.student?.full_name || 'this student'} from accessing the application process? Their application form, submissions, and payments will be strictly locked.`}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-4">
+              <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={e => {
+                  e.preventDefault();
+                  handleConfirmAction();
+                }}
+                disabled={actionLoading}
+                className={
+                  confirmDialog.action === 'unlock'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white font-semibold'
+                    : 'bg-destructive hover:bg-destructive/90 text-white font-semibold'
+                }
+              >
+                {actionLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                ) : confirmDialog.action === 'unlock' ? (
+                  <Unlock className="w-4 h-4 mr-1.5" />
+                ) : (
+                  <Lock className="w-4 h-4 mr-1.5" />
+                )}
+                {confirmDialog.action === 'unlock' ? 'Unlock' : 'Lock'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   );

@@ -108,7 +108,8 @@ export async function updateStudent(req: Request, res: Response) {
     const allowedFields = [
       'full_name', 'email', 'phone', 'date_of_birth', 'address', 'city', 'state', 'pincode',
       'parent_name', 'parent_phone', 'selected_course', 'assessment_status',
-      'application_status', 'payment_status', 'admission_status', 'application_access_status'
+      'application_status', 'payment_status', 'admission_status', 'application_access_status',
+      'counselling_status'
     ];
 
     const fieldsToUpdate: string[] = [];

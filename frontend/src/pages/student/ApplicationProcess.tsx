@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   getStudentByProfileId, createStudent, getStudentRecommendations,
   getAllCourses, upsertApplication, getStudentApplication,
-  createPayment, getStudentPayment, updateStudent
+  createPayment, getStudentPayment, updateStudent, resolvePaymentScreenshotUrl
 } from '@/lib/api';
 import StudentLayout from '@/layouts/StudentLayout';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import {
   CheckCircle2, User, BookOpen, CreditCard, Loader2,
   Shield, ChevronRight, Download, Eye, FileText, Receipt,
   CalendarDays, Clock, BadgeCheck, Hash, Banknote, GraduationCap,
-  Lock, Unlock, QrCode, Smartphone, AtSign, Copy, Check,
+  Lock, Unlock, QrCode, Copy, Check,
   Upload, AlertCircle, HourglassIcon, ImageIcon, XCircle
 } from 'lucide-react';
 import { getApplicationAccess } from '@/services/applicationAccessService';
@@ -418,9 +418,6 @@ export default function ApplicationProcess() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'UPI'>('UPI');
-  const [upiSubMethod, setUpiSubMethod] = useState<'upi_app' | 'upi_qr' | 'upi_id'>('upi_app');
-  const [selectedUpiApp, setSelectedUpiApp] = useState<'gpay' | 'phonepe' | 'paytm' | 'bhim'>('gpay');
-  const [upiIdInput, setUpiIdInput] = useState('');
   const [copiedVpa, setCopiedVpa] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
   // UTR & screenshot for UPI verification
@@ -598,16 +595,16 @@ export default function ApplicationProcess() {
 
   const handlePayment = async () => {
     if (!student || !application || !selectedCourse) { toast.error('Application not complete'); return; }
-    if (upiSubMethod === 'upi_id' && (!upiIdInput.trim() || !upiIdInput.includes('@'))) {
-      toast.error('Please enter a valid UPI ID / VPA (e.g. yourname@okaxis, 9876543210@paytm)');
+    if (!utrNumber.trim()) {
+      toast.error('Please enter the UTR / Transaction Reference number');
       return;
     }
-    if (!utrNumber.trim() || utrNumber.trim().length < 6) {
-      toast.error('Please enter a valid UTR number (12-character transaction reference)');
+    if (utrNumber.trim().length < 6) {
+      toast.error('Please enter a valid UTR / Transaction Reference number (minimum 6 characters)');
       return;
     }
     if (!screenshotFile) {
-      toast.error('Please upload your UPI payment screenshot for verification');
+      toast.error('Please upload your payment screenshot');
       return;
     }
     setSaving(true);
@@ -619,17 +616,12 @@ export default function ApplicationProcess() {
         reader.onerror = reject;
         reader.readAsDataURL(screenshotFile);
       });
-      const upiDescriptor = upiSubMethod === 'upi_app'
-        ? `UPI (${selectedUpiApp.toUpperCase()})`
-        : upiSubMethod === 'upi_qr'
-        ? 'UPI (QR Code)'
-        : `UPI (${upiIdInput.trim()})`;
       const pay = await createPayment({
         application_id: application.id,
         student_id: student.id,
         course_id: selectedCourse.id,
         amount: selectedCourse.fee,
-        payment_method: upiDescriptor,
+        payment_method: 'UPI (QR Code)',
         status: 'pending',
         utr_number: utrNumber.trim(),
         screenshot: base64Screenshot,
@@ -638,9 +630,9 @@ export default function ApplicationProcess() {
       await updateStudent(student.id, { payment_status: 'pending', application_status: 'submitted' });
       setPayment(pay);
       setStep(4);
-      toast.success('Payment submitted for verification! Admin will review and confirm your admission.');
+      toast.success('Payment proof submitted successfully! The TATTI administration team will verify your payment.');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to submit payment');
+      toast.error(err.message || 'Failed to submit payment proof');
     } finally {
       setSaving(false);
     }
@@ -898,14 +890,13 @@ export default function ApplicationProcess() {
                   <HourglassIcon className="w-10 h-10 text-warning" strokeWidth={2} />
                 </div>
               </div>
-              <h1 className="text-3xl font-extrabold text-foreground mb-2">Status: Pending verification</h1>
+              <h1 className="text-3xl font-extrabold text-foreground mb-2">Payment Proof Submitted</h1>
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-warning/15 border border-warning/30 mb-4">
                 <div className="w-2 h-2 rounded-full bg-warning animate-pulse" />
                 <span className="text-warning text-xs font-bold tracking-widest">STATUS: PENDING VERIFICATION</span>
               </div>
               <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
-                Your UPI payment has been submitted and is awaiting admin verification.
-                You'll receive a notification once your payment is confirmed.
+                Your payment proof has been submitted successfully. The TATTI administration team will verify your payment.
               </p>
             </div>
           </div>
@@ -966,7 +957,7 @@ export default function ApplicationProcess() {
               </div>
               <div className="p-6 flex justify-center">
                 <img
-                  src={payment.screenshot_url}
+                  src={resolvePaymentScreenshotUrl(payment.screenshot_url, payment.id) || payment.screenshot_url}
                   alt="Payment Screenshot"
                   className="max-w-xs w-full rounded-xl border border-border shadow-md"
                 />
@@ -1146,12 +1137,12 @@ export default function ApplicationProcess() {
           </div>
         )}
 
-        {/* Step 3: Payment (UPI Exclusive) */}
+        {/* Step 3: Payment (Scan QR Code Exclusive) */}
         {step === 3 && selectedCourse && (
           <div className="glass-card rounded-xl p-6">
-                 <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-bold text-foreground">Scan and pay via UPI</h2>
+                <h2 className="text-lg font-bold text-foreground">Payment Method</h2>
                 <p className="text-xs text-muted-foreground mt-0.5 font-medium text-primary">Institute UPI ID: tatti.institute@upi</p>
               </div>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
@@ -1169,175 +1160,82 @@ export default function ApplicationProcess() {
               </div>
             </div>
 
-            {/* UPI Option Selector Tabs */}
-            <div className="space-y-4 mb-6">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold text-foreground tracking-wide uppercase">Select UPI Option</Label>
-                <span className="text-[11px] text-emerald-500 font-medium">Zero Gateway Charges</span>
+            {/* Single Payment Method: Scan QR Code */}
+            <div className="p-6 rounded-2xl bg-card border border-border text-center space-y-4 mb-6 shadow-sm">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
+                <QrCode className="w-4 h-4" /> Scan QR Code
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'upi_app' as const, label: 'UPI Apps', icon: Smartphone, desc: 'GPay, PhonePe, Paytm' },
-                  { id: 'upi_qr' as const, label: 'Scan QR Code', icon: QrCode, desc: 'Scan & Pay Instantly' },
-                  { id: 'upi_id' as const, label: 'UPI ID / VPA', icon: AtSign, desc: 'Enter your UPI ID' },
-                ].map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setUpiSubMethod(id)}
-                    className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all ${
-                      upiSubMethod === id
-                        ? 'border-primary bg-primary/10 ring-2 ring-primary/20 text-foreground font-semibold shadow-sm'
-                        : 'border-border bg-card/50 hover:border-border/80 text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <Icon className={`w-5 h-5 mb-1.5 ${upiSubMethod === id ? 'text-primary' : 'text-muted-foreground'}`} />
-                    <span className="text-xs font-medium">{label}</span>
-                  </button>
-                ))}
+              <div className="inline-block p-4 bg-white rounded-2xl shadow-md border border-slate-200">
+                {/* Visual QR Code Representation */}
+                <svg className="w-48 h-48 sm:w-56 sm:h-56 mx-auto" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="160" height="160" fill="white" rx="10" />
+                  {/* Corner 1 */}
+                  <rect x="12" y="12" width="40" height="40" rx="4" fill="#0f172a" />
+                  <rect x="18" y="18" width="28" height="28" rx="2" fill="white" />
+                  <rect x="24" y="24" width="16" height="16" rx="2" fill="#6366f1" />
+                  {/* Corner 2 */}
+                  <rect x="108" y="12" width="40" height="40" rx="4" fill="#0f172a" />
+                  <rect x="114" y="18" width="28" height="28" rx="2" fill="white" />
+                  <rect x="120" y="24" width="16" height="16" rx="2" fill="#6366f1" />
+                  {/* Corner 3 */}
+                  <rect x="12" y="108" width="40" height="40" rx="4" fill="#0f172a" />
+                  <rect x="18" y="114" width="28" height="28" rx="2" fill="white" />
+                  <rect x="24" y="120" width="16" height="16" rx="2" fill="#6366f1" />
+                  {/* QR matrix dots */}
+                  <rect x="60" y="16" width="8" height="8" fill="#1e293b" rx="1" />
+                  <rect x="76" y="16" width="8" height="16" fill="#1e293b" rx="1" />
+                  <rect x="92" y="20" width="8" height="8" fill="#6366f1" rx="1" />
+                  <rect x="60" y="32" width="16" height="8" fill="#1e293b" rx="1" />
+                  <rect x="84" y="36" width="8" height="16" fill="#1e293b" rx="1" />
+                  <rect x="16" y="60" width="16" height="8" fill="#1e293b" rx="1" />
+                  <rect x="40" y="64" width="8" height="16" fill="#1e293b" rx="1" />
+                  <rect x="56" y="56" width="16" height="16" fill="#6366f1" rx="2" />
+                  <rect x="80" y="60" width="24" height="8" fill="#1e293b" rx="1" />
+                  <rect x="112" y="64" width="16" height="8" fill="#1e293b" rx="1" />
+                  <rect x="136" y="60" width="12" height="16" fill="#1e293b" rx="1" />
+                  <rect x="20" y="84" width="8" height="16" fill="#1e293b" rx="1" />
+                  <rect x="36" y="88" width="16" height="8" fill="#1e293b" rx="1" />
+                  <rect x="60" y="80" width="8" height="20" fill="#1e293b" rx="1" />
+                  <rect x="76" y="88" width="16" height="8" fill="#6366f1" rx="1" />
+                  <rect x="100" y="80" width="16" height="16" fill="#1e293b" rx="1" />
+                  <rect x="124" y="84" width="12" height="8" fill="#1e293b" rx="1" />
+                  <rect x="60" y="112" width="16" height="12" fill="#1e293b" rx="1" />
+                  <rect x="84" y="108" width="8" height="16" fill="#6366f1" rx="1" />
+                  <rect x="100" y="116" width="16" height="8" fill="#1e293b" rx="1" />
+                  <rect x="124" y="108" width="16" height="16" fill="#1e293b" rx="1" />
+                  <rect x="64" y="132" width="12" height="16" fill="#1e293b" rx="1" />
+                  <rect x="84" y="136" width="20" height="8" fill="#1e293b" rx="1" />
+                  <rect x="112" y="132" width="8" height="16" fill="#6366f1" rx="1" />
+                  <rect x="128" y="136" width="20" height="8" fill="#1e293b" rx="1" />
+                  {/* TATTI Center Stamp */}
+                  <circle cx="80" cy="80" r="14" fill="#0f172a" />
+                  <text x="80" y="83" fill="white" fontSize="6.5" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">TATTI</text>
+                </svg>
               </div>
 
-              {/* Sub-view: UPI Apps */}
-              {upiSubMethod === 'upi_app' && (
-                <div className="p-4 rounded-xl bg-card border border-border space-y-3 animate-fade-in">
-                  <p className="text-xs text-muted-foreground">Select your preferred UPI application to complete payment:</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {[
-                      { id: 'gpay' as const, name: 'Google Pay', color: 'border-blue-500/40 hover:bg-blue-500/10', logoText: 'GPay' },
-                      { id: 'phonepe' as const, name: 'PhonePe', color: 'border-purple-500/40 hover:bg-purple-500/10', logoText: 'PhonePe' },
-                      { id: 'paytm' as const, name: 'Paytm UPI', color: 'border-cyan-500/40 hover:bg-cyan-500/10', logoText: 'Paytm' },
-                      { id: 'bhim' as const, name: 'BHIM UPI', color: 'border-emerald-500/40 hover:bg-emerald-500/10', logoText: 'BHIM' },
-                    ].map(app => (
-                      <button
-                        key={app.id}
-                        type="button"
-                        onClick={() => setSelectedUpiApp(app.id)}
-                        className={`p-3 rounded-lg border flex flex-col items-center justify-center gap-1.5 transition-all text-center ${
-                          selectedUpiApp === app.id
-                            ? 'border-primary bg-primary/15 ring-2 ring-primary/30'
-                            : `border-border bg-muted/40 ${app.color}`
-                        }`}
-                      >
-                        <div className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center font-bold text-[11px] text-foreground shadow-xs">
-                          {app.logoText}
-                        </div>
-                        <span className="text-xs font-semibold text-foreground">{app.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground text-center">
-                    After paying via <span className="font-semibold text-foreground">{selectedUpiApp.toUpperCase()}</span>, enter the UTR/transaction reference below.
-                  </p>
-                </div>
-              )}
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">Scan this QR code using any UPI app and complete your payment.</p>
+                <p className="text-xs text-muted-foreground">Open any UPI app installed on your phone, scan the QR code above, and pay.</p>
+              </div>
 
-              {/* Sub-view: Scan QR Code */}
-              {upiSubMethod === 'upi_qr' && (
-                <div className="p-5 rounded-xl bg-card border border-border text-center space-y-4 animate-fade-in">
-                  <div className="inline-block p-4 bg-white rounded-2xl shadow-md border border-slate-200">
-                    {/* Visual QR Code Representation */}
-                    <svg className="w-44 h-44 mx-auto" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect width="160" height="160" fill="white" rx="10" />
-                      {/* Corner 1 */}
-                      <rect x="12" y="12" width="40" height="40" rx="4" fill="#0f172a" />
-                      <rect x="18" y="18" width="28" height="28" rx="2" fill="white" />
-                      <rect x="24" y="24" width="16" height="16" rx="2" fill="#6366f1" />
-                      {/* Corner 2 */}
-                      <rect x="108" y="12" width="40" height="40" rx="4" fill="#0f172a" />
-                      <rect x="114" y="18" width="28" height="28" rx="2" fill="white" />
-                      <rect x="120" y="24" width="16" height="16" rx="2" fill="#6366f1" />
-                      {/* Corner 3 */}
-                      <rect x="12" y="108" width="40" height="40" rx="4" fill="#0f172a" />
-                      <rect x="18" y="114" width="28" height="28" rx="2" fill="white" />
-                      <rect x="24" y="120" width="16" height="16" rx="2" fill="#6366f1" />
-                      {/* QR matrix dots */}
-                      <rect x="60" y="16" width="8" height="8" fill="#1e293b" rx="1" />
-                      <rect x="76" y="16" width="8" height="16" fill="#1e293b" rx="1" />
-                      <rect x="92" y="20" width="8" height="8" fill="#6366f1" rx="1" />
-                      <rect x="60" y="32" width="16" height="8" fill="#1e293b" rx="1" />
-                      <rect x="84" y="36" width="8" height="16" fill="#1e293b" rx="1" />
-                      <rect x="16" y="60" width="16" height="8" fill="#1e293b" rx="1" />
-                      <rect x="40" y="64" width="8" height="16" fill="#1e293b" rx="1" />
-                      <rect x="56" y="56" width="16" height="16" fill="#6366f1" rx="2" />
-                      <rect x="80" y="60" width="24" height="8" fill="#1e293b" rx="1" />
-                      <rect x="112" y="64" width="16" height="8" fill="#1e293b" rx="1" />
-                      <rect x="136" y="60" width="12" height="16" fill="#1e293b" rx="1" />
-                      <rect x="20" y="84" width="8" height="16" fill="#1e293b" rx="1" />
-                      <rect x="36" y="88" width="16" height="8" fill="#1e293b" rx="1" />
-                      <rect x="60" y="80" width="8" height="20" fill="#1e293b" rx="1" />
-                      <rect x="76" y="88" width="16" height="8" fill="#6366f1" rx="1" />
-                      <rect x="100" y="80" width="16" height="16" fill="#1e293b" rx="1" />
-                      <rect x="124" y="84" width="12" height="8" fill="#1e293b" rx="1" />
-                      <rect x="60" y="112" width="16" height="12" fill="#1e293b" rx="1" />
-                      <rect x="84" y="108" width="8" height="16" fill="#6366f1" rx="1" />
-                      <rect x="100" y="116" width="16" height="8" fill="#1e293b" rx="1" />
-                      <rect x="124" y="108" width="16" height="16" fill="#1e293b" rx="1" />
-                      <rect x="64" y="132" width="12" height="16" fill="#1e293b" rx="1" />
-                      <rect x="84" y="136" width="20" height="8" fill="#1e293b" rx="1" />
-                      <rect x="112" y="132" width="8" height="16" fill="#6366f1" rx="1" />
-                      <rect x="128" y="136" width="20" height="8" fill="#1e293b" rx="1" />
-                      {/* TATTI Center Stamp */}
-                      <circle cx="80" cy="80" r="14" fill="#0f172a" />
-                      <text x="80" y="83" fill="white" fontSize="6.5" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">TATTI</text>
-                    </svg>
-                  </div>
-
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-foreground">Scan with Any UPI App</p>
-                    <p className="text-[11px] text-muted-foreground">Google Pay, PhonePe, Paytm, BHIM, CRED, Amazon Pay</p>
-                  </div>
-
-                  {/* Merchant VPA & Copy */}
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted border border-border text-xs">
-                    <span className="text-muted-foreground font-mono">UPI ID: <strong className="text-foreground">tatti.institute@upi</strong></span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText('tatti.institute@upi');
-                        setCopiedVpa(true);
-                        setTimeout(() => setCopiedVpa(false), 2000);
-                        toast.success('UPI ID copied to clipboard');
-                      }}
-                      className="p-1 hover:text-primary transition-colors"
-                      title="Copy UPI ID"
-                    >
-                      {copiedVpa ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Sub-view: UPI ID / VPA */}
-              {upiSubMethod === 'upi_id' && (
-                <div className="p-4 rounded-xl bg-card border border-border space-y-3 animate-fade-in">
-                  <Label className="text-xs font-medium text-foreground">Enter your Virtual Payment Address (UPI ID)</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="e.g. mobileNumber@upi or name@okaxis"
-                      value={upiIdInput}
-                      onChange={e => setUpiIdInput(e.target.value)}
-                      className="bg-input border-border text-xs sm:text-sm font-mono"
-                    />
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
-                    <span>Common handles:</span>
-                    {['@okaxis', '@okhdfcbank', '@okicici', '@ybl', '@paytm'].map(h => (
-                      <button
-                        key={h}
-                        type="button"
-                        onClick={() => {
-                          const base = upiIdInput.includes('@') ? upiIdInput.split('@')[0] : upiIdInput;
-                          setUpiIdInput(base ? `${base}${h}` : `student${h}`);
-                        }}
-                        className="px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground text-[10px] font-mono border border-border"
-                      >
-                        {h}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Merchant VPA & Copy */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted border border-border text-xs">
+                <span className="text-muted-foreground font-mono">UPI ID: <strong className="text-foreground">tatti.institute@upi</strong></span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText('tatti.institute@upi');
+                    setCopiedVpa(true);
+                    setTimeout(() => setCopiedVpa(false), 2000);
+                    toast.success('UPI ID copied to clipboard');
+                  }}
+                  className="p-1 hover:text-primary transition-colors"
+                  title="Copy UPI ID"
+                >
+                  {copiedVpa ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </div>
 
             {/* UTR & Screenshot section */}
@@ -1352,29 +1250,29 @@ export default function ApplicationProcess() {
                 </div>
               </div>
 
-              {/* UTR Input */}
+              {/* UTR / Transaction Reference Input */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-foreground">UPI transaction / reference number *</Label>
+                <Label className="text-xs font-semibold text-foreground">UTR / Transaction Reference *</Label>
                 <Input
-                  placeholder="Enter 12-digit UTR number"
+                  placeholder="Enter UTR / Transaction Reference"
                   value={utrNumber}
                   onChange={e => setUtrNumber(e.target.value)}
                   className="bg-input border-border text-sm font-mono"
                   maxLength={30}
                 />
-                <p className="text-[11px] text-muted-foreground">Found in your UPI app → Transaction History → Reference No.</p>
+                <p className="text-[11px] text-muted-foreground">Found in your UPI app payment receipt / transaction history</p>
               </div>
 
-              {/* Screenshot Upload */}
+              {/* Payment Screenshot Upload */}
               <div className="space-y-2">
-                <Label className="text-xs font-medium text-foreground">Payment screenshot *</Label>
+                <Label className="text-xs font-semibold text-foreground">Payment Screenshot *</Label>
                 <div
                   className="border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {screenshotPreview ? (
                     <div className="relative">
-                      <img src={screenshotPreview} alt="Screenshot preview" className="max-h-40 mx-auto rounded-lg object-contain" />
+                      <img src={screenshotPreview} alt="Payment Screenshot preview" className="max-h-48 mx-auto rounded-lg object-contain shadow-sm" />
                       <button
                         type="button"
                         onClick={e => {
@@ -1382,15 +1280,16 @@ export default function ApplicationProcess() {
                           setScreenshotFile(null);
                           setScreenshotPreview(null);
                         }}
-                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-white flex items-center justify-center text-xs"
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-white flex items-center justify-center text-xs shadow-md"
+                        title="Remove screenshot"
                       >
                         <XCircle className="w-4 h-4" />
                       </button>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2 py-2">
                       <ImageIcon className="w-10 h-10 text-muted-foreground mx-auto" />
-                      <p className="text-sm font-medium text-muted-foreground">Tap to upload screenshot</p>
+                      <p className="text-sm font-medium text-foreground">Upload Payment Screenshot</p>
                       <p className="text-[11px] text-muted-foreground">JPG, PNG or WEBP • Max 5MB</p>
                     </div>
                   )}
@@ -1420,21 +1319,25 @@ export default function ApplicationProcess() {
             <div className="flex items-center gap-2 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20 mb-5">
               <Shield className="w-4 h-4 text-emerald-500 shrink-0" />
               <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                🔒 100% Encrypted UPI Payment via NPCI. Admin will verify your screenshot & UTR before confirming admission.
+                🔒 100% Encrypted UPI Payment. TATTI administration will verify your UTR & screenshot before confirming admission.
               </p>
             </div>
 
             {/* Action buttons */}
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
-              <Button onClick={handlePayment} disabled={saving} className="flex-1 gradient-bg border-0 text-white font-semibold">
+              <Button
+                onClick={handlePayment}
+                disabled={saving || !utrNumber.trim() || !screenshotFile}
+                className="flex-1 gradient-bg border-0 text-white font-semibold shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 {saving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Submitting for verification...
+                    Submitting Payment Proof...
                   </>
                 ) : (
-                  'Submit for verification'
+                  'Submit Payment Proof'
                 )}
               </Button>
             </div>

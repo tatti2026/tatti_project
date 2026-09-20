@@ -523,7 +523,7 @@ export default function Notifications() {
                         </div>
                       </div>
 
-                      <p className="text-xs md:text-sm text-muted-foreground mt-2 leading-relaxed">
+                      <p className="text-xs md:text-sm text-muted-foreground mt-2 leading-relaxed whitespace-pre-line">
                         {item.message}
                       </p>
 

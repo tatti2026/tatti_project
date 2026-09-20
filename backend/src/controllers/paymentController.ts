@@ -47,7 +47,10 @@ export async function getPaymentById(req: Request, res: Response) {
 export async function getPaymentScreenshot(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const result = await query('SELECT id, screenshot_path, screenshot_url FROM payments WHERE id = $1', [id]);
+    const result = await query(
+      'SELECT id, student_id, screenshot_path, screenshot_url FROM payments WHERE id::text = $1 OR payment_id = $1',
+      [id]
+    );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Payment record not found' });
     }

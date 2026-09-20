@@ -43,9 +43,22 @@ export default function Confirmations() {
 
   const getStudentPayment = (studentId: string) => payments.find(p => p.student_id === studentId);
 
-  const paid = students.filter(s => s.payment_status === 'paid');
-  const notPaid = students.filter(s => s.payment_status === 'failed');
-  const yetToPay = students.filter(s => s.payment_status === 'unpaid' && s.application_status !== 'not_started');
+  const normalizePaymentStatus = (status?: string | null) => (status ?? '').trim().toLowerCase();
+
+  const newPayments = students.filter((s) => {
+    const status = normalizePaymentStatus(getStudentPayment(s.id)?.status);
+    return ['pending', 'pending_verification', 'submitted', 'in_progress'].includes(status);
+  });
+
+  const paid = students.filter((s) => {
+    const status = normalizePaymentStatus(getStudentPayment(s.id)?.status);
+    return ['paid', 'approved'].includes(status);
+  });
+
+  const paymentFailed = students.filter((s) => {
+    const status = normalizePaymentStatus(getStudentPayment(s.id)?.status);
+    return ['failed', 'rejected', 'refunded'].includes(status);
+  });
 
   const filterStudents = (list: Student[]) =>
     list.filter(s => !search || (s.full_name || '').toLowerCase().includes(search.toLowerCase()) || (s.email || '').toLowerCase().includes(search.toLowerCase()));
@@ -141,6 +154,24 @@ export default function Confirmations() {
     }
   };
 
+  const renderPaymentBadge = (status?: string | null) => {
+    const value = normalizePaymentStatus(status);
+
+    if (['paid', 'approved'].includes(value)) {
+      return <span className="inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">Paid</span>;
+    }
+
+    if (['pending', 'pending_verification', 'submitted', 'in_progress'].includes(value)) {
+      return <span className="inline-flex rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400">New Payment</span>;
+    }
+
+    if (['failed', 'rejected', 'refunded'].includes(value)) {
+      return <span className="inline-flex rounded-full border border-rose-500/20 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-rose-400">Payment Failed</span>;
+    }
+
+    return <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Not Paid</span>;
+  };
+
   const StudentTable = ({ list, showPayment = false }: { list: Student[]; showPayment?: boolean }) => (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -164,7 +195,7 @@ export default function Confirmations() {
                 <td className="px-3 py-3 whitespace-nowrap text-xs text-muted-foreground">{s.email || '-'}</td>
                 <td className="px-3 py-3 whitespace-nowrap text-xs text-muted-foreground">{s.phone || '-'}</td>
                 <td className="px-3 py-3 whitespace-nowrap"><StatusBadge status={s.application_status} /></td>
-                <td className="px-3 py-3 whitespace-nowrap"><StatusBadge status={s.payment_status} /></td>
+                <td className="px-3 py-3 whitespace-nowrap">{renderPaymentBadge(pay?.status)}</td>
                 {showPayment && <>
                   <td className="px-3 py-3 whitespace-nowrap text-xs font-semibold text-foreground">
                     {pay ? `₹${pay.amount.toLocaleString()}` : '-'}
@@ -253,9 +284,9 @@ export default function Confirmations() {
         {/* Summary */}
         <div className="grid grid-cols-3 gap-4">
           {[
+            { label: 'NEW PAYMENTS', count: newPayments.length, color: 'bg-warning/20 text-warning border-warning/20' },
             { label: 'PAID', count: paid.length, color: 'bg-success/20 text-success border-success/20' },
-            { label: 'YET TO PAY', count: yetToPay.length, color: 'bg-warning/20 text-warning border-warning/20' },
-            { label: 'NOT PAID', count: notPaid.length, color: 'bg-destructive/20 text-destructive border-destructive/20' },
+            { label: 'PAYMENT FAILED', count: paymentFailed.length, color: 'bg-destructive/20 text-destructive border-destructive/20' },
           ].map(({ label, count, color }) => (
             <div key={label} className={`glass-card rounded-xl p-4 text-center border ${color}`}>
               <p className="text-2xl font-bold">{count}</p>
@@ -265,22 +296,22 @@ export default function Confirmations() {
         </div>
 
         <div className="glass-card rounded-xl overflow-hidden">
-          <Tabs defaultValue="paid">
+          <Tabs defaultValue="newpayments">
             <div className="px-4 pt-4">
               <TabsList className="bg-muted">
+                <TabsTrigger value="newpayments" className="text-xs">New Payments ({newPayments.length})</TabsTrigger>
                 <TabsTrigger value="paid" className="text-xs">Paid ({paid.length})</TabsTrigger>
-                <TabsTrigger value="yettopay" className="text-xs">Yet to Pay ({yetToPay.length})</TabsTrigger>
-                <TabsTrigger value="notpaid" className="text-xs">Not Paid ({notPaid.length})</TabsTrigger>
+                <TabsTrigger value="paymentfailed" className="text-xs">Payment Failed ({paymentFailed.length})</TabsTrigger>
               </TabsList>
             </div>
+            <TabsContent value="newpayments" className="mt-0">
+              <StudentTable list={newPayments} showPayment />
+            </TabsContent>
             <TabsContent value="paid" className="mt-0">
               <StudentTable list={paid} showPayment />
             </TabsContent>
-            <TabsContent value="yettopay" className="mt-0">
-              <StudentTable list={yetToPay} />
-            </TabsContent>
-            <TabsContent value="notpaid" className="mt-0">
-              <StudentTable list={notPaid} />
+            <TabsContent value="paymentfailed" className="mt-0">
+              <StudentTable list={paymentFailed} showPayment />
             </TabsContent>
           </Tabs>
         </div>

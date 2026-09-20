@@ -1,87 +1,233 @@
-import { supabase } from '@/db/supabase';
-import { getApplicationAccess, isApplicationUnlocked } from '@/services/applicationAccessService';
 import type {
   Student, Assessment, Course, Question,
   CourseRecommendation, Application, Payment,
-  Counselling, Notification, FollowUp
+  Counselling, Notification, FollowUp, Profile
 } from '@/types/index';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+function getHeaders(): HeadersInit {
+  const token = localStorage.getItem('tatti_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 // ── STUDENT ────────────────────────────────────────────────
 export async function getStudentByProfileId(profileId: string): Promise<Student | null> {
-  const { data } = await supabase
-    .from('students')
-    .select('*')
-    .eq('profile_id', profileId)
-    .maybeSingle();
+  const res = await fetch(`${API_BASE}/students/profile/${profileId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
   if (!data) return null;
-  const access = getApplicationAccess(data.id);
-  return {
-    ...data,
-    application_access_status: access.status,
-    application_unlocked_by: access.unlocked_by,
-    application_unlocked_at: access.unlocked_at,
-  } as Student;
+  return data as Student;
 }
 
 export async function createStudent(data: Partial<Student>): Promise<Student | null> {
-  const { data: result } = await supabase
-    .from('students')
-    .insert(data)
-    .select()
-    .maybeSingle();
+  const res = await fetch(`${API_BASE}/students`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) return null;
+  const result = await res.json();
   if (!result) return null;
-  const access = getApplicationAccess(result.id);
-  return {
-    ...result,
-    application_access_status: access.status,
-    application_unlocked_by: access.unlocked_by,
-    application_unlocked_at: access.unlocked_at,
-  } as Student;
+  return result as Student;
 }
 
 export async function updateStudent(id: string, data: Partial<Student>): Promise<void> {
-  await supabase.from('students').update({ ...data, updated_at: new Date().toISOString() }).eq('id', id);
+  await fetch(`${API_BASE}/students/${id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
 }
 
 export async function getAllStudents(page = 0, pageSize = 20, search = '') {
-  let query = supabase
-    .from('students')
-    .select('*, applications(course:courses(course_name))', { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(page * pageSize, (page + 1) * pageSize - 1);
-  if (search) {
-    query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,student_id.ilike.%${search}%`);
-  }
-  let { data, count, error } = await query;
-  if (error || !data) {
-    const fallback = await supabase
-      .from('students')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(page * pageSize, (page + 1) * pageSize - 1);
-    data = fallback.data;
-    count = fallback.count;
-  }
-  const list = (Array.isArray(data) ? data : []) as any[];
-  const enriched = list.map(s => {
-    const access = getApplicationAccess(s.id);
-    const appCourse = Array.isArray(s.applications) && s.applications[0]?.course?.course_name
-      ? s.applications[0].course.course_name
-      : null;
-    const computedCourse = s.selected_course || appCourse || 'Full Stack Web Development';
-    const computedParentName = s.parent_name || (s.full_name ? `R. ${s.full_name.split(' ')[0]} (Parent)` : 'Parent / Guardian');
-    const computedParentPhone = s.parent_phone || (s.phone ? `+91 94441 ${s.phone.slice(-4).padStart(4, '0')}` : '+91 94441 55667');
-    return {
-      ...s,
-      parent_name: computedParentName,
-      parent_phone: computedParentPhone,
-      selected_course: computedCourse,
-      application_access_status: access.status,
-      application_unlocked_by: access.unlocked_by,
-      application_unlocked_at: access.unlocked_at,
-    };
+  const params = new URLSearchParams();
+  params.set('page', String(page + 1));
+  params.set('limit', String(pageSize));
+  if (search) params.set('search', search);
+
+  const res = await fetch(`${API_BASE}/students?${params.toString()}`, {
+    headers: getHeaders(),
   });
-  return { data: enriched as Student[], count: count ?? 0 };
+  if (!res.ok) return { data: [], count: 0 };
+  const result = await res.json();
+  return {
+    data: (result.data || []) as Student[],
+    count: result.count ?? (Array.isArray(result.data) ? result.data.length : 0),
+  };
+}
+
+export async function unlockStudentApplication(studentId: string, adminName?: string): Promise<{ success: boolean; applicationAccess?: boolean; message?: string }> {
+  const res = await fetch(`${API_BASE}/students/${studentId}/application-access`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify({ unlocked: true, adminName: adminName || 'TATTI Head Administrator' }),
+  });
+  return res.json();
+}
+
+export async function lockStudentApplication(studentId: string, adminName?: string): Promise<{ success: boolean; applicationAccess?: boolean; message?: string }> {
+  const res = await fetch(`${API_BASE}/students/${studentId}/application-access`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify({ unlocked: false, adminName: adminName || 'TATTI Head Administrator' }),
+  });
+  return res.json();
+}
+
+export interface DashboardStats {
+  totalStudents: number;
+  newStudents7d: number;
+  assessmentCompleted: number;
+  assessmentPending: number;
+  applicationsSubmitted: number;
+  paidApplications: number;
+  unpaidApplications: number;
+  counsellingPending: number;
+  admissionsConfirmed: number;
+  /** 7-day registration trend, one entry per day oldest→newest */
+  registrationTrend?: { date: string; count: number }[];
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const res = await fetch(`${API_BASE}/admin/dashboard/stats`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    return {
+      totalStudents: 0,
+      newStudents7d: 0,
+      assessmentCompleted: 0,
+      assessmentPending: 0,
+      applicationsSubmitted: 0,
+      paidApplications: 0,
+      unpaidApplications: 0,
+      counsellingPending: 0,
+      admissionsConfirmed: 0,
+    };
+  }
+  return await res.json();
+}
+
+export interface ReportsSummary {
+  total_students: number;
+  new_students_7d?: number;
+  assessed_count: number;
+  applications_count: number;
+  paid_count: number;
+  counselled_count: number;
+  admitted_count: number;
+  total_payments: number;
+}
+
+export async function getReportsSummary(): Promise<ReportsSummary | null> {
+  const res = await fetch(`${API_BASE}/admin/reports/summary`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+function buildQueryString(filters: Record<string, string | undefined>) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value && value !== 'all') params.set(key, value);
+  });
+  return params.toString();
+}
+
+async function triggerDownload(url: string, fileName: string, expectedType: string) {
+  const res = await fetch(url, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error('Download failed');
+  }
+
+  const blob = await res.blob();
+  const downloadUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = downloadUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(downloadUrl);
+
+  if (!blob.type || !blob.type.includes(expectedType.replace(/\./g, ''))) {
+    const text = await blob.text();
+    if (text && text.toLowerCase().includes('error')) {
+      throw new Error('Download content invalid');
+    }
+  }
+}
+
+export async function exportReportCSV(filters: {
+  search?: string;
+  assessmentStatus?: string;
+  applicationStatus?: string;
+  paymentStatus?: string;
+  fromDate?: string;
+  toDate?: string;
+}) {
+  const query = buildQueryString({
+    search: filters.search,
+    assessment_status: filters.assessmentStatus,
+    application_status: filters.applicationStatus,
+    payment_status: filters.paymentStatus,
+    fromDate: filters.fromDate,
+    toDate: filters.toDate,
+  });
+  const date = new Date().toISOString().slice(0, 10);
+  await triggerDownload(`${API_BASE}/admin/reports/export/csv${query ? `?${query}` : ''}`, `tatti-report-${date}.csv`, 'csv');
+}
+
+export async function exportReportExcel(filters: {
+  search?: string;
+  assessmentStatus?: string;
+  applicationStatus?: string;
+  paymentStatus?: string;
+  fromDate?: string;
+  toDate?: string;
+}) {
+  const query = buildQueryString({
+    search: filters.search,
+    assessment_status: filters.assessmentStatus,
+    application_status: filters.applicationStatus,
+    payment_status: filters.paymentStatus,
+    fromDate: filters.fromDate,
+    toDate: filters.toDate,
+  });
+  const date = new Date().toISOString().slice(0, 10);
+  await triggerDownload(`${API_BASE}/admin/reports/export/excel${query ? `?${query}` : ''}`, `tatti-report-${date}.xlsx`, 'spreadsheet');
+}
+
+export async function exportReportPDF(filters: {
+  search?: string;
+  assessmentStatus?: string;
+  applicationStatus?: string;
+  paymentStatus?: string;
+  fromDate?: string;
+  toDate?: string;
+}) {
+  const query = buildQueryString({
+    search: filters.search,
+    assessment_status: filters.assessmentStatus,
+    application_status: filters.applicationStatus,
+    payment_status: filters.paymentStatus,
+    fromDate: filters.fromDate,
+    toDate: filters.toDate,
+  });
+  const date = new Date().toISOString().slice(0, 10);
+  await triggerDownload(`${API_BASE}/admin/reports/export/pdf${query ? `?${query}` : ''}`, `tatti-report-${date}.pdf`, 'pdf');
 }
 
 // ── COURSES ────────────────────────────────────────────────
