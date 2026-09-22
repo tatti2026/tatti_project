@@ -5,6 +5,7 @@ import { RouteGuard } from '@/components/common/RouteGuard';
 // Auth pages
 import LoginPage from '@/pages/auth/LoginPage';
 import AdminLoginPage from '@/pages/auth/AdminLoginPage';
+import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 
 // Student pages
 import StudentDashboard from '@/pages/student/StudentDashboard';
@@ -49,6 +50,7 @@ export const routes: RouteConfig[] = [
   // Auth
   { name: 'Student Login', path: '/login', element: <LoginPage />, public: true },
   { name: 'Admin Login', path: '/admin/login', element: <AdminLoginPage />, public: true },
+  { name: 'Reset Password', path: '/reset-password', element: <ResetPasswordPage />, public: true },
 
   // Student Portal
   { name: 'Student Dashboard', path: '/student/dashboard', element: studentGuard(<StudentDashboard />) },

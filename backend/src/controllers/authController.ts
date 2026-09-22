@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import { generateToken } from '../utils/jwt.js';
 import { query } from '../database/pgPool.js';
 
@@ -196,5 +197,123 @@ export async function getMe(req: Request, res: Response) {
   } catch (err) {
     console.error('GetMe error:', err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+/**
+ * POST /api/auth/request-password-reset
+ *
+ * Accepts an email, generates a secure reset token, stores its hash in the DB,
+ * and (in production) sends a reset link to the user.
+ *
+ * SECURITY:
+ * - Always returns 200 regardless of whether the email exists (avoids enumeration).
+ * - Token is stored as a bcrypt hash — the raw token is never persisted.
+ * - Token expires in 1 hour.
+ */
+export async function requestPasswordReset(req: Request, res: Response) {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      // Still return 200 to avoid revealing account existence
+      return res.json({ message: 'If that email is registered, a reset link has been sent.' });
+    }
+
+    // Lookup user — silently ignore if not found
+    const userRes = await query('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    if (userRes.rows.length > 0) {
+      const userId = userRes.rows[0].id;
+
+      // Generate a cryptographically secure random token (32 bytes = 64 hex chars)
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = await bcrypt.hash(rawToken, 10);
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      // Store the hashed token (upsert — one token per user at a time)
+      await query(
+        `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id) DO UPDATE
+           SET token_hash = $2, expires_at = $3, created_at = now()`,
+        [userId, tokenHash, expiresAt]
+      );
+
+      // In production: send email with the reset link
+      // The link would be: https://your-domain.com/reset-password?token=<rawToken>&userId=<userId>
+      //
+      // Example (using nodemailer or similar):
+      //   await sendEmail(email, 'Password Reset', `Click to reset: ${resetLink}`);
+      //
+      // For now, log for development purposes:
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const resetLink = `${frontendUrl}/reset-password?token=${rawToken}&userId=${userId}`;
+      console.log(`[DEV] Password reset link for ${email}: ${resetLink}`);
+    }
+
+    // Always return success
+    return res.json({ message: 'If that email is registered, a reset link has been sent.' });
+  } catch (err) {
+    console.error('RequestPasswordReset error:', err);
+    // Still return success to avoid leaking information
+    return res.json({ message: 'If that email is registered, a reset link has been sent.' });
+  }
+}
+
+/**
+ * POST /api/auth/reset-password
+ *
+ * Accepts { userId, token, newPassword }.
+ * Validates the token against the stored hash, checks expiry, then updates the password.
+ *
+ * SECURITY:
+ * - Constant-time comparison via bcrypt.
+ * - Token is single-use: deleted after successful reset.
+ * - Validates password length server-side.
+ */
+export async function resetPassword(req: Request, res: Response) {
+  try {
+    const { userId, token, newPassword } = req.body;
+
+    if (!userId || !token || !newPassword) {
+      return res.status(400).json({ error: 'userId, token, and newPassword are required.' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+    }
+
+    // Fetch the stored token record
+    const tokenRes = await query(
+      'SELECT token_hash, expires_at FROM password_reset_tokens WHERE user_id = $1',
+      [userId]
+    );
+    if (tokenRes.rows.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired reset token.' });
+    }
+
+    const { token_hash, expires_at } = tokenRes.rows[0];
+
+    // Check expiry
+    if (new Date() > new Date(expires_at)) {
+      await query('DELETE FROM password_reset_tokens WHERE user_id = $1', [userId]);
+      return res.status(400).json({ error: 'Reset token has expired. Please request a new one.' });
+    }
+
+    // Verify token via bcrypt (constant-time comparison)
+    const tokenValid = await bcrypt.compare(token, token_hash);
+    if (!tokenValid) {
+      return res.status(400).json({ error: 'Invalid or expired reset token.' });
+    }
+
+    // Update the user's password
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, userId]);
+
+    // Invalidate the token (single-use)
+    await query('DELETE FROM password_reset_tokens WHERE user_id = $1', [userId]);
+
+    return res.json({ message: 'Password reset successfully. You can now sign in with your new password.' });
+  } catch (err) {
+    console.error('ResetPassword error:', err);
+    return res.status(500).json({ error: 'Internal server error during password reset.' });
   }
 }

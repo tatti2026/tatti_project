@@ -493,7 +493,14 @@ export default function StudentDetails() {
 
                 <div className="p-3 bg-muted/40 rounded-lg border border-border/60">
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Career Fit Assessment</p>
-                  <div className="mt-1"><StatusBadge status={viewStudent.assessment_status} /></div>
+                  <div className="mt-1 flex items-center gap-2 flex-wrap">
+                    <StatusBadge status={viewStudent.assessment_status} />
+                    {viewStudent.assessment_percentage != null && (
+                      <span className="text-xs font-bold text-primary">
+                        Score: {viewStudent.assessment_score ?? '-'}/{viewStudent.assessment_total_marks ?? 4} ({viewStudent.assessment_percentage}%)
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="p-3 bg-muted/40 rounded-lg border border-border/60">

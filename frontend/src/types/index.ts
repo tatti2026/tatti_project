@@ -51,6 +51,17 @@ export interface Student {
   application_access_status?: 'locked' | 'unlocked';
   application_unlocked_by?: string | null;
   application_unlocked_at?: string | null;
+  assessment_score?: number | null;
+  assessment_total_marks?: number | null;
+  assessment_percentage?: number | null;
+  assessment_info?: {
+    id?: string;
+    score: number | null;
+    total_marks: number | null;
+    percentage: number | null;
+    status: AssessmentStatus;
+    submitted_at: string | null;
+  } | null;
   created_at: string;
   updated_at: string;
 }

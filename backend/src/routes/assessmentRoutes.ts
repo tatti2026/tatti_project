@@ -6,11 +6,13 @@ import {
   createAssessment,
   submitAssessmentById,
   getStudentRecommendations,
-  upsertRecommendation
+  upsertRecommendation,
+  getAllAssessments
 } from '../controllers/assessmentController.js';
 
 const router = Router();
 
+router.get('/', getAllAssessments);
 router.get('/questions', getActiveQuestions);
 router.post('/submit', submitAssessment);
 

@@ -38,7 +38,7 @@ interface AuthContextType {
   profile: Profile | null;
   role: UserRole | null;
   loading: boolean;
-  signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithEmail: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: Error | null }>;
   signUpWithEmail: (
     paramsOrEmail: string | SignUpParams,
     password?: string,
@@ -46,6 +46,7 @@ interface AuthContextType {
   ) => Promise<{ error: Error | null; studentId?: string }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  sendPasswordResetEmail: (email: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,7 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('tatti_token');
+    // Check localStorage first (remember me), then sessionStorage (session-only)
+    const token = localStorage.getItem('tatti_token') || sessionStorage.getItem('tatti_token');
     if (!token) {
       setUser(null);
       setProfile(null);
@@ -85,19 +87,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } else {
           localStorage.removeItem('tatti_token');
+          sessionStorage.removeItem('tatti_token');
           setUser(null);
           setProfile(null);
         }
       })
       .catch(() => {
         localStorage.removeItem('tatti_token');
+        sessionStorage.removeItem('tatti_token');
         setUser(null);
         setProfile(null);
       })
       .finally(() => setLoading(false));
   }, []);
 
-  const signInWithEmail = async (email: string, password: string) => {
+  /**
+   * Sign in with email/password.
+   *
+   * rememberMe = true  (default) → JWT token stored in localStorage (survives browser restart).
+   * rememberMe = false           → JWT token stored in sessionStorage only (cleared on tab/window close).
+   *
+   * SECURITY: Only the JWT token is persisted — passwords are NEVER stored on the client.
+   */
+  const signInWithEmail = async (email: string, password: string, rememberMe = true) => {
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
@@ -111,7 +123,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.token) {
-        localStorage.setItem('tatti_token', data.token);
+        if (rememberMe) {
+          localStorage.setItem('tatti_token', data.token);
+          sessionStorage.removeItem('tatti_token');
+        } else {
+          sessionStorage.setItem('tatti_token', data.token);
+          localStorage.removeItem('tatti_token');
+        }
       }
       setUser(data.user);
       const prof = await getProfile(data.user.id);
@@ -166,14 +184,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     localStorage.removeItem('tatti_token');
+    sessionStorage.removeItem('tatti_token');
     setUser(null);
     setProfile(null);
+  };
+
+  /**
+   * Sends a password reset request to the backend.
+   * The backend will email the user a secure OTP or reset link.
+   *
+   * SECURITY: We never expose whether an account with the given email exists.
+   * The caller always receives { error: null }.
+   */
+  const sendPasswordResetEmail = async (email: string) => {
+    try {
+      await fetch(`${API_BASE}/auth/request-password-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+    } catch (err) {
+      console.error('Password reset request error (not exposed to user):', err);
+    }
+    // Always return success to avoid leaking account existence
+    return { error: null };
   };
 
   return (
     <AuthContext.Provider value={{
       user, profile, role: profile?.role ?? null,
       loading, signInWithEmail, signUpWithEmail, signOut, refreshProfile,
+      sendPasswordResetEmail,
     }}>
       {children}
     </AuthContext.Provider>

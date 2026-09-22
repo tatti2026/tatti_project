@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Eye, EyeOff, GraduationCap, BookOpen, Monitor, Wifi, Loader2, CheckCircle2, Copy } from 'lucide-react';
 
-type AuthMode = 'login' | 'signup' | 'forgot' | 'otp' | 'reset';
+type AuthMode = 'login' | 'signup' | 'forgot' | 'reset-sent';
 
 export default function LoginPage() {
   const [mode, setMode] = useState<AuthMode>('login');
@@ -32,12 +32,9 @@ export default function LoginPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(true);
   const [createdStudentId, setCreatedStudentId] = useState<string | null>(null);
 
-  // Forgot / OTP / Reset states
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  // Forgot / Reset states
 
-  const { signInWithEmail, signUpWithEmail, user, role } = useAuth();
+  const { signInWithEmail, signUpWithEmail, sendPasswordResetEmail, user, role } = useAuth();
   const navigate = useNavigate();
 
   // Reset all credential fields
@@ -51,9 +48,6 @@ export default function LoginPage() {
     setSignUpEmail('');
     setSignUpPassword('');
     setSignUpConfirmPassword('');
-    setNewPassword('');
-    setConfirmNewPassword('');
-    setOtp(['', '', '', '', '', '']);
     setCreatedStudentId(null);
   }, []);
 
@@ -79,7 +73,7 @@ export default function LoginPage() {
     e.preventDefault();
     if (!email || !password) { toast.error('Please fill in all fields'); return; }
     setLoading(true);
-    const { error } = await signInWithEmail(email.trim(), password);
+    const { error } = await signInWithEmail(email.trim(), password, remember);
     setLoading(false);
     if (error) toast.error('Invalid credentials. Please check your Student ID / email and password.');
   };
@@ -149,40 +143,14 @@ export default function LoginPage() {
     }
   };
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleSendReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) { toast.error('Please enter your email or Student ID'); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1000));
+    await sendPasswordResetEmail(email.trim());
     setLoading(false);
-    toast.success('OTP sent to your email (demo mode)');
-    setMode('otp');
-  };
-
-  const handleVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    const otpVal = otp.join('');
-    if (otpVal.length !== 6) { toast.error('Please enter the 6-digit OTP'); return; }
-    toast.success('OTP verified (demo)');
-    setMode('reset');
-  };
-
-  const handleReset = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword !== confirmNewPassword) { toast.error('Passwords do not match'); return; }
-    toast.success('Password reset successfully!');
-    changeMode('login');
-  };
-
-  const handleOtpInput = (idx: number, val: string) => {
-    if (!/^\d?$/.test(val)) return;
-    const next = [...otp];
-    next[idx] = val;
-    setOtp(next);
-    if (val && idx < 5) {
-      const nextEl = document.getElementById(`otp-${idx + 1}`);
-      nextEl?.focus();
-    }
+    // Always show confirmation — never reveal if the account exists
+    setMode('reset-sent');
   };
 
   return (
@@ -570,107 +538,51 @@ export default function LoginPage() {
           {mode === 'forgot' && (
             <div className="glass-card rounded-2xl p-6 md:p-8 animate-fade-in">
               <h2 className="text-2xl font-bold text-foreground mb-1">Forgot Password?</h2>
-              <p className="text-muted-foreground text-sm mb-6">Enter your Student ID or registered email to receive a one-time password.</p>
-              <form onSubmit={handleSendOtp} className="space-y-4" autoComplete="off" autoCapitalize="none" spellCheck={false}>
+              <p className="text-muted-foreground text-sm mb-6">Enter your registered email and we'll send you a secure link to reset your password.</p>
+              <form onSubmit={handleSendReset} className="space-y-4" autoComplete="off" autoCapitalize="none" spellCheck={false}>
                 <div>
-                  <Label htmlFor="fp-email">Student ID / Email</Label>
+                  <Label htmlFor="fp-email">Email Address</Label>
                   <Input
                     id="fp-email"
                     name="tatti_forgot_student_identifier"
-                    type="text"
+                    type="email"
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="none"
                     spellCheck={false}
                     data-lpignore="true"
                     data-1p-ignore="true"
-                    placeholder="Enter your Student ID or email"
+                    placeholder="Enter your registered email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     className="mt-1.5 bg-input border-border"
                   />
                 </div>
                 <Button type="submit" disabled={loading} className="w-full gradient-bg border-0 text-white font-semibold h-10">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send OTP'}
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Reset Link'}
                 </Button>
               </form>
               <button onClick={() => changeMode('login')} className="text-center text-sm text-primary hover:underline w-full mt-4">Back to Sign In</button>
             </div>
           )}
 
-          {mode === 'otp' && (
-            <div className="glass-card rounded-2xl p-6 md:p-8 animate-fade-in">
-              <h2 className="text-2xl font-bold text-foreground mb-1">Enter OTP</h2>
-              <p className="text-muted-foreground text-sm mb-6">We sent a 6-digit code to <span className="text-foreground font-medium">{email}</span></p>
-              <form onSubmit={handleVerifyOtp} className="space-y-6" autoComplete="off" autoCapitalize="none" spellCheck={false}>
-                <div className="flex gap-2 justify-center">
-                  {otp.map((digit, idx) => (
-                    <input
-                      key={idx}
-                      id={`otp-${idx}`}
-                      type="text"
-                      maxLength={1}
-                      autoComplete="off"
-                      data-lpignore="true"
-                      data-1p-ignore="true"
-                      value={digit}
-                      onChange={e => handleOtpInput(idx, e.target.value)}
-                      onKeyDown={e => e.key === 'Backspace' && !digit && idx > 0 && document.getElementById(`otp-${idx - 1}`)?.focus()}
-                      className="w-11 h-12 text-center text-lg font-bold bg-input border border-border rounded-lg text-foreground focus:border-primary outline-none"
-                    />
-                  ))}
-                </div>
-                <Button type="submit" className="w-full gradient-bg border-0 text-white font-semibold h-10">Verify OTP</Button>
-              </form>
-            </div>
-          )}
-
-          {mode === 'reset' && (
-            <div className="glass-card rounded-2xl p-6 md:p-8 animate-fade-in">
-              <h2 className="text-2xl font-bold text-foreground mb-1">Create New Password</h2>
-              <p className="text-muted-foreground text-sm mb-6">Enter your new password below</p>
-              <form onSubmit={handleReset} className="space-y-4" autoComplete="off" autoCapitalize="none" spellCheck={false}>
-                <div>
-                  <Label htmlFor="np">New Password</Label>
-                  <Input
-                    id="np"
-                    name="tatti_reset_new_secret"
-                    type="password"
-                    autoComplete="new-password"
-                    autoCorrect="off"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    placeholder="New password"
-                    value={newPassword}
-                    onChange={e => setNewPassword(e.target.value)}
-                    className="mt-1.5 bg-input border-border"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cnp">Confirm Password</Label>
-                  <Input
-                    id="cnp"
-                    name="tatti_reset_confirm_secret"
-                    type="password"
-                    autoComplete="new-password"
-                    autoCorrect="off"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    placeholder="Confirm new password"
-                    value={confirmNewPassword}
-                    onChange={e => setConfirmNewPassword(e.target.value)}
-                    className="mt-1.5 bg-input border-border"
-                  />
-                </div>
-                <Button type="submit" className="w-full gradient-bg border-0 text-white font-semibold h-10">Reset Password</Button>
-              </form>
+          {mode === 'reset-sent' && (
+            <div className="glass-card rounded-2xl p-6 md:p-8 animate-fade-in text-center">
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Check Your Email</h2>
+              <p className="text-muted-foreground text-sm mb-1">
+                If an account exists for <span className="text-foreground font-medium">{email}</span>, a password reset link has been sent.
+              </p>
+              <p className="text-muted-foreground text-xs mb-6">Check your spam folder if you don't see it within a few minutes.</p>
+              <button onClick={() => { changeMode('login'); }} className="text-sm text-primary hover:underline">Back to Sign In</button>
             </div>
           )}
         </div>
+
       </div>
     </div>
   );

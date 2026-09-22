@@ -226,3 +226,11 @@ CREATE TABLE IF NOT EXISTS public.follow_ups (
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- 14. Password Reset Tokens Table
+CREATE TABLE IF NOT EXISTS public.password_reset_tokens (
+    user_id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);

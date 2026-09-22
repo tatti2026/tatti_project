@@ -173,7 +173,13 @@ export async function getAllStudents(req: Request, res: Response) {
       SELECT s.*, 
         (SELECT row_to_json(c.*) FROM courses c 
          JOIN applications a ON a.course_id = c.id 
-         WHERE a.student_id = s.id ORDER BY a.created_at DESC LIMIT 1) as course_info
+         WHERE a.student_id = s.id ORDER BY a.created_at DESC LIMIT 1) as course_info,
+        (SELECT row_to_json(ast.*) FROM (
+           SELECT id, score, total_marks, percentage, status, submitted_at
+           FROM assessments
+           WHERE student_id = s.id
+           ORDER BY created_at DESC LIMIT 1
+         ) ast) as assessment_info
       FROM students s
     `;
 
@@ -252,6 +258,12 @@ export async function getAllStudents(req: Request, res: Response) {
       const computedParentName = s.parent_name || (s.full_name ? `R. ${s.full_name.split(' ')[0]} (Parent)` : 'Parent / Guardian');
       const computedParentPhone = s.parent_phone || (s.phone ? `+91 94441 ${s.phone.slice(-4).padStart(4, '0')}` : '+91 94441 55667');
 
+      const assessScore = s.assessment_info?.score != null ? Number(s.assessment_info.score) : null;
+      const assessTotal = s.assessment_info?.total_marks != null ? Number(s.assessment_info.total_marks) : null;
+      const assessPct = s.assessment_info?.percentage != null ? Number(s.assessment_info.percentage) : (
+        (assessScore != null && assessTotal != null && assessTotal > 0) ? (assessScore / assessTotal) * 100 : null
+      );
+
       return {
         ...s,
         parent_name: computedParentName,
@@ -260,6 +272,10 @@ export async function getAllStudents(req: Request, res: Response) {
         application_access_status: s.application_access_status || 'locked',
         application_unlocked_by: s.application_unlocked_by || null,
         application_unlocked_at: s.application_unlocked_at || null,
+        assessment_score: assessScore,
+        assessment_total_marks: assessTotal,
+        assessment_percentage: assessPct != null ? Math.round(assessPct * 10) / 10 : null,
+        assessment_info: s.assessment_info || null,
       };
     });
 

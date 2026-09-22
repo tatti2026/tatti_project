@@ -1166,52 +1166,17 @@ export default function ApplicationProcess() {
                 <QrCode className="w-4 h-4" /> Scan QR Code
               </div>
 
-              <div className="inline-block p-4 bg-white rounded-2xl shadow-md border border-slate-200">
-                {/* Visual QR Code Representation */}
-                <svg className="w-48 h-48 sm:w-56 sm:h-56 mx-auto" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="160" height="160" fill="white" rx="10" />
-                  {/* Corner 1 */}
-                  <rect x="12" y="12" width="40" height="40" rx="4" fill="#0f172a" />
-                  <rect x="18" y="18" width="28" height="28" rx="2" fill="white" />
-                  <rect x="24" y="24" width="16" height="16" rx="2" fill="#6366f1" />
-                  {/* Corner 2 */}
-                  <rect x="108" y="12" width="40" height="40" rx="4" fill="#0f172a" />
-                  <rect x="114" y="18" width="28" height="28" rx="2" fill="white" />
-                  <rect x="120" y="24" width="16" height="16" rx="2" fill="#6366f1" />
-                  {/* Corner 3 */}
-                  <rect x="12" y="108" width="40" height="40" rx="4" fill="#0f172a" />
-                  <rect x="18" y="114" width="28" height="28" rx="2" fill="white" />
-                  <rect x="24" y="120" width="16" height="16" rx="2" fill="#6366f1" />
-                  {/* QR matrix dots */}
-                  <rect x="60" y="16" width="8" height="8" fill="#1e293b" rx="1" />
-                  <rect x="76" y="16" width="8" height="16" fill="#1e293b" rx="1" />
-                  <rect x="92" y="20" width="8" height="8" fill="#6366f1" rx="1" />
-                  <rect x="60" y="32" width="16" height="8" fill="#1e293b" rx="1" />
-                  <rect x="84" y="36" width="8" height="16" fill="#1e293b" rx="1" />
-                  <rect x="16" y="60" width="16" height="8" fill="#1e293b" rx="1" />
-                  <rect x="40" y="64" width="8" height="16" fill="#1e293b" rx="1" />
-                  <rect x="56" y="56" width="16" height="16" fill="#6366f1" rx="2" />
-                  <rect x="80" y="60" width="24" height="8" fill="#1e293b" rx="1" />
-                  <rect x="112" y="64" width="16" height="8" fill="#1e293b" rx="1" />
-                  <rect x="136" y="60" width="12" height="16" fill="#1e293b" rx="1" />
-                  <rect x="20" y="84" width="8" height="16" fill="#1e293b" rx="1" />
-                  <rect x="36" y="88" width="16" height="8" fill="#1e293b" rx="1" />
-                  <rect x="60" y="80" width="8" height="20" fill="#1e293b" rx="1" />
-                  <rect x="76" y="88" width="16" height="8" fill="#6366f1" rx="1" />
-                  <rect x="100" y="80" width="16" height="16" fill="#1e293b" rx="1" />
-                  <rect x="124" y="84" width="12" height="8" fill="#1e293b" rx="1" />
-                  <rect x="60" y="112" width="16" height="12" fill="#1e293b" rx="1" />
-                  <rect x="84" y="108" width="8" height="16" fill="#6366f1" rx="1" />
-                  <rect x="100" y="116" width="16" height="8" fill="#1e293b" rx="1" />
-                  <rect x="124" y="108" width="16" height="16" fill="#1e293b" rx="1" />
-                  <rect x="64" y="132" width="12" height="16" fill="#1e293b" rx="1" />
-                  <rect x="84" y="136" width="20" height="8" fill="#1e293b" rx="1" />
-                  <rect x="112" y="132" width="8" height="16" fill="#6366f1" rx="1" />
-                  <rect x="128" y="136" width="20" height="8" fill="#1e293b" rx="1" />
-                  {/* TATTI Center Stamp */}
-                  <circle cx="80" cy="80" r="14" fill="#0f172a" />
-                  <text x="80" y="83" fill="white" fontSize="6.5" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">TATTI</text>
-                </svg>
+              {/* Payment QR Code — centered using flex */}
+              <div className="flex justify-center items-center w-full">
+                <div className="p-4 bg-white rounded-2xl shadow-md border border-slate-200 inline-flex justify-center items-center">
+                  <img
+                    src="/payment-qr.png"
+                    alt="TATTI Institute Payment QR Code — scan with any UPI app"
+                    className="w-48 h-48 sm:w-56 sm:h-56"
+                    style={{ objectFit: 'contain', display: 'block' }}
+                    draggable={false}
+                  />
+                </div>
               </div>
 
               <div className="space-y-1">

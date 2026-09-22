@@ -404,6 +404,15 @@ export async function deleteQuestion(id: string): Promise<void> {
 }
 
 // ── ASSESSMENTS ────────────────────────────────────────────
+export async function getAllAssessments(): Promise<Assessment[]> {
+  const res = await fetch(`${API_BASE}/assessments`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (Array.isArray(data) ? data : []) as Assessment[];
+}
+
 export async function getStudentAssessment(studentId: string): Promise<Assessment | null> {
   const res = await fetch(`${API_BASE}/assessments/student/${studentId}`, {
     headers: getHeaders(),

@@ -176,3 +176,17 @@ export async function upsertRecommendation(req: Request, res: Response) {
     res.status(500).json({ error: 'Internal server error' });
   }
 }
+
+export async function getAllAssessments(req: Request, res: Response) {
+  try {
+    const result = await query(`
+      SELECT DISTINCT ON (student_id) *
+      FROM assessments
+      ORDER BY student_id, created_at DESC
+    `);
+    return res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching all assessments:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
