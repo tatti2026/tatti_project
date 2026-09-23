@@ -58,7 +58,7 @@ export default function EntryAssessment() {
   useEffect(() => {
     if (authLoading) return;
     if (!profile) {
-      const token = localStorage.getItem('tatti_token');
+      const token = localStorage.getItem('tatti_token') || sessionStorage.getItem('tatti_token');
       if (!token) {
         navigate('/login');
       }

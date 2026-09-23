@@ -622,12 +622,12 @@ export default function ApplicationProcess() {
         course_id: selectedCourse.id,
         amount: selectedCourse.fee,
         payment_method: 'UPI (QR Code)',
-        status: 'pending',
+        status: 'Pending Verification',
         utr_number: utrNumber.trim(),
         screenshot: base64Screenshot,
       });
       await upsertApplication({ ...application, status: 'submitted', step: 4, submitted_at: new Date().toISOString() });
-      await updateStudent(student.id, { payment_status: 'pending', application_status: 'submitted' });
+      await updateStudent(student.id, { payment_status: 'Pending Verification', application_status: 'submitted' });
       setPayment(pay);
       setStep(4);
       toast.success('Payment proof submitted successfully! The TATTI administration team will verify your payment.');

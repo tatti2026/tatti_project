@@ -7,7 +7,9 @@ import type {
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 function getHeaders(): HeadersInit {
-  const token = localStorage.getItem('tatti_token');
+  // Check localStorage first (remember-me logins), then sessionStorage (session-only logins).
+  // Both admin and student tokens must be found regardless of which storage was used.
+  const token = localStorage.getItem('tatti_token') || sessionStorage.getItem('tatti_token');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -110,17 +112,16 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     headers: getHeaders(),
   });
   if (!res.ok) {
-    return {
-      totalStudents: 0,
-      newStudents7d: 0,
-      assessmentCompleted: 0,
-      assessmentPending: 0,
-      applicationsSubmitted: 0,
-      paidApplications: 0,
-      unpaidApplications: 0,
-      counsellingPending: 0,
-      admissionsConfirmed: 0,
-    };
+    // Throw so the caller (AdminDashboard) can show the real error state instead of
+    // silently displaying zeros — which was masking auth failures and DB errors.
+    let errMsg = `Dashboard stats API error (HTTP ${res.status})`;
+    try {
+      const body = await res.json();
+      if (body?.error) errMsg = body.error;
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(errMsg);
   }
   return await res.json();
 }
@@ -695,7 +696,7 @@ export async function rejectPayment(id: string, reason: string): Promise<{ succe
 }
 
 export function getPaymentScreenshotUrl(paymentId: string, isAdmin = false): string {
-  const token = localStorage.getItem('tatti_token');
+  const token = localStorage.getItem('tatti_token') || sessionStorage.getItem('tatti_token');
   const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
   if (isAdmin) {
     return `${API_BASE}/admin/payments/${paymentId}/screenshot${tokenQuery}`;
@@ -708,7 +709,7 @@ export function resolvePaymentScreenshotUrl(
   paymentId?: string,
   isAdmin = false
 ): string | null {
-  const token = localStorage.getItem('tatti_token');
+  const token = localStorage.getItem('tatti_token') || sessionStorage.getItem('tatti_token');
   const tokenQuery = token ? `token=${encodeURIComponent(token)}` : '';
 
   if (urlOrPath && urlOrPath.startsWith('data:')) {

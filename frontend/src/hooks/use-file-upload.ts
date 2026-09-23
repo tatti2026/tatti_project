@@ -106,7 +106,7 @@ const useFileUpload = (options: UseFileUploadOptions) => {
           ]
         : files
 
-    const token = localStorage.getItem('tatti_token')
+    const token = localStorage.getItem('tatti_token') || sessionStorage.getItem('tatti_token')
     const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
 
     const responses = await Promise.all(

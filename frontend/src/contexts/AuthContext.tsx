@@ -11,7 +11,7 @@ export interface User {
 
 export async function getProfile(userId: string): Promise<Profile | null> {
   try {
-    const token = localStorage.getItem('tatti_token');
+    const token = localStorage.getItem('tatti_token') || sessionStorage.getItem('tatti_token');
     const res = await fetch(`${API_BASE}/profiles/${userId}`, {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {}
     });

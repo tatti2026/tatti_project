@@ -70,6 +70,13 @@ export default function AdminDashboard() {
     loadStats();
   }, [loadStats]);
 
+  // Auto-refresh when the admin tabs back from Student Details, Confirmations, Counselling etc.
+  useEffect(() => {
+    const handleFocus = () => loadStats();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [loadStats]);
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 

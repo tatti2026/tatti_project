@@ -26,7 +26,7 @@ import type { Student, Payment } from '@/types/index';
 import {
   Download, Eye, CheckCircle2, XCircle, Search, Loader2,
   ChevronDown, FileSpreadsheet, FileText, AlertCircle, Clock,
-  CreditCard, User, BookOpen, ShieldCheck, ZoomIn, Ban,
+  CreditCard, User, BookOpen, ShieldCheck, ZoomIn, Ban, RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -126,6 +126,10 @@ export default function Confirmations() {
 
   useEffect(() => {
     loadData();
+    const interval = setInterval(() => {
+      loadData();
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   // Close export menu on outside click
@@ -440,6 +444,19 @@ export default function Confirmations() {
                   </button>
                 </div>
               )}
+              {/* Refresh Button */}
+              <Button
+                variant="outline"
+                className="h-9 px-3 flex items-center gap-1.5 text-xs border-border"
+                onClick={() => {
+                  setLoading(true);
+                  loadData();
+                }}
+                title="Refresh payment records"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
             </div>
           </div>
         </div>
@@ -510,20 +527,21 @@ export default function Confirmations() {
                       <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">UTR / Reference No</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Submitted Date</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Payment Proof</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Payment Status</th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center">
+                        <td colSpan={8} className="py-12 text-center">
                           <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
                           <p className="text-xs text-muted-foreground mt-2">Loading new payments...</p>
                         </td>
                       </tr>
                     ) : filterPending(pendingPayments).length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center">
+                        <td colSpan={8} className="py-12 text-center">
                           <ShieldCheck className="w-10 h-10 text-emerald-500/50 mx-auto mb-2" />
                           <p className="text-sm font-semibold text-foreground">No New Payments</p>
                           <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
@@ -598,6 +616,14 @@ export default function Confirmations() {
                               ) : (
                                 <span className="text-[11px] text-muted-foreground italic">Payment Proof Not Available</span>
                               )}
+                            </td>
+
+                            {/* Payment Status badge */}
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                <Clock className="w-3.5 h-3.5" />
+                                {p.status === 'pending' || p.status === 'pending_verification' ? 'Pending Verification' : p.status}
+                              </span>
                             </td>
 
                             {/* Actions: View | Approve | Reject */}

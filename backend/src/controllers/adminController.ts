@@ -525,41 +525,64 @@ export async function getDashboardStats(_req: Request, res: Response) {
           COUNT(*) - COUNT(*) FILTER (WHERE assessment_status = 'completed')
         )::int AS assessment_pending,
 
-        -- 5. Applications submitted: any app beyond draft stage
-        --    (submitted / under_review / approved / rejected / Confirmed)
+        -- 5. Applications submitted: any app actually submitted
+        --    (submitted_at set OR status moved past draft stage)
         COALESCE((
           SELECT COUNT(*)::int
           FROM applications
-          WHERE LOWER(status) NOT IN ('not_started', 'in_progress')
+          WHERE submitted_at IS NOT NULL
+             OR LOWER(status) IN ('submitted', 'under_review', 'approved', 'rejected', 'confirmed')
         ), 0) AS applications_submitted,
 
-        -- 6. Paid applications: use students.payment_status = 'paid'
-        --    This is set atomically by the payment approval transaction
-        COUNT(*) FILTER (WHERE payment_status = 'paid')::int AS paid_applications,
-
-        -- 7. Unpaid applications: students with a submitted app but payment_status != 'paid'
+        -- 6. Paid applications: payment verified/approved by admin
+        --    Primary: students.payment_status = 'paid' (set by approvePayment transaction)
+        --    Also catches any student with an approved payment record
         COALESCE((
           SELECT COUNT(DISTINCT s2.id)::int
           FROM students s2
-          WHERE s2.payment_status != 'paid'
-            AND EXISTS (
-              SELECT 1
-              FROM applications a2
-              WHERE a2.student_id = s2.id
-                AND LOWER(a2.status) NOT IN ('not_started', 'in_progress')
-            )
+          WHERE s2.payment_status = 'paid'
+             OR EXISTS (
+               SELECT 1 FROM payments p
+               WHERE p.student_id = s2.id
+                 AND LOWER(p.status) IN ('approved', 'paid')
+             )
+        ), 0) AS paid_applications,
+
+        -- 7. Unpaid / pending payment: submitted applications where payment not yet verified
+        COALESCE((
+          SELECT COUNT(DISTINCT a2.id)::int
+          FROM applications a2
+          JOIN students s3 ON a2.student_id = s3.id
+          WHERE (
+            a2.submitted_at IS NOT NULL
+            OR LOWER(a2.status) IN ('submitted', 'under_review', 'approved', 'rejected', 'confirmed')
+          )
+          AND s3.payment_status != 'paid'
+          AND NOT EXISTS (
+            SELECT 1 FROM payments p2
+            WHERE p2.student_id = s3.id
+              AND LOWER(p2.status) IN ('approved', 'paid')
+          )
         ), 0) AS unpaid_applications,
 
-        -- 8. Counselling pending: from students.admission_status
-        --    (more reliable than counselling.status which defaults to 'not_scheduled')
-        COUNT(*) FILTER (WHERE admission_status = 'counselling_pending')::int AS counselling_pending,
-
-        -- 9. Admissions confirmed: applications where status = 'Confirmed'
-        --    (set by the payment approval transaction)
+        -- 8. Counselling pending: count from the real counselling table
+        --    CounsellingManagement inserts into counselling.status = 'scheduled',
+        --    NOT into students.admission_status, so query counselling table directly.
         COALESCE((
           SELECT COUNT(*)::int
-          FROM applications
-          WHERE LOWER(status) = 'confirmed'
+          FROM counselling
+          WHERE LOWER(status) IN ('scheduled', 'pending', 'rescheduled')
+            AND LOWER(status) NOT IN ('completed', 'cancelled', 'no_show')
+        ), 0) AS counselling_pending,
+
+        -- 9. Admissions confirmed: students with admission_status = 'admission_confirmed'
+        --    OR applications with status = 'Confirmed' (set by approvePayment transaction)
+        COALESCE((
+          SELECT COUNT(DISTINCT s4.id)::int
+          FROM students s4
+          LEFT JOIN applications a3 ON a3.student_id = s4.id
+          WHERE LOWER(s4.admission_status) = 'admission_confirmed'
+             OR LOWER(a3.status) = 'confirmed'
         ), 0) AS admissions_confirmed
 
       FROM students;
@@ -662,7 +685,7 @@ export async function getPendingPayments(req: Request, res: Response) {
     const countRes = await query(`
       SELECT COUNT(*) 
       FROM payments p
-      JOIN students s ON s.id = p.student_id
+      LEFT JOIN students s ON s.id = p.student_id
       LEFT JOIN courses c ON c.id = p.course_id
       WHERE ${baseWhere}
     `, queryParams);
@@ -684,7 +707,7 @@ export async function getPendingPayments(req: Request, res: Response) {
         p.status,
         p.submitted_at,
         p.created_at,
-        s.full_name as student_name,
+        COALESCE(s.full_name, 'Unknown Student') as student_name,
         s.student_id as student_code,
         s.email as student_email,
         s.phone as student_phone,
@@ -693,7 +716,7 @@ export async function getPendingPayments(req: Request, res: Response) {
         c.fee as course_fee,
         a.status as application_status
       FROM payments p
-      JOIN students s ON s.id = p.student_id
+      LEFT JOIN students s ON s.id = p.student_id
       LEFT JOIN profiles pr ON pr.id = s.profile_id
       LEFT JOIN courses c ON c.id = p.course_id
       LEFT JOIN applications a ON a.id = p.application_id
@@ -745,7 +768,7 @@ export async function getRejectedPayments(req: Request, res: Response) {
     const countRes = await query(`
       SELECT COUNT(*) 
       FROM payments p
-      JOIN students s ON s.id = p.student_id
+      LEFT JOIN students s ON s.id = p.student_id
       LEFT JOIN courses c ON c.id = p.course_id
       WHERE ${baseWhere}
     `, queryParams);
@@ -770,7 +793,7 @@ export async function getRejectedPayments(req: Request, res: Response) {
         p.rejected_by,
         p.rejected_at,
         p.rejection_reason,
-        s.full_name as student_name,
+        COALESCE(s.full_name, 'Unknown Student') as student_name,
         s.student_id as student_code,
         s.email as student_email,
         s.phone as student_phone,
@@ -779,7 +802,7 @@ export async function getRejectedPayments(req: Request, res: Response) {
         c.fee as course_fee,
         a.status as application_status
       FROM payments p
-      JOIN students s ON s.id = p.student_id
+      LEFT JOIN students s ON s.id = p.student_id
       LEFT JOIN profiles pr ON pr.id = s.profile_id
       LEFT JOIN courses c ON c.id = p.course_id
       LEFT JOIN applications a ON a.id = p.application_id
@@ -945,11 +968,13 @@ export async function approvePayment(req: Request, res: Response) {
       }
     }
 
-    // Update student status: payment_status = 'paid', application_status = 'approved'
+    // Update student status: payment_status = 'paid', application_status = 'approved',
+    // admission_status = 'admission_confirmed' (triggers Admissions Confirmed KPI on dashboard)
     await client.query(`
       UPDATE students 
       SET payment_status = 'paid', 
-          application_status = 'approved', 
+          application_status = 'approved',
+          admission_status = 'admission_confirmed',
           updated_at = $1 
       WHERE id = $2
     `, [now.toISOString(), payment.student_id]);

@@ -91,7 +91,7 @@ export async function createPayment(req: Request, res: Response) {
     const paymentId = payment.payment_id || `PAY_${Date.now()}`;
     const utrNumber = payment.utr_number || payment.transaction_id || `UTR${Date.now()}`;
     const transactionId = payment.transaction_id || utrNumber;
-    const status = payment.status || 'pending';
+    const status = payment.status || 'Pending Verification';
     const amount = Number(payment.amount) || 0;
     const courseId = payment.course_id || null;
     const applicationId = payment.application_id || null;
@@ -111,29 +111,79 @@ export async function createPayment(req: Request, res: Response) {
       }
     }
 
-    const result = await query(`
-      INSERT INTO payments (
-        application_id, student_id, course_id, payment_id, transaction_id,
-        utr_number, amount, payment_method, screenshot_url, screenshot_path,
-        status, submitted_at, paid_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), $12)
-      RETURNING *;
-    `, [
-      applicationId,
-      studentId,
-      courseId,
-      paymentId,
-      transactionId,
-      utrNumber,
-      amount,
-      payment.payment_method || 'UPI',
-      screenshotUrl,
-      screenshotPath,
-      status,
-      status === 'paid' || status === 'approved' ? new Date().toISOString() : null
-    ]);
+    // Check for existing pending payment to prevent duplicates
+    let existingPendingRes = null;
+    if (applicationId) {
+      existingPendingRes = await query(
+        "SELECT * FROM payments WHERE application_id = $1 AND status IN ('pending', 'Pending', 'Pending Verification', 'pending_verification') ORDER BY created_at DESC LIMIT 1",
+        [applicationId]
+      );
+    }
+    if ((!existingPendingRes || existingPendingRes.rows.length === 0) && studentId) {
+      existingPendingRes = await query(
+        "SELECT * FROM payments WHERE student_id = $1 AND status IN ('pending', 'Pending', 'Pending Verification', 'pending_verification') ORDER BY created_at DESC LIMIT 1",
+        [studentId]
+      );
+    }
 
-    const createdPayment = result.rows[0];
+    let createdPayment;
+    if (existingPendingRes && existingPendingRes.rows.length > 0) {
+      const existingId = existingPendingRes.rows[0].id;
+      const updateRes = await query(`
+        UPDATE payments SET
+          application_id = COALESCE($1, application_id),
+          student_id = COALESCE($2, student_id),
+          course_id = COALESCE($3, course_id),
+          payment_id = $4,
+          transaction_id = $5,
+          utr_number = $6,
+          amount = $7,
+          payment_method = $8,
+          screenshot_url = COALESCE($9, screenshot_url),
+          screenshot_path = COALESCE($10, screenshot_path),
+          status = $11,
+          submitted_at = now()
+        WHERE id = $12
+        RETURNING *;
+      `, [
+        applicationId,
+        studentId,
+        courseId,
+        paymentId,
+        transactionId,
+        utrNumber,
+        amount,
+        payment.payment_method || 'UPI',
+        screenshotUrl,
+        screenshotPath,
+        status,
+        existingId
+      ]);
+      createdPayment = updateRes.rows[0];
+    } else {
+      const result = await query(`
+        INSERT INTO payments (
+          application_id, student_id, course_id, payment_id, transaction_id,
+          utr_number, amount, payment_method, screenshot_url, screenshot_path,
+          status, submitted_at, paid_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), $12)
+        RETURNING *;
+      `, [
+        applicationId,
+        studentId,
+        courseId,
+        paymentId,
+        transactionId,
+        utrNumber,
+        amount,
+        payment.payment_method || 'UPI',
+        screenshotUrl,
+        screenshotPath,
+        status,
+        status === 'paid' || status === 'approved' || status === 'Approved' ? new Date().toISOString() : null
+      ]);
+      createdPayment = result.rows[0];
+    }
 
     // Update student payment status (keep as pending if submitted for verification)
     if (studentId) {
