@@ -112,25 +112,25 @@ export default function StudentDashboard() {
     <StudentLayout>
       <div className="space-y-6 animate-fade-in">
         {/* Welcome */}
-        <div className="glass-card rounded-xl p-5">
+        <div className="bg-white border border-[#E4E7EC] rounded-xl p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-xl font-bold text-foreground mb-1">
+              <h1 className="text-xl font-bold text-[#172033] mb-1">
                 Welcome back, {profile?.full_name || profile?.email?.split('@')[0] || 'Student'}!
               </h1>
-              <p className="text-muted-foreground text-sm">Track your TAT Entrance Exam and admission journey.</p>
+              <p className="text-[#667085] text-sm">Track your TAT Entrance Exam and admission journey.</p>
             </div>
             <div className="shrink-0 text-right">
-              <p className="text-xs text-muted-foreground mb-1">Overall Progress</p>
-              <p className="text-2xl font-bold gradient-text">{progress}%</p>
+              <p className="text-xs text-[#667085] mb-1 font-medium">Overall Progress</p>
+              <p className="text-2xl font-bold text-[#1D4ED8]">{progress}%</p>
             </div>
           </div>
-          <Progress value={progress} className="mt-4 h-2" />
+          <Progress value={progress} className="mt-4 h-2 bg-slate-100" />
         </div>
 
         {/* Journey Roadmap */}
-        <div className="glass-card rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Admission Journey</h2>
+        <div className="bg-white border border-[#E4E7EC] rounded-xl p-6 shadow-sm">
+          <h2 className="text-sm font-semibold text-[#172033] mb-5 tracking-tight">Admission Milestones</h2>
           <div className="overflow-x-auto">
             <div className="flex items-center gap-0 min-w-max pb-2">
               {journeySteps.map((step, idx) => {
@@ -141,23 +141,23 @@ export default function StudentDashboard() {
                   <div key={step.key} className="flex items-center">
                     <div className="flex flex-col items-center gap-1.5">
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all ${
-                        done ? 'bg-primary border-primary' :
-                        active ? 'bg-primary/20 border-primary' :
-                        'bg-muted border-border'
+                        done ? 'bg-emerald-600 border-emerald-600 text-white' :
+                        active ? 'bg-blue-50 border-[#1D4ED8] text-[#1D4ED8]' :
+                        'bg-slate-50 border-[#E4E7EC] text-slate-400'
                       }`}>
                         {done ? (
                           <CheckCircle2 className="w-4 h-4 text-white" />
                         ) : (
-                          <Icon className={`w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                          <Icon className={`w-4 h-4 ${active ? 'text-[#1D4ED8]' : 'text-slate-400'}`} />
                         )}
                       </div>
-                      <span className={`text-[10px] font-medium whitespace-nowrap ${
-                        done || active ? 'text-foreground' : 'text-muted-foreground'
+                      <span className={`text-[11px] font-medium whitespace-nowrap ${
+                        done || active ? 'text-[#172033]' : 'text-[#667085]'
                       }`}>{step.label}</span>
-                      {active && <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />}
+                      {active && <div className="w-1.5 h-1.5 bg-[#1D4ED8] rounded-full animate-pulse" />}
                     </div>
                     {idx < journeySteps.length - 1 && (
-                      <div className={`w-8 h-0.5 mx-1 mb-5 ${idx < currentStep ? 'bg-primary' : 'bg-border'}`} />
+                      <div className={`w-10 h-0.5 mx-1 mb-5 ${idx < currentStep ? 'bg-emerald-600' : 'bg-[#E4E7EC]'}`} />
                     )}
                   </div>
                 );
@@ -169,15 +169,15 @@ export default function StudentDashboard() {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           {kpiCards.map(({ label, status, icon: Icon, action, actionLabel }) => (
-            <div key={label} className="kpi-card">
+            <div key={label} className="bg-white border border-[#E4E7EC] rounded-xl p-5 shadow-sm hover:border-[#D0D5DD] transition-all">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Icon className="w-4 h-4 text-primary" />
+                <div className="w-9 h-9 rounded-lg bg-blue-50 text-[#1D4ED8] flex items-center justify-center">
+                  <Icon className="w-4 h-4" />
                 </div>
                 <StatusBadge status={status} />
               </div>
-              <p className="text-sm font-medium text-foreground mb-3">{label}</p>
-              <button onClick={action} className="text-xs text-primary hover:underline flex items-center gap-1">
+              <p className="text-sm font-semibold text-[#172033] mb-3">{label}</p>
+              <button onClick={action} className="text-xs text-[#1D4ED8] font-medium hover:underline flex items-center gap-1">
                 {actionLabel} <ArrowRight className="w-3 h-3" />
               </button>
             </div>
@@ -185,16 +185,16 @@ export default function StudentDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="glass-card rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Quick Actions</h2>
+        <div className="bg-white border border-[#E4E7EC] rounded-xl p-6 shadow-sm">
+          <h2 className="text-sm font-semibold text-[#172033] mb-4">Quick Actions</h2>
           <div className="flex flex-wrap gap-3">
             {student?.assessment_status !== 'completed' && (
-              <Button onClick={() => navigate('/student/assessment')} size="sm" className="gradient-bg border-0 text-white">
+              <Button onClick={() => navigate('/student/assessment')} size="sm" className="bg-[#1D4ED8] hover:bg-[#1e40af] text-white border-0 shadow-sm">
                 <ClipboardList className="w-4 h-4 mr-2" /> Take Assessment
               </Button>
             )}
             {student?.assessment_status === 'completed' && student?.application_status === 'not_started' && (
-              <Button onClick={() => navigate('/student/application')} size="sm" className="gradient-bg border-0 text-white">
+              <Button onClick={() => navigate('/student/application')} size="sm" className="bg-[#1D4ED8] hover:bg-[#1e40af] text-white border-0 shadow-sm">
                 <FileText className="w-4 h-4 mr-2" /> Start Application
               </Button>
             )}
@@ -203,6 +203,7 @@ export default function StudentDashboard() {
                 onClick={() => navigate('/student/assessment')}
                 variant="outline"
                 size="sm"
+                className="border-[#E4E7EC] text-[#344054] hover:bg-[#F8FAFC]"
               >
                 <BookOpen className="w-4 h-4 mr-2" />
                 View Course Recommendations

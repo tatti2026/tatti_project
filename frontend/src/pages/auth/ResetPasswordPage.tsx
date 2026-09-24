@@ -70,91 +70,95 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
-      {/* Left branding panel */}
-      <div className="hidden md:flex flex-col justify-between w-1/2 relative overflow-hidden p-10 gradient-bg">
-        <div className="absolute top-0 left-0 w-64 h-64 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 right-0 w-80 h-80 bg-white/5 rounded-full translate-x-1/3 translate-y-1/3" />
-        <div className="absolute top-1/3 right-10 w-32 h-32 bg-white/5 rounded-full" />
+    <div className="min-h-screen flex bg-[#F5F7FA]">
+      {/* Left corporate branding panel */}
+      <div className="hidden lg:flex flex-col justify-between w-[45%] xl:w-[42%] relative overflow-hidden p-10 bg-[#0B1F3A] text-white">
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+            backgroundSize: '24px 24px',
+          }}
+        />
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-12 h-12 bg-[#1D4ED8] rounded-xl flex items-center justify-center shadow-md">
               <GraduationCap className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-white font-bold text-xl leading-tight">TATTI</h1>
-              <p className="text-white/70 text-xs leading-tight">Tamil Nadu Advanced Technical Training Institute</p>
+              <h1 className="text-white font-bold text-xl leading-tight tracking-wide">TATTI</h1>
+              <p className="text-slate-400 text-xs leading-tight">Tamil Nadu Advanced Technical Training Institute</p>
             </div>
           </div>
-          <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 mb-8">
-            <Lock className="w-3.5 h-3.5 text-white" />
-            <span className="text-white text-xs font-medium">Account Security</span>
+          <div className="inline-flex items-center gap-2 bg-blue-500/15 border border-blue-400/25 rounded-full px-3.5 py-1 mb-6">
+            <Lock className="w-3.5 h-3.5 text-blue-300" />
+            <span className="text-blue-200 text-xs font-medium">Account Security</span>
           </div>
-          <h2 className="text-3xl font-bold text-white mb-4 text-balance">Reset Your<br />Password</h2>
-          <p className="text-white/80 text-sm leading-relaxed max-w-sm">
+          <h2 className="text-3xl font-bold text-white mb-4 leading-tight">Reset Your<br />Password</h2>
+          <p className="text-slate-300 text-sm leading-relaxed max-w-sm">
             Create a strong, unique password to protect your student portal account and personal information.
           </p>
         </div>
 
-        <div className="relative z-10 bg-white/10 rounded-xl p-4 border border-white/20">
+        <div className="relative z-10 bg-slate-800/70 rounded-xl p-4 border border-slate-700/80">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              <Lock className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 bg-[#1D4ED8]/25 rounded-lg flex items-center justify-center">
+              <Lock className="w-4 h-4 text-blue-400" />
             </div>
             <div>
               <p className="text-white text-xs font-semibold">Security Tip</p>
-              <p className="text-white/70 text-[10px]">Use at least 6 characters with letters and numbers</p>
+              <p className="text-slate-400 text-[10px]">Use at least 6 characters with letters and numbers</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Right form card */}
-      <div className="flex-1 flex items-center justify-center p-4 md:p-8">
+      <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[#F5F7FA]">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
-          <div className="flex items-center gap-3 mb-6 md:hidden">
-            <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center">
+          <div className="flex items-center gap-3 mb-6 lg:hidden">
+            <div className="w-10 h-10 rounded-xl bg-[#1D4ED8] flex items-center justify-center shadow-sm">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="font-bold text-foreground">TATTI</p>
-              <p className="text-xs text-muted-foreground">Student Portal</p>
+              <p className="font-bold text-[#172033]">TATTI</p>
+              <p className="text-xs text-[#667085]">Student Portal</p>
             </div>
           </div>
 
-          <div className="glass-card rounded-2xl p-6 md:p-8 animate-fade-in shadow-xl border border-border">
+          <div className="bg-white rounded-2xl p-6 md:p-8 animate-fade-in shadow-[0_1px_3px_rgba(16,24,40,0.06),0_1px_2px_rgba(16,24,40,0.04)] border border-[#E4E7EC]">
             {success ? (
               <div className="text-center py-6 space-y-4">
-                <div className="w-14 h-14 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto">
+                <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto border border-emerald-200">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-foreground">Password Reset Complete!</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <h3 className="text-xl font-bold text-[#172033]">Password Reset Complete!</h3>
+                  <p className="text-sm text-[#667085] mt-2">
                     Your password has been securely updated. Redirecting you to the sign-in page...
                   </p>
                 </div>
                 <div className="pt-2">
-                  <Button asChild className="w-full gradient-bg border-0 text-white font-semibold h-10">
+                  <Button asChild className="w-full bg-[#1D4ED8] hover:bg-[#1E40AF] border-0 text-white font-semibold h-11 rounded-lg shadow-sm">
                     <Link to="/login">Sign In Now</Link>
                   </Button>
                 </div>
               </div>
             ) : (!token || !userId) ? (
               <div className="text-center py-6 space-y-4">
-                <div className="w-14 h-14 bg-destructive/10 text-destructive rounded-full flex items-center justify-center mx-auto">
+                <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto border border-rose-200">
                   <AlertCircle className="w-8 h-8" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-foreground">Invalid Reset Link</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <h3 className="text-xl font-bold text-[#172033]">Invalid Reset Link</h3>
+                  <p className="text-sm text-[#667085] mt-2">
                     This password reset link is invalid or incomplete. Please request a new one from the login page.
                   </p>
                 </div>
                 <div className="pt-2">
-                  <Button asChild className="w-full gradient-bg border-0 text-white font-semibold h-10">
+                  <Button asChild className="w-full bg-[#1D4ED8] hover:bg-[#1E40AF] border-0 text-white font-semibold h-11 rounded-lg shadow-sm">
                     <Link to="/login">Return to Login</Link>
                   </Button>
                 </div>
@@ -218,7 +222,7 @@ export default function ResetPasswordPage() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full gradient-bg border-0 text-white font-semibold h-10 shadow-md mt-2"
+                    className="w-full bg-[#1D4ED8] hover:bg-[#1E40AF] border-0 text-white font-semibold h-11 rounded-lg shadow-sm mt-2"
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">

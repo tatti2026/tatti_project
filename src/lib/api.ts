@@ -280,6 +280,18 @@ export async function deleteQuestion(id: string): Promise<void> {
 }
 
 // ── ASSESSMENTS ────────────────────────────────────────────
+export async function getAllAssessments(): Promise<Assessment[]> {
+  const { data, error } = await supabase
+    .from('assessments')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('Error fetching assessments:', error);
+    return [];
+  }
+  return (Array.isArray(data) ? data : []) as Assessment[];
+}
+
 export async function getStudentAssessment(studentId: string): Promise<Assessment | null> {
   const { data } = await supabase
     .from('assessments')

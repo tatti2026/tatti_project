@@ -154,74 +154,80 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
-      {/* Left branding panel */}
-      <div className="hidden md:flex flex-col justify-between w-1/2 relative overflow-hidden p-10 gradient-bg">
-        {/* Decorative shapes */}
-        <div className="absolute top-0 left-0 w-64 h-64 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 right-0 w-80 h-80 bg-white/5 rounded-full translate-x-1/3 translate-y-1/3" />
-        <div className="absolute top-1/3 right-10 w-32 h-32 bg-white/5 rounded-full" />
+    <div className="min-h-screen flex bg-[#F5F7FA]">
+      {/* Left corporate branding panel */}
+      <div className="hidden lg:flex flex-col justify-between w-[45%] xl:w-[42%] relative overflow-hidden p-10 bg-[#0B1F3A] text-white">
+        {/* Subtle geometric grid */}
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+            backgroundSize: '24px 24px',
+          }}
+        />
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-12 h-12 bg-[#1D4ED8] rounded-xl flex items-center justify-center shadow-md">
               <GraduationCap className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-white font-bold text-xl leading-tight">TATTI</h1>
-              <p className="text-white/70 text-xs leading-tight">Tamil Nadu Advanced Technical Training Institute</p>
+              <h1 className="text-white font-bold text-xl leading-tight tracking-wide">TATTI</h1>
+              <p className="text-slate-400 text-xs leading-tight">Tamil Nadu Advanced Technical Training Institute</p>
             </div>
           </div>
-          <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 mb-8">
-            <BookOpen className="w-3.5 h-3.5 text-white" />
-            <span className="text-white text-xs font-medium">TAT Entrance Exam</span>
+
+          <div className="inline-flex items-center gap-2 bg-blue-500/15 border border-blue-400/25 rounded-full px-3.5 py-1 mb-6">
+            <BookOpen className="w-3.5 h-3.5 text-blue-300" />
+            <span className="text-blue-200 text-xs font-medium">Official Student Portal</span>
           </div>
-          <h2 className="text-3xl font-bold text-white mb-4 text-balance">Your Journey<br />Starts Here</h2>
-          <p className="text-white/80 text-sm leading-relaxed max-w-sm">
-            Access your entrance exam results, counselling updates, personalized course recommendations, and admission status — all in one place.
+
+          <h2 className="text-3xl font-bold text-white mb-4 leading-tight">
+            Academic & Career<br />Excellence Platform
+          </h2>
+          <p className="text-slate-300 text-sm leading-relaxed max-w-sm">
+            Access your TAT Entrance Examination scores, specialized career recommendations, admission verification, and counselling progress securely.
           </p>
         </div>
 
-        {/* Illustration */}
-        <div className="relative z-10 flex flex-col gap-4">
+        {/* Feature Highlights */}
+        <div className="relative z-10 flex flex-col gap-3">
           <div className="grid grid-cols-3 gap-3">
             {[
-              { icon: Monitor, text: 'Digital Learning' },
-              { icon: BookOpen, text: 'Smart Courses' },
-              { icon: Wifi, text: 'Connected' },
+              { icon: Monitor, text: 'Online Assessment' },
+              { icon: BookOpen, text: 'Course Matching' },
+              { icon: Wifi, text: 'Live Tracking' },
             ].map(({ icon: Icon, text }) => (
-              <div key={text} className="bg-white/15 rounded-xl p-3 flex flex-col items-center gap-1.5">
-                <Icon className="w-5 h-5 text-white" />
-                <span className="text-white/80 text-[10px] font-medium text-center">{text}</span>
+              <div key={text} className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3 flex flex-col items-center gap-1.5">
+                <Icon className="w-4 h-4 text-blue-400" />
+                <span className="text-slate-300 text-[11px] font-medium text-center">{text}</span>
               </div>
             ))}
           </div>
-          <div className="bg-white/10 rounded-xl p-4 border border-white/20">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                <GraduationCap className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="text-white text-xs font-semibold">Admission 2024–25</p>
-                <p className="text-white/60 text-[10px]">Applications Open Now</p>
-              </div>
-              <div className="ml-auto w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+
+          <div className="bg-slate-800/70 rounded-xl p-3.5 border border-slate-700/80 flex items-center gap-3">
+            <div className="w-8 h-8 bg-[#1D4ED8]/25 rounded-lg flex items-center justify-center">
+              <GraduationCap className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-white text-xs font-semibold">Academic Session 2026–2027</p>
+              <p className="text-slate-400 text-[10px]">Verified Admission Portal • TATTI Edu</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Right login card */}
-      <div className="flex-1 flex items-center justify-center p-4 md:p-8">
+      <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[#F5F7FA]">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
-          <div className="flex items-center gap-3 mb-6 md:hidden">
-            <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center">
+          <div className="flex items-center gap-3 mb-6 lg:hidden">
+            <div className="w-10 h-10 rounded-xl bg-[#1D4ED8] flex items-center justify-center shadow-sm">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="font-bold text-foreground">TATTI</p>
-              <p className="text-xs text-muted-foreground">Student Portal</p>
+              <p className="font-bold text-[#172033]">TATTI</p>
+              <p className="text-xs text-[#667085]">Student Management Portal</p>
             </div>
           </div>
 
@@ -293,18 +299,18 @@ export default function LoginPage() {
                     Forgot Password?
                   </button>
                 </div>
-                <Button type="submit" disabled={loading} className="w-full gradient-bg border-0 text-white font-semibold h-10">
+                <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-[#1e40af] text-white font-semibold h-11 rounded-lg shadow-sm transition-colors">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign In'}
                 </Button>
               </form>
               <p className="text-center text-sm text-muted-foreground mt-5">
                 New student?{' '}
-                <button onClick={() => changeMode('signup')} className="text-primary font-semibold hover:underline">Sign Up</button>
+                <button onClick={() => changeMode('signup')} className="text-[#1D4ED8] font-semibold hover:underline">Sign Up</button>
               </p>
               <div className="mt-4">
                 <div className="text-center text-xs text-muted-foreground mb-3">— OR —</div>
                 <Link to="/admin/login">
-                  <Button variant="outline" className="w-full text-sm">Admin Portal</Button>
+                  <Button variant="outline" className="w-full text-sm border-[#E4E7EC] hover:bg-[#F8FAFC]">Admin Portal</Button>
                 </Link>
               </div>
             </div>
@@ -315,7 +321,7 @@ export default function LoginPage() {
               {createdStudentId ? (
                 /* Success banner with generated Student ID */
                 <div className="space-y-5 text-center">
-                  <div className="w-16 h-16 bg-green-500/15 border border-green-500/30 rounded-2xl flex items-center justify-center mx-auto text-green-500">
+                  <div className="w-16 h-16 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-center mx-auto text-emerald-600">
                     <CheckCircle2 className="w-9 h-9" />
                   </div>
                   <div>
@@ -326,17 +332,17 @@ export default function LoginPage() {
                   </div>
 
                   {/* Highlighted Student ID Card */}
-                  <div className="p-4 bg-primary/10 border-2 border-dashed border-primary/40 rounded-xl flex items-center justify-between">
+                  <div className="p-4 bg-blue-50 border-2 border-dashed border-[#1D4ED8]/40 rounded-xl flex items-center justify-between">
                     <div className="text-left">
-                      <span className="text-[11px] font-semibold tracking-wider text-primary uppercase block">Your Student ID</span>
-                      <span className="text-xl font-bold text-foreground font-mono">{createdStudentId}</span>
+                      <span className="text-[11px] font-semibold tracking-wider text-[#1D4ED8] uppercase block">Your Student ID</span>
+                      <span className="text-xl font-bold text-[#0B1F3A] font-mono">{createdStudentId}</span>
                     </div>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={handleCopyStudentId}
-                      className="flex items-center gap-1 text-xs"
+                      className="flex items-center gap-1 text-xs border-[#1D4ED8]/30 text-[#1D4ED8] hover:bg-blue-100"
                     >
                       <Copy className="w-3.5 h-3.5" />
                       Copy
@@ -350,7 +356,7 @@ export default function LoginPage() {
                   <Button
                     type="button"
                     onClick={handleProceedAfterSignup}
-                    className="w-full gradient-bg border-0 text-white font-semibold h-10"
+                    className="w-full bg-[#1D4ED8] hover:bg-[#1e40af] text-white font-semibold h-11 rounded-lg shadow-sm transition-colors"
                   >
                     Proceed to Sign In
                   </Button>
@@ -521,14 +527,14 @@ export default function LoginPage() {
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="w-full gradient-bg border-0 text-white font-semibold h-10 mt-2"
+                      className="w-full bg-[#1D4ED8] hover:bg-[#1e40af] text-white font-semibold h-11 rounded-lg shadow-sm transition-colors mt-2"
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Account'}
                     </Button>
                   </form>
                   <p className="text-center text-sm text-muted-foreground mt-4">
                     Already have an account?{' '}
-                    <button onClick={() => changeMode('login')} className="text-primary font-semibold hover:underline">Sign In</button>
+                    <button onClick={() => changeMode('login')} className="text-[#1D4ED8] font-semibold hover:underline">Sign In</button>
                   </p>
                 </>
               )}
@@ -558,11 +564,11 @@ export default function LoginPage() {
                     className="mt-1.5 bg-input border-border"
                   />
                 </div>
-                <Button type="submit" disabled={loading} className="w-full gradient-bg border-0 text-white font-semibold h-10">
+                <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-[#1e40af] text-white font-semibold h-11 rounded-lg shadow-sm transition-colors">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Reset Link'}
                 </Button>
               </form>
-              <button onClick={() => changeMode('login')} className="text-center text-sm text-primary hover:underline w-full mt-4">Back to Sign In</button>
+              <button onClick={() => changeMode('login')} className="text-center text-sm text-[#1D4ED8] font-medium hover:underline w-full mt-4">Back to Sign In</button>
             </div>
           )}
 

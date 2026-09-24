@@ -4,48 +4,54 @@ type StatusConfig = { label: string; className: string };
 
 const statusMap: Record<string, StatusConfig> = {
   // Assessment
-  not_started: { label: 'Not Started', className: 'bg-muted text-muted-foreground' },
-  in_progress: { label: 'In Progress', className: 'bg-warning/20 text-warning' },
-  completed: { label: 'Completed', className: 'bg-success/20 text-success' },
+  not_started: { label: 'Not Started', className: 'bg-slate-100 text-slate-700 border-slate-200' },
+  in_progress: { label: 'In Progress', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  completed: { label: 'Completed', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  
   // Payment
-  unpaid: { label: 'Unpaid', className: 'bg-destructive/20 text-destructive' },
-  paid: { label: 'Paid', className: 'bg-success/20 text-success' },
-  failed: { label: 'Payment Rejected', className: 'bg-destructive/20 text-destructive' },
-  refunded: { label: 'Refunded', className: 'bg-muted text-muted-foreground' },
-  pending: { label: 'Pending Verification', className: 'bg-warning/20 text-warning' },
-  Pending: { label: 'Pending Verification', className: 'bg-warning/20 text-warning' },
-  'Pending Verification': { label: 'Pending Verification', className: 'bg-warning/20 text-warning' },
-  pending_verification: { label: 'Pending Verification', className: 'bg-warning/20 text-warning' },
-  Approved: { label: 'Approved', className: 'bg-success/20 text-success' },
-  Rejected: { label: 'Payment Rejected', className: 'bg-destructive/20 text-destructive' },
+  unpaid: { label: 'Unpaid', className: 'bg-rose-50 text-rose-700 border-rose-200' },
+  paid: { label: 'Paid', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  failed: { label: 'Payment Rejected', className: 'bg-rose-50 text-rose-700 border-rose-200' },
+  refunded: { label: 'Refunded', className: 'bg-slate-100 text-slate-700 border-slate-200' },
+  pending: { label: 'Pending Verification', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  Pending: { label: 'Pending Verification', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  'Pending Verification': { label: 'Pending Verification', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  pending_verification: { label: 'Pending Verification', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  Approved: { label: 'Approved', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  Rejected: { label: 'Payment Rejected', className: 'bg-rose-50 text-rose-700 border-rose-200' },
+  
   // Application
-  submitted: { label: 'Submitted', className: 'bg-info/20 text-info' },
-  under_review: { label: 'Under Review', className: 'bg-warning/20 text-warning' },
-  approved: { label: 'Approved', className: 'bg-success/20 text-success' },
-  rejected: { label: 'Rejected', className: 'bg-destructive/20 text-destructive' },
-  confirmed: { label: 'Confirmed', className: 'bg-success/20 text-success' },
-  Confirmed: { label: 'Confirmed', className: 'bg-success/20 text-success' },
-  locked: { label: '🔒 Locked', className: 'bg-amber-500/20 text-amber-400 border border-amber-500/30' },
-  unlocked: { label: '🔓 Unlocked', className: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' },
+  submitted: { label: 'Submitted', className: 'bg-blue-50 text-blue-700 border-blue-200' },
+  under_review: { label: 'Under Review', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  approved: { label: 'Approved', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  rejected: { label: 'Rejected', className: 'bg-rose-50 text-rose-700 border-rose-200' },
+  confirmed: { label: 'Confirmed', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  Confirmed: { label: 'Confirmed', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  locked: { label: '🔒 Locked', className: 'bg-slate-100 text-slate-600 border-slate-200' },
+  unlocked: { label: '🔓 Unlocked', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  
   // Counselling
-  not_scheduled: { label: 'Not Scheduled', className: 'bg-muted text-muted-foreground' },
-  scheduled: { label: 'Scheduled', className: 'bg-info/20 text-info' },
-  selected: { label: 'Selected', className: 'bg-success/20 text-success' },
-  follow_up_required: { label: 'Follow-up Required', className: 'bg-warning/20 text-warning' },
+  not_scheduled: { label: 'Not Scheduled', className: 'bg-slate-100 text-slate-700 border-slate-200' },
+  scheduled: { label: 'Scheduled', className: 'bg-blue-50 text-blue-700 border-blue-200' },
+  selected: { label: 'Selected', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  follow_up_required: { label: 'Follow-up Required', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  
   // Admission
-  not_applied: { label: 'Not Applied', className: 'bg-muted text-muted-foreground' },
-  application_submitted: { label: 'App. Submitted', className: 'bg-info/20 text-info' },
-  counselling_pending: { label: 'Counselling Pending', className: 'bg-warning/20 text-warning' },
-  counselling_completed: { label: 'Counselling Done', className: 'bg-info/20 text-info' },
-  admission_confirmed: { label: 'Admission Confirmed', className: 'bg-success/20 text-success' },
-  not_selected: { label: 'Not Selected', className: 'bg-destructive/20 text-destructive' },
+  not_applied: { label: 'Not Applied', className: 'bg-slate-100 text-slate-700 border-slate-200' },
+  application_submitted: { label: 'App. Submitted', className: 'bg-blue-50 text-blue-700 border-blue-200' },
+  counselling_pending: { label: 'Counselling Pending', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  counselling_completed: { label: 'Counselling Done', className: 'bg-blue-50 text-blue-700 border-blue-200' },
+  admission_confirmed: { label: 'Admission Confirmed', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  not_selected: { label: 'Not Selected', className: 'bg-rose-50 text-rose-700 border-rose-200' },
+  
   // Course
-  available: { label: 'Available', className: 'bg-success/20 text-success' },
-  not_available: { label: 'Not Available', className: 'bg-destructive/20 text-destructive' },
+  available: { label: 'Available', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  not_available: { label: 'Not Available', className: 'bg-rose-50 text-rose-700 border-rose-200' },
+  
   // Intent
-  high: { label: 'High Intent', className: 'bg-success/20 text-success' },
-  medium: { label: 'Medium Intent', className: 'bg-warning/20 text-warning' },
-  low: { label: 'Low Intent', className: 'bg-destructive/20 text-destructive' },
+  high: { label: 'High Intent', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  medium: { label: 'Medium Intent', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+  low: { label: 'Low Intent', className: 'bg-rose-50 text-rose-700 border-rose-200' },
 };
 
 interface StatusBadgeProps {
@@ -54,9 +60,10 @@ interface StatusBadgeProps {
 }
 
 export default function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = statusMap[status] ?? { label: status, className: 'bg-muted text-muted-foreground' };
+  const config = statusMap[status] ?? { label: status, className: 'bg-slate-100 text-slate-700 border-slate-200' };
   return (
     <span className={cn('status-badge', config.className, className)}>
+      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
       {config.label}
     </span>
   );

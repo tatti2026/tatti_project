@@ -72,31 +72,26 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
-      </div>
-
+    <div className="min-h-screen flex items-center justify-center bg-[#F5F7FA] p-4">
       <div className="w-full max-w-md relative">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-bg mb-4">
-            <GraduationCap className="w-9 h-9 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#0B1F3A] mb-4 shadow-md">
+            <GraduationCap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-1">TATTI Admin Portal</h1>
-          <p className="text-muted-foreground text-sm">Secure administration and student management</p>
+          <h1 className="text-2xl font-bold text-[#172033] mb-1 tracking-tight">TATTI Admin Portal</h1>
+          <p className="text-[#667085] text-sm">Administrative Management & Student Operations</p>
         </div>
 
-        <div className="glass-card rounded-2xl p-8">
-          <div className="flex items-center gap-2 mb-6 p-3 bg-accent/10 rounded-lg border border-accent/20">
-            <Shield className="w-4 h-4 text-accent shrink-0" />
-            <span className="text-xs text-accent font-medium">Authorized Personnel Only</span>
+        <div className="bg-white border border-[#E4E7EC] rounded-2xl p-8 shadow-[0_1px_3px_rgba(16,24,40,0.06),0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="flex items-center gap-2 mb-6 p-3 bg-blue-50/80 rounded-lg border border-blue-200/80">
+            <Shield className="w-4 h-4 text-[#1D4ED8] shrink-0" />
+            <span className="text-xs text-[#1D4ED8] font-medium">Authorized Administrative Personnel Only</span>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5" autoComplete="off" autoCapitalize="none" spellCheck={false}>
             <div>
-              <Label htmlFor="admin-email" className="text-sm font-medium">Admin Email</Label>
+              <Label htmlFor="admin-email" className="text-sm font-medium text-[#344054]">Admin Email</Label>
               <Input
                 id="admin-email"
                 name="tatti_admin_access_identifier"
@@ -108,14 +103,14 @@ export default function AdminLoginPage() {
                 data-lpignore="true"
                 data-1p-ignore="true"
                 data-form-type="other"
-                placeholder="Enter admin email"
+                placeholder="admin@tatti.edu"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="mt-1.5 bg-input border-border"
+                className="mt-1.5 bg-white border-[#D0D5DD] focus:border-[#1D4ED8] focus:ring-[#1D4ED8] h-11"
               />
             </div>
             <div>
-              <Label htmlFor="admin-pw" className="text-sm font-medium">Password</Label>
+              <Label htmlFor="admin-pw" className="text-sm font-medium text-[#344054]">Password</Label>
               <div className="relative mt-1.5">
                 <Input
                   id="admin-pw"
@@ -131,12 +126,12 @@ export default function AdminLoginPage() {
                   placeholder="Enter admin password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="bg-input border-border pr-10"
+                  className="bg-white border-[#D0D5DD] focus:border-[#1D4ED8] focus:ring-[#1D4ED8] pr-10 h-11"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -149,55 +144,55 @@ export default function AdminLoginPage() {
                   checked={remember}
                   onCheckedChange={v => setRemember(!!v)}
                 />
-                <Label htmlFor="admin-remember" className="text-sm text-muted-foreground cursor-pointer">Remember me</Label>
+                <Label htmlFor="admin-remember" className="text-sm text-[#667085] cursor-pointer">Remember me</Label>
               </div>
               <button
                 type="button"
                 onClick={handleForgotOpen}
-                className="text-sm text-primary hover:underline"
+                className="text-sm text-[#1D4ED8] font-medium hover:underline"
               >
                 Forgot Password?
               </button>
             </div>
-            <Button type="submit" disabled={loading} className="w-full gradient-bg border-0 text-white font-semibold h-11">
+            <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-[#1e40af] text-white font-semibold h-11 rounded-lg shadow-sm transition-colors">
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Shield className="w-4 h-4 mr-2" />}
               Admin Sign In
             </Button>
           </form>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
+        <p className="text-center text-xs text-[#667085] mt-6">
           Student?{' '}
-          <a href="/login" className="text-primary hover:underline">Go to Student Portal</a>
+          <a href="/login" className="text-[#1D4ED8] font-medium hover:underline">Go to Student Portal</a>
         </p>
       </div>
 
       {/* Forgot Password Dialog */}
       <Dialog open={forgotOpen} onOpenChange={open => { setForgotOpen(open); if (!open) setForgotMode('form'); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-white border-[#E4E7EC]">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-[#172033]">
               {forgotMode === 'form' ? 'Reset Admin Password' : 'Check Your Email'}
             </DialogTitle>
           </DialogHeader>
 
           {forgotMode === 'form' && (
             <form onSubmit={handleSendReset} className="space-y-4 mt-2">
-              <p className="text-muted-foreground text-sm">
+              <p className="text-[#667085] text-sm">
                 Enter your admin email address and we'll send you a secure link to reset your password.
               </p>
               <div>
-                <Label htmlFor="forgot-admin-email">Admin Email</Label>
+                <Label htmlFor="forgot-admin-email" className="text-[#344054]">Admin Email</Label>
                 <Input
                   id="forgot-admin-email"
                   type="email"
-                  placeholder="Enter your admin email"
+                  placeholder="admin@tatti.edu"
                   value={forgotEmail}
                   onChange={e => setForgotEmail(e.target.value)}
-                  className="mt-1.5 bg-input border-border"
+                  className="mt-1.5 bg-white border-[#D0D5DD] focus:border-[#1D4ED8] focus:ring-[#1D4ED8] h-10"
                 />
               </div>
-              <Button type="submit" disabled={forgotLoading} className="w-full gradient-bg border-0 text-white font-semibold h-10">
+              <Button type="submit" disabled={forgotLoading} className="w-full bg-[#1D4ED8] hover:bg-[#1e40af] text-white font-semibold h-11 rounded-lg shadow-sm transition-colors">
                 {forgotLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Send Reset Link
               </Button>
