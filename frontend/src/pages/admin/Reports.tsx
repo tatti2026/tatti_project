@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { getAllStudents, getAllPayments, getReportsSummary, exportReportCSV, exportReportExcel, exportReportPDF } from '@/lib/api';
+import { getAllStudents, getAllPayments, getReportsSummary, exportReportExcel, exportReportPDF } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import type { Student, Payment } from '@/types/index';
 import {
@@ -33,7 +33,6 @@ export default function Reports() {
     total_payments: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [exportingCsv, setExportingCsv] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -119,25 +118,13 @@ export default function Reports() {
     });
   };
 
-  const handleExportCSV = async () => {
-    setExportingCsv(true);
-    try {
-      await exportReportCSV(filters);
-      toast.success('Report downloaded successfully');
-    } catch {
-      toast.error('Unable to generate report. Please try again.');
-    } finally {
-      setExportingCsv(false);
-    }
-  };
-
   const handleDownloadExcel = async () => {
     setExportingExcel(true);
     try {
       await exportReportExcel(filters);
       toast.success('Excel report downloaded successfully');
-    } catch {
-      toast.error('Unable to generate report. Please try again.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Unable to generate report. Please try again.');
     } finally {
       setExportingExcel(false);
     }
@@ -148,8 +135,8 @@ export default function Reports() {
     try {
       await exportReportPDF(filters);
       toast.success('PDF report downloaded successfully');
-    } catch {
-      toast.error('Unable to generate report. Please try again.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Unable to generate report. Please try again.');
     } finally {
       setExportingPdf(false);
     }
@@ -243,10 +230,8 @@ export default function Reports() {
               filters={filters}
               onChange={setFilters}
               onReset={handleResetFilters}
-              onExportCsv={handleExportCSV}
               onDownloadExcel={handleDownloadExcel}
               onDownloadPdf={handleDownloadPDF}
-              exportingCsv={exportingCsv}
               exportingExcel={exportingExcel}
               exportingPdf={exportingPdf}
             />

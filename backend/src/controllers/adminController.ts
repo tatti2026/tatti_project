@@ -35,12 +35,6 @@ function formatDateValue(value: string | null | undefined): string {
   return date.toISOString().slice(0, 10);
 }
 
-function stringifyCsvCell(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  const str = String(value).replace(/"/g, '""');
-  return `"${str}"`;
-}
-
 function buildFilteredStudentQuery(reqQuery: Record<string, any>) {
   const {
     search = '',
@@ -73,7 +67,7 @@ function buildFilteredStudentQuery(reqQuery: Record<string, any>) {
 
   if (payment_status && payment_status !== 'all') {
     params.push(String(payment_status));
-    conditions.push(`s.payment_status = $${params.length}`);
+    conditions.push(`(s.payment_status ILIKE $${params.length} OR ($${params.length} = 'pending' AND s.payment_status ILIKE '%pending%'))`);
   }
 
   if (admission_status && admission_status !== 'all') {
@@ -82,15 +76,20 @@ function buildFilteredStudentQuery(reqQuery: Record<string, any>) {
   }
 
   if (typeof fromDate === 'string' && fromDate.trim()) {
-    params.push(new Date(fromDate).toISOString());
-    conditions.push(`s.created_at >= $${params.length}`);
+    const d = new Date(fromDate);
+    if (!isNaN(d.getTime())) {
+      params.push(d.toISOString());
+      conditions.push(`s.created_at >= $${params.length}`);
+    }
   }
 
   if (typeof toDate === 'string' && toDate.trim()) {
     const endDate = new Date(toDate);
-    endDate.setHours(23, 59, 59, 999);
-    params.push(endDate.toISOString());
-    conditions.push(`s.created_at <= $${params.length}`);
+    if (!isNaN(endDate.getTime())) {
+      endDate.setHours(23, 59, 59, 999);
+      params.push(endDate.toISOString());
+      conditions.push(`s.created_at <= $${params.length}`);
+    }
   }
 
   const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
@@ -105,44 +104,26 @@ async function getFilteredStudentsForExport(reqQuery: Record<string, any>) {
   const { whereClause, params } = buildFilteredStudentQuery(reqQuery);
 
   const rows = await query(`
-    SELECT s.*
+    SELECT s.*,
+      COALESCE(
+        s.selected_course,
+        (SELECT c.course_name FROM courses c 
+         JOIN applications a ON a.course_id = c.id 
+         WHERE a.student_id = s.id ORDER BY a.created_at DESC LIMIT 1)
+      ) AS computed_course
     FROM students s
     ${whereClause}
     ORDER BY s.created_at DESC
   `, params);
 
-  return rows.rows as StudentRecord[];
+  return rows.rows.map((row: any) => ({
+    ...row,
+    selected_course: row.computed_course || row.selected_course || 'Not Selected',
+  })) as StudentRecord[];
 }
 
 function getExportDateStamp(date = new Date()) {
   return date.toISOString().slice(0, 10);
-}
-
-async function exportStudentsAsCsv(req: Request, res: Response) {
-  const students = await getFilteredStudentsForExport(req.query as Record<string, any>);
-  const rows = students.map(student => [
-    student.student_id || '',
-    student.full_name || '',
-    student.email || '',
-    student.phone || '',
-    student.city || '',
-    student.state || '',
-    student.assessment_status || '',
-    student.application_status || '',
-    student.payment_status || '',
-    student.counselling_status || '',
-    student.admission_status || '',
-    student.application_access_status || 'locked',
-    formatDateValue(student.created_at),
-  ]);
-
-  const csvRows = [[...REPORT_EXPORT_COLUMNS], ...rows]
-    .map(row => row.map(stringifyCsvCell).join(','))
-    .join('\n');
-
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="tatti-report-${getExportDateStamp()}.csv"`);
-  return res.send(csvRows);
 }
 
 async function exportStudentsAsExcel(req: Request, res: Response) {
@@ -150,175 +131,270 @@ async function exportStudentsAsExcel(req: Request, res: Response) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'TATTI Admin Portal';
   workbook.created = new Date();
-  const sheet = workbook.addWorksheet('TATTI Report');
+  const sheet = workbook.addWorksheet('Student Report');
 
-  sheet.mergeCells('A1:M1');
+  // Title Block (Row 1)
+  sheet.mergeCells('A1:N1');
   const titleCell = sheet.getCell('A1');
-  titleCell.value = 'TATTI Report';
-  titleCell.font = { bold: true, size: 16, color: { argb: 'FF1F2A44' } };
-  titleCell.alignment = { horizontal: 'center' };
-
-  sheet.getCell('A2').value = 'Generated:';
-  sheet.getCell('B2').value = new Date().toISOString();
-  sheet.getCell('A3').value = 'Filters:';
-  sheet.getCell('B3').value = `search=${String(req.query.search || '')}; assessment=${String(req.query.assessment_status || 'all')}; application=${String(req.query.application_status || 'all')}; payment=${String(req.query.payment_status || 'all')}; from=${String(req.query.fromDate || '')}; to=${String(req.query.toDate || '')}`;
-
-  const headers = REPORT_EXPORT_COLUMNS.map(header => ({ header, key: header, width: 18 }));
-  sheet.columns = headers.map((column) => ({
-    header: column.header,
-    key: column.key,
-    width: column.width,
-  }));
-
-  sheet.addRows(students.map(student => ({
-    'Roll Number': student.student_id || '',
-    'Student Name': student.full_name || '',
-    'Email': student.email || '',
-    'Phone': student.phone || '',
-    'City': student.city || '',
-    'State': student.state || '',
-    'Assessment Status': student.assessment_status || '',
-    'Application Status': student.application_status || '',
-    'Payment Status': student.payment_status || '',
-    'Counselling Status': student.counselling_status || '',
-    'Admission Status': student.admission_status || '',
-    'Application Access': student.application_access_status || 'locked',
-    'Registered Date': formatDateValue(student.created_at),
-  })));
-
-  const headerRow = sheet.getRow(5);
-  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-  headerRow.fill = {
+  titleCell.value = 'TAMILNADU ADVANCED TECHNICAL TRAINING INSTITUTE (TATTI)';
+  titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+  titleCell.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FF3B82F6' },
+    fgColor: { argb: 'FF0F172A' },
   };
-  headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getRow(1).height = 30;
 
-  sheet.eachRow((row) => {
-    row.border = {
-      top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+  // Subtitle (Row 2)
+  sheet.mergeCells('A2:N2');
+  const subCell = sheet.getCell('A2');
+  subCell.value = 'Student Enrollment & Operations Report';
+  subCell.font = { bold: true, size: 11, color: { argb: 'FF334155' } };
+  subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getRow(2).height = 20;
+
+  // Meta Info (Row 3)
+  const filterSummary = [
+    req.query.search ? `Search: "${req.query.search}"` : '',
+    req.query.assessment_status && req.query.assessment_status !== 'all' ? `Assessment: ${req.query.assessment_status}` : '',
+    req.query.application_status && req.query.application_status !== 'all' ? `Application: ${req.query.application_status}` : '',
+    req.query.payment_status && req.query.payment_status !== 'all' ? `Payment: ${req.query.payment_status}` : '',
+    req.query.fromDate ? `From: ${req.query.fromDate}` : '',
+    req.query.toDate ? `To: ${req.query.toDate}` : '',
+  ].filter(Boolean).join(' | ') || 'All Records';
+
+  sheet.getCell('A3').value = `Generated: ${new Date().toLocaleString('en-IN')}`;
+  sheet.getCell('A3').font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
+  sheet.mergeCells('A3:D3');
+
+  sheet.getCell('E3').value = `Filters: ${filterSummary}`;
+  sheet.getCell('E3').font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
+  sheet.mergeCells('E3:N3');
+
+  // Blank spacer (Row 4)
+  sheet.getRow(4).height = 10;
+
+  // Columns definition (Widths only, without overwriting rows 1-3)
+  const columnsDef = [
+    { header: 'S.No', key: 'sno', width: 8 },
+    { header: 'Roll Number', key: 'roll_number', width: 18 },
+    { header: 'Student Name', key: 'student_name', width: 24 },
+    { header: 'Email', key: 'email', width: 28 },
+    { header: 'Phone', key: 'phone', width: 16 },
+    { header: 'Selected Course', key: 'course', width: 32 },
+    { header: 'City', key: 'city', width: 16 },
+    { header: 'State', key: 'state', width: 16 },
+    { header: 'Assessment', key: 'assessment', width: 16 },
+    { header: 'Application', key: 'application', width: 16 },
+    { header: 'Payment', key: 'payment', width: 16 },
+    { header: 'Counselling', key: 'counselling', width: 16 },
+    { header: 'Admission', key: 'admission', width: 18 },
+    { header: 'Registered Date', key: 'registered_date', width: 16 },
+  ];
+
+  sheet.columns = columnsDef.map(c => ({ key: c.key, width: c.width }));
+
+  // Row 5: Table Header
+  const headerRow = sheet.getRow(5);
+  columnsDef.forEach((col, idx) => {
+    const cell = headerRow.getCell(idx + 1);
+    cell.value = col.header;
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF2563EB' },
     };
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
   });
+  headerRow.height = 26;
+
+  // Data rows starting from Row 6
+  students.forEach((student, index) => {
+    const row = sheet.getRow(6 + index);
+    row.values = [
+      index + 1,
+      student.student_id || 'ID-N/A',
+      student.full_name || 'Unnamed',
+      student.email || '-',
+      student.phone || '-',
+      student.selected_course || 'Not Selected',
+      student.city || '-',
+      student.state || '-',
+      student.assessment_status || 'not_started',
+      student.application_status || 'not_started',
+      student.payment_status || 'unpaid',
+      student.counselling_status || 'pending',
+      student.admission_status || 'pending',
+      formatDateValue(student.created_at),
+    ];
+    row.alignment = { vertical: 'middle', horizontal: 'left' };
+    row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+    row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
+    row.getCell(14).alignment = { horizontal: 'center', vertical: 'middle' };
+
+    if (index % 2 === 1) {
+      row.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF8FAFC' },
+      };
+    }
+  });
+
+  const totalRows = 5 + students.length;
+  for (let r = 5; r <= totalRows; r++) {
+    const row = sheet.getRow(r);
+    for (let c = 1; c <= columnsDef.length; c++) {
+      row.getCell(c).border = {
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+      };
+    }
+  }
 
   const buffer = await workbook.xlsx.writeBuffer();
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', `attachment; filename="tatti-report-${getExportDateStamp()}.xlsx"`);
+  res.setHeader('Content-Disposition', 'attachment; filename="TATTI_Student_Report.xlsx"');
   return res.send(Buffer.from(buffer));
 }
 
 async function exportStudentsAsPdf(req: Request, res: Response) {
   const students = await getFilteredStudentsForExport(req.query as Record<string, any>);
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 40;
-  const columns = REPORT_EXPORT_COLUMNS;
-  const colWidth = (pageWidth - margin * 2) / columns.length;
+  const margin = 35;
 
-  const drawTableHeader = (y: number) => {
-    doc.setFillColor(59, 130, 246);
+  const columns = [
+    { title: '#', width: 25 },
+    { title: 'Roll Number', width: 75 },
+    { title: 'Student Name', width: 95 },
+    { title: 'Email', width: 125 },
+    { title: 'Phone', width: 70 },
+    { title: 'Selected Course', width: 120 },
+    { title: 'City', width: 55 },
+    { title: 'Assessment', width: 65 },
+    { title: 'Application', width: 65 },
+    { title: 'Payment', width: 75 },
+  ];
+
+  const totalTableWidth = columns.reduce((acc, c) => acc + c.width, 0);
+
+  const drawHeaderBanner = () => {
+    doc.setFillColor(15, 23, 42); // slate-900
+    doc.rect(0, 0, pageWidth, 48, 'F');
+
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    columns.forEach((column, index) => {
-      const x = margin + index * colWidth;
-      doc.rect(x, y, colWidth, 22, 'F');
-      doc.text(column, x + 6, y + 14);
+    doc.setFontSize(13);
+    doc.text('TAMILNADU ADVANCED TECHNICAL TRAINING INSTITUTE (TATTI)', margin, 26);
+
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(203, 213, 225);
+    doc.text('Student Analytics & Operations Summary Report', margin, 40);
+  };
+
+  const filterSummary = [
+    req.query.search ? `Search: "${req.query.search}"` : '',
+    req.query.assessment_status && req.query.assessment_status !== 'all' ? `Assessment: ${req.query.assessment_status}` : '',
+    req.query.application_status && req.query.application_status !== 'all' ? `Application: ${req.query.application_status}` : '',
+    req.query.payment_status && req.query.payment_status !== 'all' ? `Payment: ${req.query.payment_status}` : '',
+    req.query.fromDate ? `From: ${req.query.fromDate}` : '',
+    req.query.toDate ? `To: ${req.query.toDate}` : '',
+  ].filter(Boolean).join(' | ') || 'All Records';
+
+  const drawTableHeader = (curY: number) => {
+    doc.setFillColor(37, 99, 235); // blue-600
+    doc.rect(margin, curY, totalTableWidth, 20, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+
+    let curX = margin;
+    columns.forEach(col => {
+      doc.text(col.title, curX + 4, curY + 13);
+      curX += col.width;
     });
   };
 
-  let y = 100;
-  doc.setTextColor(31, 42, 55);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  doc.text('TATTI Report', margin, 55);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.text(`Generated: ${new Date().toISOString()}`, margin, 75);
+  drawHeaderBanner();
 
-  const appliedFilters = [
-    `Search: ${String(req.query.search || '')}`,
-    `Assessment: ${String(req.query.assessment_status || 'all')}`,
-    `Application: ${String(req.query.application_status || 'all')}`,
-    `Payment: ${String(req.query.payment_status || 'all')}`,
-    `From: ${String(req.query.fromDate || '')}`,
-    `To: ${String(req.query.toDate || '')}`,
-  ].join(' | ');
-  doc.text(`Filters: ${appliedFilters}`, margin, 90, { maxWidth: pageWidth - margin * 2 });
-
-  drawTableHeader(y);
-  y += 22;
-  doc.setTextColor(15, 23, 42);
+  doc.setTextColor(71, 85, 105);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
+  doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, margin, 65);
+  doc.text(`Filters: ${filterSummary}`, margin + 250, 65, { maxWidth: pageWidth - margin - 260 });
+
+  let y = 78;
+  drawTableHeader(y);
+  y += 20;
 
   students.forEach((student, index) => {
-    const row = [
-      student.student_id || '',
-      student.full_name || '',
-      student.email || '',
-      student.phone || '',
-      student.city || '',
-      student.state || '',
-      student.assessment_status || '',
-      student.application_status || '',
-      student.payment_status || '',
-      student.counselling_status || '',
-      student.admission_status || '',
-      student.application_access_status || 'locked',
-      formatDateValue(student.created_at),
+    const rowValues = [
+      String(index + 1),
+      student.student_id || 'ID-N/A',
+      student.full_name || 'Unnamed',
+      student.email || '-',
+      student.phone || '-',
+      student.selected_course || 'Not Selected',
+      student.city || '-',
+      student.assessment_status || 'not_started',
+      student.application_status || 'not_started',
+      student.payment_status || 'unpaid',
     ];
 
-    const rowHeight = 16;
-    const lineCount = Math.max(1, ...row.map((value) => doc.splitTextToSize(String(value || ''), colWidth - 8).length));
-
-    if (y + lineCount * rowHeight > pageHeight - 40) {
+    if (y + 18 > pageHeight - 35) {
       doc.addPage();
-      y = 40;
+      drawHeaderBanner();
+      y = 65;
       drawTableHeader(y);
-      y += 22;
+      y += 20;
     }
 
-    row.forEach((value, columnIndex) => {
-      const text = doc.splitTextToSize(String(value || ''), colWidth - 8);
-      const x = margin + columnIndex * colWidth;
-      doc.rect(x, y, colWidth, lineCount * rowHeight, 'S');
-      doc.text(text, x + 6, y + 12);
+    if (index % 2 === 1) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(margin, y, totalTableWidth, 18, 'F');
+    }
+
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(margin, y, totalTableWidth, 18, 'S');
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+
+    let curX = margin;
+    columns.forEach((col, cIdx) => {
+      const val = rowValues[cIdx];
+      const maxW = col.width - 8;
+      const text = doc.splitTextToSize(val, maxW)[0] || '';
+      doc.text(text, curX + 4, y + 12);
+      curX += col.width;
     });
 
-    y += lineCount * rowHeight + 2;
-    if (index === students.length - 1 && y > pageHeight - 30) {
-      doc.addPage();
-    }
+    y += 18;
   });
 
-  doc.setDrawColor(148, 163, 184);
   const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i += 1) {
+  for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin - 50, pageHeight - 20);
+    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(7.5);
+    doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin - 50, pageHeight - 15);
+    doc.text('TATTI Portal • Confidential • Generated for Official Administrative Use', margin, pageHeight - 15);
   }
 
   const buffer = doc.output('arraybuffer');
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="tatti-report-${getExportDateStamp()}.pdf"`);
+  res.setHeader('Content-Disposition', 'attachment; filename="TATTI_Student_Report.pdf"');
   return res.send(Buffer.from(buffer));
 }
 
-export async function exportReportCsv(req: Request, res: Response) {
-  try {
-    return await exportStudentsAsCsv(req, res);
-  } catch (error) {
-    console.error('Error exporting reports CSV:', error);
-    return res.status(500).json({ error: 'Unable to generate report. Please try again.' });
-  }
-}
 
 export async function exportReportExcel(req: Request, res: Response) {
   try {

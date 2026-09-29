@@ -142,12 +142,25 @@ function buildQueryString(filters: Record<string, string | undefined>) {
   return params.toString();
 }
 
-async function triggerDownload(url: string, fileName: string, expectedType: string) {
+async function triggerDownload(url: string, fileName: string) {
   const res = await fetch(url, {
     headers: getHeaders(),
   });
   if (!res.ok) {
-    throw new Error('Download failed');
+    let errMsg = 'Unable to generate report. Please try again.';
+    try {
+      const err = await res.json();
+      if (err?.error) errMsg = err.error;
+    } catch {
+      // ignore
+    }
+    throw new Error(errMsg);
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    const data = await res.json();
+    if (data?.error) throw new Error(data.error);
   }
 
   const blob = await res.blob();
@@ -158,34 +171,7 @@ async function triggerDownload(url: string, fileName: string, expectedType: stri
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(downloadUrl);
-
-  if (!blob.type || !blob.type.includes(expectedType.replace(/\./g, ''))) {
-    const text = await blob.text();
-    if (text && text.toLowerCase().includes('error')) {
-      throw new Error('Download content invalid');
-    }
-  }
-}
-
-export async function exportReportCSV(filters: {
-  search?: string;
-  assessmentStatus?: string;
-  applicationStatus?: string;
-  paymentStatus?: string;
-  fromDate?: string;
-  toDate?: string;
-}) {
-  const query = buildQueryString({
-    search: filters.search,
-    assessment_status: filters.assessmentStatus,
-    application_status: filters.applicationStatus,
-    payment_status: filters.paymentStatus,
-    fromDate: filters.fromDate,
-    toDate: filters.toDate,
-  });
-  const date = new Date().toISOString().slice(0, 10);
-  await triggerDownload(`${API_BASE}/admin/reports/export/csv${query ? `?${query}` : ''}`, `tatti-report-${date}.csv`, 'csv');
+  setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
 }
 
 export async function exportReportExcel(filters: {
@@ -204,8 +190,7 @@ export async function exportReportExcel(filters: {
     fromDate: filters.fromDate,
     toDate: filters.toDate,
   });
-  const date = new Date().toISOString().slice(0, 10);
-  await triggerDownload(`${API_BASE}/admin/reports/export/excel${query ? `?${query}` : ''}`, `tatti-report-${date}.xlsx`, 'spreadsheet');
+  await triggerDownload(`${API_BASE}/admin/reports/export/excel${query ? `?${query}` : ''}`, 'TATTI_Student_Report.xlsx');
 }
 
 export async function exportReportPDF(filters: {
@@ -224,8 +209,7 @@ export async function exportReportPDF(filters: {
     fromDate: filters.fromDate,
     toDate: filters.toDate,
   });
-  const date = new Date().toISOString().slice(0, 10);
-  await triggerDownload(`${API_BASE}/admin/reports/export/pdf${query ? `?${query}` : ''}`, `tatti-report-${date}.pdf`, 'pdf');
+  await triggerDownload(`${API_BASE}/admin/reports/export/pdf${query ? `?${query}` : ''}`, 'TATTI_Student_Report.pdf');
 }
 
 export async function exportStudentExcel(filters: {
@@ -244,8 +228,7 @@ export async function exportStudentExcel(filters: {
     fromDate: filters.fromDate,
     toDate: filters.toDate,
   });
-  const date = new Date().toISOString().slice(0, 10);
-  await triggerDownload(`${API_BASE}/admin/students/export/excel${query ? `?${query}` : ''}`, `tatti-student-details-${date}.xlsx`, 'spreadsheet');
+  await triggerDownload(`${API_BASE}/admin/students/export/excel${query ? `?${query}` : ''}`, 'TATTI_Student_Details.xlsx');
 }
 
 export async function exportStudentPDF(filters: {
@@ -264,8 +247,7 @@ export async function exportStudentPDF(filters: {
     fromDate: filters.fromDate,
     toDate: filters.toDate,
   });
-  const date = new Date().toISOString().slice(0, 10);
-  await triggerDownload(`${API_BASE}/admin/students/export/pdf${query ? `?${query}` : ''}`, `tatti-student-details-${date}.pdf`, 'pdf');
+  await triggerDownload(`${API_BASE}/admin/students/export/pdf${query ? `?${query}` : ''}`, 'TATTI_Student_Details.pdf');
 }
 
 export interface GetStudentsOptions {

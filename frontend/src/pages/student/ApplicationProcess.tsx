@@ -88,16 +88,22 @@ function generateReceiptPDF(opts: ReceiptOpts) {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(22, 163, 74);
-  doc.text('✓  PAID', 22, 67);
+  doc.text('* PAID', 22, 67);
 
   // Receipt number & date (top right)
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(70, 70, 90);
-  doc.text(`Receipt No: ${opts.receiptNumber}`, W - 14, 63, { align: 'right' });
-  doc.text(`${opts.paymentDate}  ${opts.paymentTime}`, W - 14, 69, { align: 'right' });
+  doc.text('Receipt No: ' + opts.receiptNumber, W - 14, 63, { align: 'right' });
+  doc.text(opts.paymentDate + '  ' + opts.paymentTime, W - 14, 69, { align: 'right' });
 
   let y = 82;
+  const LABEL_X = 17;
+  const VALUE_X = 100;
+  const MAX_VAL_W = W - VALUE_X - 14;
+
+  // Replace glyphs unsupported by built-in Helvetica
+  const safe = (s: string) => (s || '-').replace(/[\u20B9]/g, 'Rs.').replace(/[\u2013\u2014]/g, '-').replace(/[\u2713\u2714\u2705]/g, '*');
 
   const sectionTitle = (title: string) => {
     doc.setFillColor(241, 245, 249);
@@ -105,19 +111,21 @@ function generateReceiptPDF(opts: ReceiptOpts) {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(99, 102, 241);
-    doc.text(title, 17, y + 1);
+    doc.text(title, LABEL_X, y + 1);
     y += 9;
   };
 
   const row = (label: string, value: string, isStatus = false) => {
+    const safeVal = safe(value);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(110, 110, 130);
-    doc.text(label, 17, y);
+    doc.text(label, LABEL_X, y);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(isStatus ? 22 : 30, isStatus ? 163 : 30, isStatus ? 74 : 50);
-    doc.text(value || '—', 95, y);
-    y += 6;
+    const lines: string[] = doc.splitTextToSize(safeVal, MAX_VAL_W);
+    doc.text(lines, VALUE_X, y);
+    y += Math.max(6, lines.length * 5);
   };
 
   const divider = () => {
@@ -162,7 +170,7 @@ function generateReceiptPDF(opts: ReceiptOpts) {
   doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(167, 139, 250);
-  doc.text(opts.amountPaid, W - 18, y + 10, { align: 'right' });
+  doc.text(safe(opts.amountPaid), W - 18, y + 10, { align: 'right' });
   y += 22;
 
   // Verified note
@@ -172,7 +180,7 @@ function generateReceiptPDF(opts: ReceiptOpts) {
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(22, 163, 74);
-  doc.text('✓  Payment verified and confirmed. This is an official receipt.', W / 2, y + 7.5, { align: 'center' });
+  doc.text('Payment verified and confirmed. This is an official receipt.', W / 2, y + 7.5, { align: 'center' });
   y += 18;
 
   // Footer
@@ -183,7 +191,7 @@ function generateReceiptPDF(opts: ReceiptOpts) {
   doc.setTextColor(130, 140, 160);
   doc.text('This is a computer-generated receipt and does not require a physical signature.', W / 2, y + 9, { align: 'center' });
   doc.text('For any queries, contact: info@tatti.edu.in  |  +91-44-1234-5678', W / 2, y + 16, { align: 'center' });
-  doc.text('TATTI – Tamil Nadu Advanced Technical Training Institute, Chennai, Tamil Nadu', W / 2, y + 23, { align: 'center' });
+  doc.text('TATTI - Tamil Nadu Advanced Technical Training Institute, Chennai, Tamil Nadu', W / 2, y + 23, { align: 'center' });
 
   return doc;
 }

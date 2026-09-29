@@ -7,7 +7,6 @@ import {
   listAllStudents,
   getDashboardStats,
   getReportsSummary,
-  exportReportCsv,
   exportReportExcel,
   exportReportPdf,
   exportStudentsExcel,
@@ -27,7 +26,6 @@ router.use(requireRole('admin'));
 // Analytics & Reports
 router.get('/dashboard/stats', getDashboardStats);
 router.get('/reports/summary', getReportsSummary);
-router.get('/reports/export/csv', exportReportCsv);
 router.get('/reports/export/excel', exportReportExcel);
 router.get('/reports/export/pdf', exportReportPdf);
 

@@ -21,10 +21,8 @@ interface ReportFiltersProps {
   filters: ReportFilterValues;
   onChange: (filters: ReportFilterValues) => void;
   onReset: () => void;
-  onExportCsv: () => void;
   onDownloadExcel: () => void;
   onDownloadPdf: () => void;
-  exportingCsv?: boolean;
   exportingExcel?: boolean;
   exportingPdf?: boolean;
 }
@@ -33,10 +31,8 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
   filters,
   onChange,
   onReset,
-  onExportCsv,
   onDownloadExcel,
   onDownloadPdf,
-  exportingCsv = false,
   exportingExcel = false,
   exportingPdf = false,
 }) => {
@@ -77,7 +73,7 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={exportingCsv || exportingExcel || exportingPdf}
+                disabled={exportingExcel || exportingPdf}
                 className="text-xs h-9 border-border bg-background hover:border-primary/50"
               >
                 Export
@@ -88,21 +84,10 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
               <DropdownMenuItem
                 onSelect={event => {
                   event.preventDefault();
-                  void onExportCsv();
-                }}
-                className="flex items-center gap-2 cursor-pointer rounded-md px-2 py-2 text-xs"
-                disabled={exportingCsv || exportingExcel || exportingPdf}
-              >
-                <Download className="w-3.5 h-3.5" />
-                {exportingCsv ? 'Exporting CSV...' : 'Export as CSV'}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={event => {
-                  event.preventDefault();
                   void onDownloadExcel();
                 }}
                 className="flex items-center gap-2 cursor-pointer rounded-md px-2 py-2 text-xs"
-                disabled={exportingCsv || exportingExcel || exportingPdf}
+                disabled={exportingExcel || exportingPdf}
               >
                 <Download className="w-3.5 h-3.5" />
                 {exportingExcel ? 'Generating Excel...' : 'Download as Excel'}
@@ -113,7 +98,7 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
                   void onDownloadPdf();
                 }}
                 className="flex items-center gap-2 cursor-pointer rounded-md px-2 py-2 text-xs"
-                disabled={exportingCsv || exportingExcel || exportingPdf}
+                disabled={exportingExcel || exportingPdf}
               >
                 <Download className="w-3.5 h-3.5" />
                 {exportingPdf ? 'Generating PDF...' : 'Download as PDF'}
