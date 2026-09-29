@@ -11,12 +11,12 @@ import {
 
 const navItems = [
   { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/admin/students', icon: Users, label: 'Student Directory' },
+  { path: '/admin/students', icon: Users, label: 'Student Details' },
   { path: '/admin/questions', icon: ClipboardList, label: 'Career Assessment' },
-  { path: '/admin/segmentation', icon: BarChart2, label: 'Student Segmentation' },
+  { path: '/admin/segmentation', icon: BarChart2, label: 'Career Fit Assessment & Segmentation' },
   { path: '/admin/counselling', icon: Phone, label: 'Counselling' },
-  { path: '/admin/followup', icon: PhoneCall, label: 'Follow-up Queue' },
-  { path: '/admin/courses', icon: BookOpen, label: 'Course Catalog' },
+  { path: '/admin/followup', icon: PhoneCall, label: 'Follow-up' },
+  { path: '/admin/courses', icon: BookOpen, label: 'Courses Management' },
   { path: '/admin/confirmations', icon: CheckSquare, label: 'Confirmations' },
   { path: '/admin/reports', icon: FileBarChart, label: 'Analytics & Reports' },
   { path: '/admin/notifications', icon: MessageSquare, label: 'Student Inquiries' },
@@ -76,7 +76,7 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
               }`}
             >
               <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-slate-400'}`} />
-              <span className="flex-1 min-w-0 truncate">{label}</span>
+              <span className="flex-1 min-w-0 leading-snug break-words">{label}</span>
               {active && <ChevronRight className="w-3.5 h-3.5 shrink-0 text-white/80" />}
             </Link>
           );
