@@ -101,7 +101,7 @@ export interface DashboardStats {
   applicationsSubmitted: number;
   paidApplications: number;
   unpaidApplications: number;
-  counsellingPending: number;
+  counsellingPending?: number;
   admissionsConfirmed: number;
   /** 7-day registration trend, one entry per day oldest→newest */
   registrationTrend?: { date: string; count: number }[];

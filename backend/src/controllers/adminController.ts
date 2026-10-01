@@ -641,17 +641,7 @@ export async function getDashboardStats(_req: Request, res: Response) {
           )
         ), 0) AS unpaid_applications,
 
-        -- 8. Counselling pending: count from the real counselling table
-        --    CounsellingManagement inserts into counselling.status = 'scheduled',
-        --    NOT into students.admission_status, so query counselling table directly.
-        COALESCE((
-          SELECT COUNT(*)::int
-          FROM counselling
-          WHERE LOWER(status) IN ('scheduled', 'pending', 'rescheduled')
-            AND LOWER(status) NOT IN ('completed', 'cancelled', 'no_show')
-        ), 0) AS counselling_pending,
-
-        -- 9. Admissions confirmed: students with admission_status = 'admission_confirmed'
+        -- 8. Admissions confirmed: students with admission_status = 'admission_confirmed'
         --    OR applications with status = 'Confirmed' (set by approvePayment transaction)
         COALESCE((
           SELECT COUNT(DISTINCT s4.id)::int
@@ -703,7 +693,6 @@ export async function getDashboardStats(_req: Request, res: Response) {
       applicationsSubmitted: Number(row.applications_submitted || 0),
       paidApplications: Number(row.paid_applications || 0),
       unpaidApplications: Number(row.unpaid_applications || 0),
-      counsellingPending: Number(row.counselling_pending || 0),
       admissionsConfirmed: Number(row.admissions_confirmed || 0),
       registrationTrend,
     });

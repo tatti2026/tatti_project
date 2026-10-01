@@ -7,8 +7,8 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import {
-  Users, ClipboardList, FileText, CreditCard,
-  Phone, Award, TrendingUp, UserPlus, RefreshCw, AlertCircle
+  Users, ClipboardList,
+  Award, TrendingUp, UserPlus, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 
@@ -22,7 +22,6 @@ const INITIAL_STATS: DashboardStats = {
   applicationsSubmitted: 0,
   paidApplications: 0,
   unpaidApplications: 0,
-  counsellingPending: 0,
   admissionsConfirmed: 0,
 };
 
@@ -83,21 +82,17 @@ export default function AdminDashboard() {
   const kpiCards = [
     { label: 'Total Students', value: stats.totalStudents, icon: Users, color: 'text-primary' },
     { label: 'New Students (7d)', value: stats.newStudents7d, icon: UserPlus, color: 'text-success' },
-    { label: 'Career Fit Assessment Completed', value: stats.assessmentCompleted, icon: ClipboardList, color: 'text-info' },
-    { label: 'Career Fit Assessment Pending', value: stats.assessmentPending, icon: ClipboardList, color: 'text-warning' },
-    { label: 'Applications Submitted', value: stats.applicationsSubmitted, icon: FileText, color: 'text-primary' },
-    { label: 'Paid Applications', value: stats.paidApplications, icon: CreditCard, color: 'text-success' },
-    { label: 'Unpaid Applications', value: stats.unpaidApplications, icon: CreditCard, color: 'text-destructive' },
-    { label: 'Counselling Pending', value: stats.counsellingPending, icon: Phone, color: 'text-warning' },
-    { label: 'Admissions Confirmed', value: stats.admissionsConfirmed, icon: Award, color: 'text-success' },
+    { label: 'Career Assessments Done', value: stats.assessmentCompleted, icon: ClipboardList, color: 'text-info' },
+    { label: 'Assessments Pending', value: stats.assessmentPending, icon: ClipboardList, color: 'text-warning' },
+    { label: 'Confirmed Admissions', value: stats.admissionsConfirmed, icon: Award, color: 'text-success' },
   ];
 
   if (loading) return (
     <AdminLayout>
       <div className="space-y-4">
         <div className="h-12 w-64 bg-muted rounded-lg animate-pulse" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {Array.from({ length: 9 }).map((_, i) => <div key={i} className="h-28 bg-muted rounded-xl animate-pulse" />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-28 bg-muted rounded-xl animate-pulse" />)}
         </div>
       </div>
     </AdminLayout>
@@ -138,7 +133,7 @@ export default function AdminDashboard() {
         )}
 
         {/* KPI Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {kpiCards.map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="kpi-card">
               <div className="flex items-center justify-between mb-2">

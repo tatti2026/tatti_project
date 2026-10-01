@@ -7,8 +7,8 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import {
-  Users, ClipboardList, FileText, CreditCard,
-  Phone, Award, TrendingUp, UserPlus, RefreshCw, AlertCircle
+  Users, ClipboardList,
+  Award, TrendingUp, UserPlus, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 
@@ -22,7 +22,6 @@ const INITIAL_STATS: DashboardStats = {
   applicationsSubmitted: 0,
   paidApplications: 0,
   unpaidApplications: 0,
-  counsellingPending: 0,
   admissionsConfirmed: 0,
 };
 
@@ -85,10 +84,6 @@ export default function AdminDashboard() {
     { label: 'New Students (7d)', value: stats.newStudents7d, icon: UserPlus, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Career Assessments Done', value: stats.assessmentCompleted, icon: ClipboardList, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Assessments Pending', value: stats.assessmentPending, icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Applications Filed', value: stats.applicationsSubmitted, icon: FileText, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { label: 'Paid Applications', value: stats.paidApplications, icon: CreditCard, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Unpaid Applications', value: stats.unpaidApplications, icon: CreditCard, color: 'text-rose-600', bg: 'bg-rose-50' },
-    { label: 'Counselling Pending', value: stats.counsellingPending, icon: Phone, color: 'text-amber-600', bg: 'bg-amber-50' },
     { label: 'Confirmed Admissions', value: stats.admissionsConfirmed, icon: Award, color: 'text-emerald-600', bg: 'bg-emerald-50' },
   ];
 
@@ -96,8 +91,8 @@ export default function AdminDashboard() {
     <AdminLayout>
       <div className="space-y-4">
         <div className="h-12 w-64 bg-slate-200 rounded-lg animate-pulse" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {Array.from({ length: 9 }).map((_, i) => <div key={i} className="h-28 bg-white border border-[#E4E7EC] rounded-xl animate-pulse" />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-28 bg-white border border-[#E4E7EC] rounded-xl animate-pulse" />)}
         </div>
       </div>
     </AdminLayout>
@@ -138,7 +133,7 @@ export default function AdminDashboard() {
         )}
 
         {/* KPI Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {kpiCards.map(({ label, value, icon: Icon, color, bg }) => (
             <div key={label} className="bg-white border border-[#E4E7EC] rounded-xl p-5 shadow-sm hover:border-[#D0D5DD] transition-all">
               <div className="flex items-center justify-between mb-3">
