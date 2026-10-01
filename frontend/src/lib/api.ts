@@ -814,21 +814,71 @@ export async function getFollowUps(page?: number, limit?: number, intent?: strin
   return await res.json();
 }
 
-export async function upsertFollowUp(f: Partial<FollowUp>): Promise<void> {
-  if (f.id) {
-    await fetch(`${API_BASE}/follow-ups/${f.id}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(f),
-    });
-  } else {
-    await fetch(`${API_BASE}/follow-ups`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(f),
-    });
+export async function upsertFollowUp(f: Partial<FollowUp> & { admin_name?: string }): Promise<any> {
+  const url = f.id ? `${API_BASE}/follow-ups/${f.id}` : `${API_BASE}/follow-ups`;
+  const method = f.id ? 'PUT' : 'POST';
+  const res = await fetch(url, {
+    method,
+    headers: getHeaders(),
+    body: JSON.stringify(f),
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || 'Failed to save follow-up');
   }
+  return await res.json();
 }
+
+// ── FOLLOW-UP NOTES (PostgreSQL, persistent) ───────────────
+export interface FollowUpNote {
+  id: string;
+  student_id: string;
+  admin_id: string | null;
+  admin_name: string;
+  note: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getFollowUpNotes(studentId: string): Promise<FollowUpNote[]> {
+  const res = await fetch(`${API_BASE}/follow-up-notes/${studentId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.data || []) as FollowUpNote[];
+}
+
+export async function addFollowUpNote(
+  studentId: string,
+  note: string,
+  adminName?: string
+): Promise<FollowUpNote | null> {
+  const res = await fetch(`${API_BASE}/follow-up-notes/${studentId}`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ note, admin_name: adminName }),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return (data.data || null) as FollowUpNote | null;
+}
+
+export async function editFollowUpNote(
+  studentId: string,
+  noteId: string,
+  note: string
+): Promise<FollowUpNote | null> {
+  const res = await fetch(`${API_BASE}/follow-up-notes/${studentId}/${noteId}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({ note }),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return (data.data || null) as FollowUpNote | null;
+}
+
 
 // ── PROFILES ───────────────────────────────────────────────
 export async function updateProfile(id: string, data: Partial<Profile>): Promise<void> {
