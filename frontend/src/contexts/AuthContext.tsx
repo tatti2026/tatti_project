@@ -1,7 +1,11 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Profile, UserRole } from '@/types/index';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_URL || (
+  import.meta.env.PROD
+    ? 'https://tattiproject-production.up.railway.app/api'
+    : 'http://localhost:5000/api'
+);
 
 export interface User {
   id: string;
@@ -117,7 +121,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || `Server returned status ${res.status}`);
+      }
+
       if (!res.ok) {
         throw new Error(data.error || 'Failed to sign in');
       }

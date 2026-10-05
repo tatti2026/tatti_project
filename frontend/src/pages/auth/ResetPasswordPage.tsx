@@ -6,7 +6,11 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Eye, EyeOff, GraduationCap, CheckCircle2, Lock, AlertCircle, Loader2 } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_URL || (
+  import.meta.env.PROD
+    ? 'https://tattiproject-production.up.railway.app/api'
+    : 'http://localhost:5000/api'
+);
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();

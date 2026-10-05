@@ -4,7 +4,11 @@ import type {
   Counselling, Notification, FollowUp, Profile
 } from '@/types/index';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_URL || (
+  import.meta.env.PROD
+    ? 'https://tattiproject-production.up.railway.app/api'
+    : 'http://localhost:5000/api'
+);
 
 function getHeaders(): HeadersInit {
   // Check localStorage first (remember-me logins), then sessionStorage (session-only logins).

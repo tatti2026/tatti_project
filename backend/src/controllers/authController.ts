@@ -19,6 +19,7 @@ export async function login(req: Request, res: Response) {
     const emailResult = await query('SELECT * FROM users WHERE email = $1', [email]);
     if (emailResult.rows.length > 0) {
       userRow = emailResult.rows[0];
+      console.log(`[auth/login] User found by email: ${email}`);
     } else {
       // Try student_id lookup
       const sidResult = await query(
@@ -30,21 +31,31 @@ export async function login(req: Request, res: Response) {
       );
       if (sidResult.rows.length > 0) {
         userRow = sidResult.rows[0];
+        console.log(`[auth/login] User found by student_id: ${email}`);
       }
     }
 
     if (!userRow) {
+      console.log(`[auth/login] No user found for: ${email}`);
+      return res.status(401).json({ error: 'Invalid credentials.' });
+    }
+
+    if (!userRow.password_hash) {
+      console.log(`[auth/login] User has no password hash: ${email}`);
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
     const passwordMatch = await bcrypt.compare(password, userRow.password_hash);
     if (!passwordMatch) {
+      console.log(`[auth/login] Password mismatch for: ${email}`);
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
     const profileResult = await query('SELECT * FROM profiles WHERE id = $1', [userRow.id]);
     const profile = profileResult.rows[0];
     const role = profile?.role || 'student';
+
+    console.log(`[auth/login] Login successful for: ${email}, role: ${role}`);
 
     const token = generateToken({
       userId: userRow.id,
@@ -62,10 +73,11 @@ export async function login(req: Request, res: Response) {
       },
     });
   } catch (err) {
-    console.error('Login error:', err);
+    console.error('[auth/login] Login error:', err);
     res.status(500).json({ error: 'Internal server error during login' });
   }
 }
+
 
 export async function signup(req: Request, res: Response) {
   try {

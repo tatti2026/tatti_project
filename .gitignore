@@ -37,4 +37,7 @@ history/*.json
 .env
 .env.*
 !.env.example
+!.env.production
+!frontend/.env.production
 backend/.env
+
