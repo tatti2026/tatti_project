@@ -3,6 +3,7 @@ import type {
   CourseRecommendation, Application, Payment,
   Counselling, Notification, FollowUp, Profile
 } from '@/types/index';
+import { supabase } from '@/db/supabase';
 
 const API_BASE = import.meta.env.VITE_API_URL || (
   import.meta.env.PROD
@@ -48,6 +49,14 @@ export async function createStudent(data: Partial<Student>): Promise<Student | n
 
 export async function updateStudent(id: string, data: Partial<Student>): Promise<void> {
   await fetch(`${API_BASE}/students/${id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProfile(id: string, data: Partial<Profile>): Promise<void> {
+  await fetch(`${API_BASE}/profiles/${id}`, {
     method: 'PUT',
     headers: getHeaders(),
     body: JSON.stringify(data),

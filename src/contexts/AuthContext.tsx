@@ -1,12 +1,40 @@
-import { createClient } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { supabase } from '@/db/supabase';
-import type { User } from '@supabase/supabase-js';
 import type { Profile, UserRole } from '@/types/index';
 
+const API_BASE = import.meta.env.VITE_API_URL || (
+  import.meta.env.PROD
+    ? 'https://tattiproject-production.up.railway.app/api'
+    : 'http://localhost:5000/api'
+);
+
+export interface User {
+  id: string;
+  email: string;
+  role?: string;
+}
+
 export async function getProfile(userId: string): Promise<Profile | null> {
-  const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-  return data as Profile | null;
+  try {
+    const token = localStorage.getItem('tatti_token') || sessionStorage.getItem('tatti_token');
+    const res = await fetch(`${API_BASE}/profiles/${userId}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.error('Error in getProfile:', err);
+    return null;
+  }
+}
+
+export interface SignUpParams {
+  email: string;
+  password?: string;
+  fullName?: string;
+  username?: string;
+  phone?: string;
+  parentName?: string;
+  parentPhone?: string;
 }
 
 interface AuthContextType {
@@ -15,7 +43,11 @@ interface AuthContextType {
   role: UserRole | null;
   loading: boolean;
   signInWithEmail: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: Error | null }>;
-  signUpWithEmail: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
+  signUpWithEmail: (
+    paramsOrEmail: string | SignUpParams,
+    password?: string,
+    fullName?: string
+  ) => Promise<{ error: Error | null; studentId?: string }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<{ error: Error | null }>;
@@ -23,21 +55,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// A secondary Supabase client that uses sessionStorage so the session is
-// automatically cleared when the browser tab/window is closed.
-// SECURITY: No passwords are ever stored — only the Supabase JWT session token.
-const supabaseSession = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    storage: window.sessionStorage,
-    autoRefreshToken: true,
-    detectSessionInUrl: false,
-  },
-});
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -51,121 +68,202 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        setUser(session?.user ?? null);
-        if (session?.user) getProfile(session.user.id).then(setProfile);
+    // Check localStorage first (remember me), then sessionStorage (session-only)
+    const token = localStorage.getItem('tatti_token') || sessionStorage.getItem('tatti_token');
+    if (!token) {
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+
+    fetch(`${API_BASE}/auth/me`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          if (data.profile) {
+            setUser({ id: data.profile.id, email: data.profile.email, role: data.profile.role });
+            setProfile(data.profile);
+          } else if (data.user) {
+            setUser(data.user);
+            getProfile(data.user.id).then(setProfile);
+          }
+        } else {
+          localStorage.removeItem('tatti_token');
+          sessionStorage.removeItem('tatti_token');
+          setUser(null);
+          setProfile(null);
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem('tatti_token');
+        sessionStorage.removeItem('tatti_token');
+        setUser(null);
+        setProfile(null);
       })
       .finally(() => setLoading(false));
-
-    // Do NOT use await inside onAuthStateChange callback — use .then() to avoid deadlocks
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        getProfile(session.user.id).then(setProfile);
-      } else {
-        setProfile(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   /**
    * Sign in with email/password.
    *
-   * rememberMe = true  (default) → session persists in localStorage (survives browser restart).
-   * rememberMe = false           → session stored in sessionStorage only; cleared on tab/window close.
+   * rememberMe = true  (default) -> JWT token stored in localStorage (survives browser restart).
+   * rememberMe = false           -> JWT token stored in sessionStorage only (cleared on tab/window close).
    *
-   * SECURITY: Passwords are NEVER stored. Only the Supabase JWT access/refresh token is
-   * persisted, which is the standard approach used by OAuth2/PKCE flows.
+   * SECURITY: Only the JWT token is persisted — passwords are NEVER stored on the client.
    */
   const signInWithEmail = async (email: string, password: string, rememberMe = true) => {
     try {
-      if (rememberMe) {
-        // Default client — persists session to localStorage (cross-restart).
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        // Session-only client — persists to sessionStorage (tab-lifetime only).
-        const { data, error } = await supabaseSession.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        // Mirror session into the main client so onAuthStateChange fires and
-        // the rest of the app (getSession, onAuthStateChange) sees the user.
-        if (data.session) {
-          await supabase.auth.setSession({
-            access_token: data.session.access_token,
-            refresh_token: data.session.refresh_token,
-          });
-          // Remove the key that setSession wrote to localStorage so the session
-          // won't survive a browser restart (sessionStorage entry is the source of truth).
-          const lsKey = Object.keys(localStorage).find(
-            k => k.includes('supabase') && k.includes('auth-token')
-          );
-          if (lsKey) localStorage.removeItem(lsKey);
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || `Server returned status ${res.status}`);
+      }
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to sign in');
+      }
+
+      if (data.token) {
+        if (rememberMe) {
+          localStorage.setItem('tatti_token', data.token);
+          sessionStorage.removeItem('tatti_token');
+        } else {
+          sessionStorage.setItem('tatti_token', data.token);
+          localStorage.removeItem('tatti_token');
         }
       }
+
+      const loggedInUser: User = data.user || {
+        id: data.profile?.id,
+        email: data.profile?.email || email,
+        role: data.profile?.role,
+      };
+      setUser(loggedInUser);
+
+      const prof = await getProfile(loggedInUser.id);
+      setProfile(prof || {
+        id: loggedInUser.id,
+        email: loggedInUser.email,
+        role: (loggedInUser.role as UserRole) || 'student',
+        full_name: '',
+        phone: '',
+        created_at: new Date().toISOString()
+      });
+
       return { error: null };
     } catch (error) {
       return { error: error as Error };
     }
   };
 
-  const signUpWithEmail = async (email: string, password: string, fullName?: string) => {
+  const signUpWithEmail = async (
+    paramsOrEmail: string | SignUpParams,
+    password?: string,
+    fullName?: string
+  ) => {
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: fullName ? { data: { full_name: fullName } } : undefined,
+      const payload = typeof paramsOrEmail === 'object'
+        ? paramsOrEmail
+        : { email: paramsOrEmail, password, fullName };
+
+      const res = await fetch(`${API_BASE}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-      if (error) throw error;
-      return { error: null };
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to sign up');
+      }
+
+      if (data.token) {
+        localStorage.setItem('tatti_token', data.token);
+      }
+      setUser(data.user);
+      const prof = await getProfile(data.user.id);
+      setProfile(prof);
+
+      return { error: null, studentId: data.studentId as string | undefined };
     } catch (error) {
       return { error: error as Error };
     }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    await supabaseSession.auth.signOut();
+    localStorage.removeItem('tatti_token');
+    sessionStorage.removeItem('tatti_token');
     setUser(null);
     setProfile(null);
   };
 
   /**
-   * Sends a password-reset email via Supabase.
-   * The user receives an email with a secure link. On click, they land on
-   * /reset-password where they can set a new password via supabase.auth.updateUser().
+   * Sends a password reset request to the backend.
+   * The backend will email the user a secure OTP or reset link.
    *
-   * SECURITY: We intentionally never expose whether an account with the given email
-   * exists — the caller always receives { error: null }.
+   * SECURITY: We never expose whether an account with the given email exists.
+   * The caller always receives { error: null }.
    */
   const sendPasswordResetEmail = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      await fetch(`${API_BASE}/auth/request-password-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
-      if (error) console.error('Password reset error (not exposed to user):', error);
     } catch (err) {
-      console.error('Password reset exception:', err);
+      console.error('Password reset request error (not exposed to user):', err);
     }
     // Always return success to avoid leaking account existence
     return { error: null };
   };
 
+  /**
+   * Updates or resets the password using the token from URL or existing session.
+   */
   const updatePassword = async (newPassword: string) => {
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) return { error };
+      const searchParams = new URLSearchParams(window.location.search);
+      const token = searchParams.get('token');
+      const userId = searchParams.get('userId') || user?.id;
+
+      if (!token || !userId) {
+        throw new Error('Invalid or missing password reset token. Please request a new reset link.');
+      }
+
+      const res = await fetch(`${API_BASE}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, token, newPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to reset password');
+      }
+
       return { error: null };
     } catch (err) {
       return { error: err as Error };
     }
   };
 
+  const role: UserRole | null = (profile?.role as UserRole) ?? (user?.role as UserRole) ?? null;
+
   return (
     <AuthContext.Provider value={{
-      user, profile, role: profile?.role ?? null,
+      user, profile, role,
       loading, signInWithEmail, signUpWithEmail, signOut, refreshProfile,
       sendPasswordResetEmail, updatePassword,
     }}>

@@ -17,7 +17,6 @@ import {
   Search, Eye, Pencil, Trash2, Download, ChevronLeft, ChevronRight,
   Loader2, Filter, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw
 } from 'lucide-react';
-import { supabase } from '@/db/supabase';
 import { format } from 'date-fns';
 
 const PAGE_SIZE = 10;

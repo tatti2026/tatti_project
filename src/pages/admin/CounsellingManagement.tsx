@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { getAllStudents, getAllCounselling, upsertCounselling, updateStudent, createNotification } from '@/lib/api';
-import { supabase } from '@/db/supabase';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import StatusBadge from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getStudentByProfileId, createStudent, updateStudent } from '@/lib/api';
-import { supabase } from '@/db/supabase';
+import { getStudentByProfileId, createStudent, updateStudent, updateProfile } from '@/lib/api';
 import StudentLayout from '@/components/layouts/StudentLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,7 +46,7 @@ export default function StudentProfile() {
       date_of_birth: form.date_of_birth || null,
       address: form.address, city: form.city, state: form.state, pincode: form.pincode,
     });
-    await supabase.from('profiles').update({ full_name: form.full_name }).eq('id', profile.id);
+    await updateProfile(profile.id, { full_name: form.full_name });
     await refreshProfile();
     setSaving(false);
     toast.success('Profile updated successfully!');
