@@ -19,7 +19,13 @@ export async function login(req: Request, res: Response) {
     const emailResult = await query('SELECT * FROM users WHERE email = $1', [email]);
     if (emailResult.rows.length > 0) {
       userRow = emailResult.rows[0];
-      console.log(`[auth/login] User found by email: ${email}`);
+
+      console.log('[auth/login] User found:', {
+        id: userRow.id,
+        email: userRow.email,
+        hasPasswordHash: !!userRow.password_hash,
+        hashLength: userRow.password_hash?.length,
+      });
     } else {
       // Try student_id lookup
       const sidResult = await query(
