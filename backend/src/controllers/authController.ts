@@ -8,6 +8,8 @@ export async function login(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
 
+    console.log('[auth/login] Received email:', JSON.stringify(email));
+
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
