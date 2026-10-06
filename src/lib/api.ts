@@ -7,7 +7,7 @@ import { supabase } from '@/db/supabase';
 
 const API_BASE = import.meta.env.VITE_API_URL || (
   import.meta.env.PROD
-    ? 'https://tattiproject-production.up.railway.app/api'
+    ? 'https://tattiproject-production-506b.up.railway.app/api'
     : 'http://localhost:5000/api'
 );
 
