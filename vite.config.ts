@@ -34,9 +34,24 @@ export default defineConfig({
     },
   },
   server: {
+    allowedHosts: [
+      ".up.railway.app",
+      ".railway.app",
+      "localhost",
+      "127.0.0.1",
+    ],
     hmr: {
       overlay: true,
     },
+  },
+  preview: {
+    host: "0.0.0.0",
+    allowedHosts: [
+      ".up.railway.app",
+      ".railway.app",
+      "localhost",
+      "127.0.0.1",
+    ],
   },
   optimizeDeps: {
     include: [
