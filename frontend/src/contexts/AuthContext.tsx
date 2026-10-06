@@ -51,6 +51,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<{ error: Error | null }>;
+  updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -108,8 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Sign in with email/password.
    *
-   * rememberMe = true  (default) → JWT token stored in localStorage (survives browser restart).
-   * rememberMe = false           → JWT token stored in sessionStorage only (cleared on tab/window close).
+   * rememberMe = true  (default) -> JWT token stored in localStorage (survives browser restart).
+   * rememberMe = false           -> JWT token stored in sessionStorage only (cleared on tab/window close).
    *
    * SECURITY: Only the JWT token is persisted — passwords are NEVER stored on the client.
    */
@@ -142,12 +143,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem('tatti_token');
         }
       }
-      setUser(data.user);
-      const prof = await getProfile(data.user.id);
+
+      const loggedInUser: User = data.user || {
+        id: data.profile?.id,
+        email: data.profile?.email || email,
+        role: data.profile?.role,
+      };
+      setUser(loggedInUser);
+
+      const prof = await getProfile(loggedInUser.id);
       setProfile(prof || {
-        id: data.user.id,
-        email: data.user.email,
-        role: data.user.role || 'student',
+        id: loggedInUser.id,
+        email: loggedInUser.email,
+        role: (loggedInUser.role as UserRole) || 'student',
         full_name: '',
         phone: '',
         created_at: new Date().toISOString()
@@ -221,11 +229,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null };
   };
 
+  /**
+   * Updates or resets the password using the token from URL or existing session.
+   */
+  const updatePassword = async (newPassword: string) => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const token = searchParams.get('token');
+      const userId = searchParams.get('userId') || user?.id;
+
+      if (!token || !userId) {
+        throw new Error('Invalid or missing password reset token. Please request a new reset link.');
+      }
+
+      const res = await fetch(`${API_BASE}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, token, newPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to reset password');
+      }
+
+      return { error: null };
+    } catch (err) {
+      return { error: err as Error };
+    }
+  };
+
+  const role: UserRole | null = (profile?.role as UserRole) ?? (user?.role as UserRole) ?? null;
+
   return (
     <AuthContext.Provider value={{
-      user, profile, role: profile?.role ?? null,
+      user, profile, role,
       loading, signInWithEmail, signUpWithEmail, signOut, refreshProfile,
-      sendPasswordResetEmail,
+      sendPasswordResetEmail, updatePassword,
     }}>
       {children}
     </AuthContext.Provider>

@@ -9,6 +9,9 @@
     "build": "node ./node_modules/vite/bin/vite.js build",
     "build:frontend": "cd frontend && node ../node_modules/vite/bin/vite.js build",
     "build:backend": "cd backend && npm run build",
+    "start": "node ./node_modules/vite/bin/vite.js preview --host 0.0.0.0 --port ${PORT:-4173}",
+    "start:frontend": "cd frontend && npm start",
+    "start:backend": "cd backend && npm start",
     "lint": "tsgo -p tsconfig.check.json; npx biome lint; .rules/check.sh;npx tailwindcss -i ./src/index.css -o /dev/null 2>&1 | grep -E '^(CssSyntaxError|Error):.*' || true;.rules/testBuild.sh"
   },
   "dependencies": {

@@ -3,8 +3,10 @@ import { config } from './config/environment.js';
 import { startCounsellingReminderWorker } from './services/counsellingReminderService.js';
 import { ensureFollowUpNotesTable } from './controllers/followUpNotesController.js';
 
-app.listen(config.port, async () => {
-  console.log(`[TATTI Backend] Server listening on port ${config.port} (${config.nodeEnv})`);
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, async () => {
+  console.log(`[TATTI Backend] Server listening on port ${PORT} (${config.nodeEnv})`);
   startCounsellingReminderWorker();
   try {
     await ensureFollowUpNotesTable();
