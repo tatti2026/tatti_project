@@ -74,7 +74,13 @@ export default function CourseRecommendation() {
         is_selected: rec.course_id === selected,
       });
     }
-    await updateStudent(student.id, { assessment_status: 'completed' });
+    // Persist the selected course name to students.selected_course immediately
+    // so the Admin Portal shows the correct course without waiting for ApplicationProcess.
+    const selectedCourseName = courses.find(c => c.id === selected)?.course_name || null;
+    await updateStudent(student.id, {
+      assessment_status: 'completed',
+      ...(selectedCourseName ? { selected_course: selectedCourseName } : {}),
+    });
     setSaving(false);
     toast.success('Course preferences saved!');
     navigate('/student/application');

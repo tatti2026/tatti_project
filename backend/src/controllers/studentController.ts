@@ -9,7 +9,11 @@ export async function getStudentByProfileId(req: Request, res: Response) {
       SELECT s.*, 
         (SELECT row_to_json(c.*) FROM courses c 
          JOIN applications a ON a.course_id = c.id 
-         WHERE a.student_id = s.id ORDER BY a.created_at DESC LIMIT 1) as course_info
+         WHERE a.student_id = s.id ORDER BY a.created_at DESC LIMIT 1) as course_info,
+        (SELECT c.course_name FROM courses c
+         JOIN course_recommendations cr ON cr.course_id = c.id
+         WHERE cr.student_id = s.id AND cr.is_selected = true
+         ORDER BY cr.created_at DESC LIMIT 1) as recommended_course_name
       FROM students s
       WHERE s.profile_id = $1
     `, [profileId]);
@@ -18,7 +22,7 @@ export async function getStudentByProfileId(req: Request, res: Response) {
     }
     const student = result.rows[0];
     const appCourse = student.course_info?.course_name || null;
-    const computedCourse = appCourse || student.selected_course || null;
+    const computedCourse = appCourse || student.selected_course || student.recommended_course_name || null;
     return res.json({
       ...student,
       selected_course: computedCourse,
@@ -174,6 +178,10 @@ export async function getAllStudents(req: Request, res: Response) {
         (SELECT row_to_json(c.*) FROM courses c 
          JOIN applications a ON a.course_id = c.id 
          WHERE a.student_id = s.id ORDER BY a.created_at DESC LIMIT 1) as course_info,
+        (SELECT c.course_name FROM courses c
+         JOIN course_recommendations cr ON cr.course_id = c.id
+         WHERE cr.student_id = s.id AND cr.is_selected = true
+         ORDER BY cr.created_at DESC LIMIT 1) as recommended_course_name,
         (SELECT row_to_json(ast.*) FROM (
            SELECT id, score, total_marks, percentage, status, submitted_at
            FROM assessments
@@ -254,7 +262,7 @@ export async function getAllStudents(req: Request, res: Response) {
 
     const enriched = dataRes.rows.map((s: any) => {
       const appCourse = s.course_info?.course_name || null;
-      const computedCourse = appCourse || s.selected_course || null;
+      const computedCourse = appCourse || s.selected_course || s.recommended_course_name || null;
       const computedParentName = s.parent_name || (s.full_name ? `R. ${s.full_name.split(' ')[0]} (Parent)` : 'Parent / Guardian');
       const computedParentPhone = s.parent_phone || (s.phone ? `+91 94441 ${s.phone.slice(-4).padStart(4, '0')}` : '+91 94441 55667');
 
