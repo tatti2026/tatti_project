@@ -2,6 +2,7 @@ import { app } from './app.js';
 import { config } from './config/environment.js';
 import { startCounsellingReminderWorker } from './services/counsellingReminderService.js';
 import { ensureFollowUpNotesTable } from './controllers/followUpNotesController.js';
+import { ensureQuestionsSchema } from './controllers/questionController.js';
 
 const PORT = process.env.PORT || 5000;
 
@@ -14,4 +15,10 @@ app.listen(PORT, async () => {
   } catch (err) {
     console.error('[TATTI Backend] Failed to ensure follow_up_notes table:', err);
   }
+  try {
+    await ensureQuestionsSchema();
+  } catch (err) {
+    console.error('[TATTI Backend] Failed to ensure questions schema:', err);
+  }
 });
+

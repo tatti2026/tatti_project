@@ -68,6 +68,7 @@ export interface QuestionRecord {
   marks: number | null;
   difficulty: 'easy' | 'medium' | 'hard' | null;
   category: string | null;
+  is_active?: boolean;
 }
 
 export interface AssessmentRecord {

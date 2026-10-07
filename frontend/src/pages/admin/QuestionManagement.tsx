@@ -31,10 +31,19 @@ export default function QuestionManagement() {
 
   const fetchData = async () => {
     setLoading(true);
-    const qs = await getAllQuestions();
-    setQuestions(qs);
-    setFiltered(qs);
-    setLoading(false);
+    try {
+      const qs = await getAllQuestions();
+      setQuestions(qs);
+      setFiltered(search.trim() ? qs.filter(q =>
+        q.question_text.toLowerCase().includes(search.toLowerCase()) ||
+        (q.category || '').toLowerCase().includes(search.toLowerCase())
+      ) : qs);
+    } catch (err: any) {
+      console.error('Failed to load questions:', err);
+      toast.error(err.message || 'Failed to load questions');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -81,13 +90,15 @@ export default function QuestionManagement() {
           : null,
         category: formData.category?.trim() ? formData.category.trim() : null,
         difficulty: formData.difficulty || 'medium',
+        is_active: formData.is_active ?? true,
       };
 
       await upsertQuestion(payload);
       setShowForm(false);
       toast.success(formData.id ? 'Question updated' : 'Question added');
-      fetchData();
+      await fetchData();
     } catch (err: any) {
+      console.error('Failed to save question:', err);
       toast.error(err.message || 'Failed to save question');
     } finally {
       setSaving(false);
@@ -95,14 +106,24 @@ export default function QuestionManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    await deleteQuestion(id);
-    toast.success('Question deleted');
-    fetchData();
+    try {
+      await deleteQuestion(id);
+      toast.success('Question deleted');
+      await fetchData();
+    } catch (err: any) {
+      console.error('Failed to delete question:', err);
+      toast.error(err.message || 'Failed to delete question');
+    }
   };
 
   const handleToggle = async (q: Question) => {
-    await upsertQuestion({ ...q, is_active: !q.is_active });
-    fetchData();
+    try {
+      await upsertQuestion({ ...q, is_active: !q.is_active });
+      await fetchData();
+    } catch (err: any) {
+      console.error('Failed to toggle question status:', err);
+      toast.error(err.message || 'Failed to toggle question status');
+    }
   };
 
   const set = (key: keyof Question, val: unknown) => setFormData(p => ({ ...p, [key]: val }));

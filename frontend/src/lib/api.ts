@@ -353,7 +353,10 @@ export async function getActiveQuestions(): Promise<Question[]> {
   const res = await fetch(`${API_BASE}/questions/active`, {
     headers: getHeaders(),
   });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    console.error('[api] Failed to fetch active questions:', res.status);
+    return [];
+  }
   const data = await res.json();
   return (Array.isArray(data) ? data : []) as Question[];
 }
@@ -362,32 +365,41 @@ export async function getAllQuestions(): Promise<Question[]> {
   const res = await fetch(`${API_BASE}/questions`, {
     headers: getHeaders(),
   });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    console.error('[api] Failed to fetch questions:', res.status, errorData);
+    throw new Error(errorData.error || errorData.message || `Failed to fetch questions (${res.status})`);
+  }
   const data = await res.json();
   return (Array.isArray(data) ? data : []) as Question[];
 }
 
-export async function upsertQuestion(q: Partial<Question>): Promise<void> {
-  if (q.id) {
-    await fetch(`${API_BASE}/questions/${q.id}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(q),
-    });
-  } else {
-    await fetch(`${API_BASE}/questions`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(q),
-    });
+export async function upsertQuestion(q: Partial<Question>): Promise<Question> {
+  const url = q.id ? `${API_BASE}/questions/${q.id}` : `${API_BASE}/questions`;
+  const method = q.id ? 'PUT' : 'POST';
+  const res = await fetch(url, {
+    method,
+    headers: getHeaders(),
+    body: JSON.stringify(q),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    console.error('[api] Failed to upsert question:', res.status, errorData);
+    throw new Error(errorData.error || errorData.message || `Failed to save question (${res.status})`);
   }
+  return (await res.json()) as Question;
 }
 
 export async function deleteQuestion(id: string): Promise<void> {
-  await fetch(`${API_BASE}/questions/${id}`, {
+  const res = await fetch(`${API_BASE}/questions/${id}`, {
     method: 'DELETE',
     headers: getHeaders(),
   });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    console.error('[api] Failed to delete question:', res.status, errorData);
+    throw new Error(errorData.error || errorData.message || `Failed to delete question (${res.status})`);
+  }
 }
 
 // ── ASSESSMENTS ────────────────────────────────────────────
