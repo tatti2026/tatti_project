@@ -28,7 +28,7 @@ export function evaluateAssessmentAnswers(
     const studentAns = answers[q.id];
     if (studentAns) {
       answeredCount++;
-      if (studentAns.toUpperCase() === q.correct_answer.toUpperCase()) {
+      if (q.correct_answer && studentAns.toUpperCase() === q.correct_answer.toUpperCase()) {
         score += q.marks || 1;
         correctCount++;
       }

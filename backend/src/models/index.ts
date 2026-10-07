@@ -64,9 +64,9 @@ export interface QuestionRecord {
   option_b: string;
   option_c: string;
   option_d: string;
-  correct_answer: 'A' | 'B' | 'C' | 'D';
-  marks: number;
-  difficulty: 'easy' | 'medium' | 'hard';
+  correct_answer: 'A' | 'B' | 'C' | 'D' | null;
+  marks: number | null;
+  difficulty: 'easy' | 'medium' | 'hard' | null;
   category: string | null;
 }
 

@@ -28,6 +28,32 @@ export async function createQuestion(req: Request, res: Response) {
       correct_answer, marks, difficulty, category, is_active
     } = req.body;
 
+    if (
+      !question_text?.trim() ||
+      !option_a?.trim() ||
+      !option_b?.trim() ||
+      !option_c?.trim() ||
+      !option_d?.trim()
+    ) {
+      return res.status(400).json({ error: 'Question text and all 4 options are required.' });
+    }
+
+    const cleanedCorrectAnswer = (
+      typeof correct_answer === 'string' &&
+      ['A', 'B', 'C', 'D'].includes(correct_answer.trim().toUpperCase())
+    ) ? correct_answer.trim().toUpperCase() : null;
+
+    const cleanedMarks = (
+      marks !== undefined && marks !== null && marks !== '' && !isNaN(Number(marks))
+    ) ? Number(marks) : null;
+
+    const cleanedCategory = (typeof category === 'string' && category.trim()) ? category.trim() : null;
+
+    const cleanedDifficulty = (
+      typeof difficulty === 'string' &&
+      ['easy', 'medium', 'hard'].includes(difficulty.trim().toLowerCase())
+    ) ? difficulty.trim().toLowerCase() : 'medium';
+
     const result = await query(`
       INSERT INTO questions (
         question_text, option_a, option_b, option_c, option_d,
@@ -35,8 +61,15 @@ export async function createQuestion(req: Request, res: Response) {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *;
     `, [
-      question_text, option_a, option_b, option_c, option_d,
-      correct_answer, marks || 1, difficulty || 'medium', category || 'General',
+      question_text.trim(),
+      option_a.trim(),
+      option_b.trim(),
+      option_c.trim(),
+      option_d.trim(),
+      cleanedCorrectAnswer,
+      cleanedMarks,
+      cleanedDifficulty,
+      cleanedCategory,
       is_active !== undefined ? is_active : true
     ]);
 
@@ -64,7 +97,25 @@ export async function updateQuestion(req: Request, res: Response) {
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
         fieldsToUpdate.push(`${field} = $${idx}`);
-        values.push(body[field]);
+        let val = body[field];
+
+        if (field === 'correct_answer') {
+          val = (
+            typeof val === 'string' &&
+            ['A', 'B', 'C', 'D'].includes(val.trim().toUpperCase())
+          ) ? val.trim().toUpperCase() : null;
+        } else if (field === 'marks') {
+          val = (val !== null && val !== '' && !isNaN(Number(val))) ? Number(val) : null;
+        } else if (field === 'category') {
+          val = (typeof val === 'string' && val.trim()) ? val.trim() : null;
+        } else if (field === 'difficulty') {
+          val = (
+            typeof val === 'string' &&
+            ['easy', 'medium', 'hard'].includes(val.trim().toLowerCase())
+          ) ? val.trim().toLowerCase() : 'medium';
+        }
+
+        values.push(val);
         idx++;
       }
     }

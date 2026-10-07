@@ -91,10 +91,10 @@ export interface Question {
   option_b: string;
   option_c: string;
   option_d: string;
-  correct_answer: 'A' | 'B' | 'C' | 'D';
-  marks: number;
-  difficulty: DifficultyLevel;
-  category: string | null;
+  correct_answer?: 'A' | 'B' | 'C' | 'D' | null;
+  marks?: number | null;
+  difficulty?: DifficultyLevel | null;
+  category?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

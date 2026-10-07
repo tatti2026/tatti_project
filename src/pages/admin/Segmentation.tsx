@@ -1,46 +1,220 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { getAllStudents, getAllAssessments } from '@/lib/api';
+import { getAllStudents, getAllAssessments, getAllQuestions } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
-import StatusBadge from '@/components/common/StatusBadge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
-import type { Student, Assessment } from '@/types/index';
+import type { Student, Assessment, Question } from '@/types/index';
 import {
   calculateSegmentation,
   SEGMENTATION_THRESHOLDS,
-  type SegmentedStudent,
 } from '@/utils/segmentation';
 import {
   Trophy, Target, AlertCircle, Users, BarChart3,
-  RotateCcw, CheckCircle2, HelpCircle
+  RotateCcw, CheckCircle2, HelpCircle, Eye, X,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const SEGMENT_COLORS = {
-  high: '#10B981',    // Emerald
-  medium: '#F59E0B',  // Amber
-  low: '#EF4444',     // Rose / Red
-  unassessed: '#94A3B8' // Slate
+  high: '#10B981',
+  medium: '#F59E0B',
+  low: '#EF4444',
+  unassessed: '#94A3B8',
 };
+
+interface AnswerRow {
+  questionNumber: number;
+  questionText: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  selectedAnswer: 'A' | 'B' | 'C' | 'D' | null;
+  isCorrect: boolean | null;
+  correctAnswer: 'A' | 'B' | 'C' | 'D' | null;
+}
+
+const OPTION_LABELS = ['A', 'B', 'C', 'D'] as const;
+
+function AnswersModal({
+  open,
+  onClose,
+  studentName,
+  assessment,
+  questions,
+}: {
+  open: boolean;
+  onClose: () => void;
+  studentName: string;
+  assessment: Assessment | null;
+  questions: Question[];
+}) {
+  const rows = useMemo<AnswerRow[]>(() => {
+    if (!assessment?.answers || !questions.length) return [];
+    const answers = assessment.answers as Record<string, string>;
+    return questions.map((q, idx) => {
+      const selected = (answers[q.id] || null) as 'A' | 'B' | 'C' | 'D' | null;
+      const correctAns = (q.correct_answer || null) as 'A' | 'B' | 'C' | 'D' | null;
+      const isCorrect =
+        selected && correctAns ? selected === correctAns : null;
+      return {
+        questionNumber: idx + 1,
+        questionText: q.question_text,
+        optionA: q.option_a,
+        optionB: q.option_b,
+        optionC: q.option_c,
+        optionD: q.option_d,
+        selectedAnswer: selected,
+        isCorrect,
+        correctAnswer: correctAns,
+      };
+    });
+  }, [assessment, questions]);
+
+  const answeredCount = rows.filter(r => r.selectedAnswer).length;
+  const correctCount = rows.filter(r => r.isCorrect === true).length;
+
+  return (
+    <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-3xl bg-card border-border max-h-[90dvh] overflow-hidden flex flex-col">
+        <DialogHeader className="shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-primary" />
+            Career Fit Answers — {studentName}
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Summary bar */}
+        <div className="flex flex-wrap gap-3 px-1 py-2 border-b border-border/60 shrink-0">
+          <span className="text-xs bg-muted rounded-lg px-3 py-1.5 font-semibold text-foreground">
+            {answeredCount}/{rows.length} Answered
+          </span>
+          {assessment?.percentage !== null && assessment?.percentage !== undefined && (
+            <span className="text-xs bg-primary/10 text-primary rounded-lg px-3 py-1.5 font-semibold border border-primary/20">
+              Score: {Number(assessment.percentage).toFixed(1)}%&nbsp;
+              ({assessment.score ?? 0}/{assessment.total_marks ?? rows.length} marks)
+            </span>
+          )}
+          {rows.some(r => r.correctAnswer !== null) && (
+            <span className="text-xs bg-emerald-500/10 text-emerald-500 rounded-lg px-3 py-1.5 font-semibold border border-emerald-500/20">
+              {correctCount} Correct
+            </span>
+          )}
+        </div>
+
+        {/* Scrollable answer list */}
+        <div className="overflow-y-auto flex-1 space-y-3 pr-1 mt-1">
+          {rows.length === 0 ? (
+            <div className="py-16 text-center text-muted-foreground text-sm">
+              No answers recorded for this student.
+            </div>
+          ) : (
+            rows.map(row => {
+              const optionMap: Record<string, string> = {
+                A: row.optionA,
+                B: row.optionB,
+                C: row.optionC,
+                D: row.optionD,
+              };
+              return (
+                <div
+                  key={row.questionNumber}
+                  className="glass-card rounded-xl p-4 border border-border"
+                >
+                  {/* Question */}
+                  <div className="flex items-start gap-3 mb-3">
+                    <span className="w-7 h-7 rounded-lg gradient-bg flex items-center justify-center text-white text-[11px] font-bold shrink-0">
+                      Q{row.questionNumber}
+                    </span>
+                    <p className="text-sm font-medium text-foreground leading-snug">
+                      {row.questionText}
+                    </p>
+                  </div>
+
+                  {/* Options grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {OPTION_LABELS.map(opt => {
+                      const isSelected = row.selectedAnswer === opt;
+                      const isCorrectOpt = row.correctAnswer === opt;
+
+                      let cls = 'border-border bg-muted/40 text-muted-foreground';
+                      if (isSelected && row.isCorrect === true)
+                        cls = 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600';
+                      else if (isSelected && row.isCorrect === false)
+                        cls = 'border-rose-500/40 bg-rose-500/10 text-rose-500';
+                      else if (isSelected && row.isCorrect === null)
+                        cls = 'border-primary/40 bg-primary/10 text-primary';
+                      else if (isCorrectOpt && !isSelected && row.correctAnswer !== null)
+                        cls = 'border-emerald-500/30 bg-emerald-500/5 text-emerald-600/70';
+
+                      return (
+                        <div
+                          key={opt}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-all ${cls}`}
+                        >
+                          <span className={`w-5 h-5 rounded flex items-center justify-center font-bold text-[10px] shrink-0 ${
+                            isSelected ? 'bg-current text-white opacity-90' : 'bg-muted'
+                          }`}>
+                            {opt}
+                          </span>
+                          <span className="flex-1 font-medium leading-snug">{optionMap[opt]}</span>
+                          {isSelected && (
+                            <span className="text-[10px] font-bold shrink-0 opacity-80 ml-auto">
+                              {row.isCorrect === true ? '✓ Correct' : row.isCorrect === false ? '✗ Wrong' : 'Selected'}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Skipped badge */}
+                  {!row.selectedAnswer && (
+                    <p className="text-[11px] text-muted-foreground italic mt-2">
+                      — Not answered (skipped)
+                    </p>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <div className="shrink-0 pt-3 border-t border-border flex justify-end">
+          <Button variant="outline" size="sm" onClick={onClose}>
+            <X className="w-3.5 h-3.5 mr-1" /> Close
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function Segmentation() {
   const [students, setStudents] = useState<Student[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Modal state
+  const [viewingStudent, setViewingStudent] = useState<{ name: string; assessment: Assessment } | null>(null);
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
     try {
-      const [studentsRes, assessmentsRes] = await Promise.all([
+      const [studentsRes, assessmentsRes, questionsRes] = await Promise.all([
         getAllStudents(0, 1000),
         getAllAssessments(),
+        getAllQuestions(),
       ]);
 
       setStudents(studentsRes.data || []);
       setAssessments(assessmentsRes || []);
+      setQuestions(Array.isArray(questionsRes) ? questionsRes : []);
     } catch (err) {
       console.error('Error fetching segmentation data:', err);
     } finally {
@@ -53,12 +227,21 @@ export default function Segmentation() {
     fetchData();
   }, [fetchData]);
 
-  // ── SINGLE SOURCE OF TRUTH: Calculated dynamically from actual assessment scores ──
+  // Build a quick lookup: student_id → assessment
+  const assessmentByStudentId = useMemo(() => {
+    const map = new Map<string, Assessment>();
+    assessments.forEach(a => {
+      if (!map.has(a.student_id) || a.status === 'completed') {
+        map.set(a.student_id, a);
+      }
+    });
+    return map;
+  }, [assessments]);
+
   const summary = useMemo(() => {
     return calculateSegmentation(students, assessments);
   }, [students, assessments]);
 
-  // Donut chart segments directly match the calculated High / Medium / Low counts
   const pieData = useMemo(() => {
     if (summary.totalAssessed === 0) {
       return [
@@ -104,7 +287,6 @@ export default function Segmentation() {
       count: summary.highCount,
       pct: summary.highPct,
       icon: Trophy,
-      color: '#10B981',
       bgGlow: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
       barColor: 'bg-emerald-500',
       badgeBg: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
@@ -116,7 +298,6 @@ export default function Segmentation() {
       count: summary.mediumCount,
       pct: summary.mediumPct,
       icon: Target,
-      color: '#F59E0B',
       bgGlow: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
       barColor: 'bg-amber-500',
       badgeBg: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
@@ -128,7 +309,6 @@ export default function Segmentation() {
       count: summary.lowCount,
       pct: summary.lowPct,
       icon: AlertCircle,
-      color: '#EF4444',
       bgGlow: 'bg-rose-500/10 border-rose-500/30 text-rose-400',
       barColor: 'bg-rose-500',
       badgeBg: 'bg-rose-500/15 text-rose-400 border border-rose-500/30',
@@ -185,7 +365,7 @@ export default function Segmentation() {
           </div>
         </div>
 
-        {/* ── SEGMENT CARDS: HIGH, MEDIUM, LOW (CALCULATED FROM SCORES) ── */}
+        {/* ── SEGMENT CARDS ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
           {cards.map(card => {
             const Icon = card.icon;
@@ -220,8 +400,6 @@ export default function Segmentation() {
                     </div>
                     <span className="text-sm font-bold text-foreground">{card.pct}%</span>
                   </div>
-
-                  {/* Clean Visual Progress Bar based on calculated percentage */}
                   <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${card.barColor}`}
@@ -234,9 +412,9 @@ export default function Segmentation() {
           })}
         </div>
 
-        {/* ── DISTRIBUTION SECTION: DONUT CHART & STUDENT DETAILS TABLE ── */}
+        {/* ── DISTRIBUTION SECTION ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          {/* Distribution Chart & Intent Metrics Card */}
+          {/* Donut Chart */}
           <div className="lg:col-span-4 glass-card rounded-xl p-5 border border-border flex flex-col justify-between shadow-sm">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-border/60">
@@ -247,7 +425,6 @@ export default function Segmentation() {
                 <span className="text-[11px] font-medium text-muted-foreground">Assessed Cohort</span>
               </div>
 
-              {/* Donut Chart with Centered KPI equal to Total Assessed Students */}
               <div className="relative py-4 flex items-center justify-center">
                 <div className="w-48 h-48">
                   <ResponsiveContainer width="100%" height="100%">
@@ -295,8 +472,6 @@ export default function Segmentation() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-
-                {/* Center KPI Metric equals Total Assessed Students */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="text-2xl font-black text-foreground">{summary.totalAssessed}</span>
                   <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
@@ -306,7 +481,6 @@ export default function Segmentation() {
               </div>
             </div>
 
-            {/* Clean Segment Indicators & Percentages */}
             <div className="space-y-2.5 pt-3 border-t border-border/60">
               {[
                 { name: 'HIGH', value: summary.highCount, percentage: summary.highPct, color: SEGMENT_COLORS.high, desc: `Score ≥ ${SEGMENTATION_THRESHOLDS.HIGH_INTENT_MIN_SCORE}%` },
@@ -335,7 +509,7 @@ export default function Segmentation() {
             </div>
           </div>
 
-          {/* Segment Student Details Table */}
+          {/* Student Details Table */}
           <div className="lg:col-span-8 glass-card rounded-xl p-5 border border-border flex flex-col justify-between shadow-sm">
             <Tabs defaultValue="high" className="flex flex-col h-full">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3 mb-4">
@@ -378,15 +552,15 @@ export default function Segmentation() {
                           <tr className="border-b border-border/80 text-muted-foreground">
                             <th className="px-3 py-2 text-left font-semibold">Student Name</th>
                             <th className="px-3 py-2 text-left font-semibold">Email</th>
-                            <th className="px-3 py-2 text-left font-semibold">Career Fit Assessment Score</th>
-                            <th className="px-3 py-2 text-left font-semibold">Application</th>
-                            <th className="px-3 py-2 text-left font-semibold">Payment</th>
-                            <th className="px-3 py-2 text-left font-semibold">Selected Course</th>
+                            <th className="px-3 py-2 text-left font-semibold">Career Fit Score</th>
+                            <th className="px-3 py-2 text-left font-semibold">Answers</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {list.slice(0, 10).map(({ student: s, assessment }) => {
+                          {list.slice(0, 15).map(({ student: s, assessment }) => {
                             const isAssessed = assessment.isCompleted && assessment.percentage != null;
+                            const rawAssessment = assessmentByStudentId.get(s.id);
+
                             return (
                               <tr key={s.id} className="border-b border-border/40 hover:bg-muted/30 transition-colors">
                                 <td className="px-3 py-2.5 whitespace-nowrap font-medium text-foreground">
@@ -413,7 +587,7 @@ export default function Segmentation() {
                                         {assessment.percentage}%
                                       </span>
                                       <span className="text-[11px] text-muted-foreground">
-                                        ({assessment.score ?? '-'}/{assessment.totalMarks ?? 4} marks)
+                                        ({assessment.score ?? '-'}/{assessment.totalMarks ?? questions.length} marks)
                                       </span>
                                     </div>
                                   ) : (
@@ -424,24 +598,34 @@ export default function Segmentation() {
                                   )}
                                 </td>
                                 <td className="px-3 py-2.5 whitespace-nowrap">
-                                  <StatusBadge status={s.application_status} />
-                                </td>
-                                <td className="px-3 py-2.5 whitespace-nowrap">
-                                  <StatusBadge status={s.payment_status} />
-                                </td>
-                                <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
-                                  <span className="px-2 py-0.5 rounded bg-muted text-[11px] font-medium text-foreground">
-                                    {s.selected_course || 'Not Selected'}
-                                  </span>
+                                  {isAssessed && rawAssessment ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 px-2.5 text-[11px] gap-1.5 text-primary border-primary/30 hover:bg-primary/10"
+                                      onClick={() =>
+                                        setViewingStudent({
+                                          name: s.full_name || s.email || 'Student',
+                                          assessment: rawAssessment,
+                                        })
+                                      }
+                                    >
+                                      <Eye className="w-3 h-3" />
+                                      View Answers
+                                      <ChevronRight className="w-3 h-3 opacity-60" />
+                                    </Button>
+                                  ) : (
+                                    <span className="text-[11px] text-muted-foreground italic">—</span>
+                                  )}
                                 </td>
                               </tr>
                             );
                           })}
                         </tbody>
                       </table>
-                      {list.length > 10 && (
+                      {list.length > 15 && (
                         <p className="text-[11px] text-muted-foreground text-center pt-3 italic">
-                          Showing 10 of {list.length} students in this cohort
+                          Showing 15 of {list.length} students in this cohort
                         </p>
                       )}
                     </div>
@@ -452,6 +636,17 @@ export default function Segmentation() {
           </div>
         </div>
       </div>
+
+      {/* Answers Modal */}
+      {viewingStudent && (
+        <AnswersModal
+          open={!!viewingStudent}
+          onClose={() => setViewingStudent(null)}
+          studentName={viewingStudent.name}
+          assessment={viewingStudent.assessment}
+          questions={questions}
+        />
+      )}
     </AdminLayout>
   );
 }

@@ -13,7 +13,7 @@ import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Loader2, Search } from '
 
 const emptyQ = (): Partial<Question> => ({
   question_text: '', option_a: '', option_b: '', option_c: '', option_d: '',
-  correct_answer: 'A', marks: 1, difficulty: 'medium', category: '', is_active: true,
+  correct_answer: null, marks: null, difficulty: 'medium', category: '', is_active: true,
 });
 
 const difficultyColors: Record<string, string> = {
@@ -52,16 +52,46 @@ export default function QuestionManagement() {
   const openEdit = (q: Question) => { setFormData({ ...q }); setShowForm(true); };
 
   const handleSave = async () => {
-    if (!formData.question_text?.trim()) { toast.error('Question text is required'); return; }
-    if (!formData.option_a || !formData.option_b || !formData.option_c || !formData.option_d) {
-      toast.error('All 4 options are required'); return;
+    if (!formData.question_text?.trim()) {
+      toast.error('Question text is required');
+      return;
     }
+    if (
+      !formData.option_a?.trim() ||
+      !formData.option_b?.trim() ||
+      !formData.option_c?.trim() ||
+      !formData.option_d?.trim()
+    ) {
+      toast.error('All 4 options are required');
+      return;
+    }
+
     setSaving(true);
-    await upsertQuestion(formData);
-    setSaving(false);
-    setShowForm(false);
-    toast.success(formData.id ? 'Question updated' : 'Question added');
-    fetchData();
+    try {
+      const payload: Partial<Question> = {
+        ...formData,
+        question_text: formData.question_text.trim(),
+        option_a: formData.option_a.trim(),
+        option_b: formData.option_b.trim(),
+        option_c: formData.option_c.trim(),
+        option_d: formData.option_d.trim(),
+        correct_answer: formData.correct_answer ? formData.correct_answer : null,
+        marks: formData.marks !== null && formData.marks !== undefined && formData.marks !== ('' as any)
+          ? Number(formData.marks)
+          : null,
+        category: formData.category?.trim() ? formData.category.trim() : null,
+        difficulty: formData.difficulty || 'medium',
+      };
+
+      await upsertQuestion(payload);
+      setShowForm(false);
+      toast.success(formData.id ? 'Question updated' : 'Question added');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save question');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -120,8 +150,8 @@ export default function QuestionManagement() {
                   </div>
                   <div className="flex flex-wrap gap-2 items-center">
                     {q.category && <Badge variant="secondary" className="text-xs">{q.category}</Badge>}
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${difficultyColors[q.difficulty]}`}>{q.difficulty}</span>
-                    <span className="text-xs text-muted-foreground">{q.marks} mark{q.marks > 1 ? 's' : ''}</span>
+                    {q.difficulty && <span className={`text-xs px-1.5 py-0.5 rounded ${difficultyColors[q.difficulty] || 'bg-muted text-muted-foreground'}`}>{q.difficulty}</span>}
+                    {q.marks !== null && q.marks !== undefined && <span className="text-xs text-muted-foreground">{q.marks} mark{q.marks > 1 ? 's' : ''}</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -167,47 +197,58 @@ export default function QuestionManagement() {
               <textarea value={formData.question_text || ''}
                 onChange={e => set('question_text', e.target.value)}
                 rows={3}
+                placeholder="Enter the question text..."
                 className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-sm text-foreground resize-none focus:outline-none focus:border-primary" />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {[
-                { key: 'option_a', label: 'Option A *' },
-                { key: 'option_b', label: 'Option B *' },
-                { key: 'option_c', label: 'Option C *' },
-                { key: 'option_d', label: 'Option D *' },
-              ].map(({ key, label }) => (
+                { key: 'option_a', label: 'Option A *', placeholder: 'Enter option A' },
+                { key: 'option_b', label: 'Option B *', placeholder: 'Enter option B' },
+                { key: 'option_c', label: 'Option C *', placeholder: 'Enter option C' },
+                { key: 'option_d', label: 'Option D *', placeholder: 'Enter option D' },
+              ].map(({ key, label, placeholder }) => (
                 <div key={key}>
                   <Label className="text-sm">{label}</Label>
-                  <Input value={(formData as Record<string, string>)[key] || ''} onChange={e => set(key as keyof Question, e.target.value)}
-                    className="mt-1 bg-input border-border" />
+                  <Input
+                    placeholder={placeholder}
+                    value={(formData as Record<string, string>)[key] || ''}
+                    onChange={e => set(key as keyof Question, e.target.value)}
+                    className="mt-1 bg-input border-border"
+                  />
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <Label className="text-sm">Correct Answer</Label>
-                <select value={formData.correct_answer || 'A'} onChange={e => set('correct_answer', e.target.value as 'A' | 'B' | 'C' | 'D')}
-                  className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-sm text-foreground">
-                  {['A', 'B', 'C', 'D'].map(o => <option key={o} value={o}>{o}</option>)}
+                <Label className="text-sm">Correct Answer (Optional)</Label>
+                <select
+                  value={formData.correct_answer || ''}
+                  onChange={e => set('correct_answer', e.target.value ? (e.target.value as 'A' | 'B' | 'C' | 'D') : null)}
+                  className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-sm text-foreground focus:outline-none focus:border-primary"
+                >
+                  <option value="">None / Optional</option>
+                  {['A', 'B', 'C', 'D'].map(o => <option key={o} value={o}>Option {o}</option>)}
                 </select>
               </div>
               <div>
-                <Label className="text-sm">Marks</Label>
-                <Input type="number" min={1} value={formData.marks || 1}
-                  onChange={e => set('marks', parseInt(e.target.value) || 1)}
-                  className="mt-1 bg-input border-border" />
+                <Label className="text-sm">Marks (Optional)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="e.g. 1"
+                  value={formData.marks !== null && formData.marks !== undefined ? formData.marks : ''}
+                  onChange={e => set('marks', e.target.value === '' ? null : (parseInt(e.target.value, 10) || null))}
+                  className="mt-1 bg-input border-border"
+                />
               </div>
               <div>
-                <Label className="text-sm">Difficulty</Label>
-                <select value={formData.difficulty || 'medium'} onChange={e => set('difficulty', e.target.value)}
-                  className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-sm text-foreground">
-                  {['easy', 'medium', 'hard'].map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-              <div>
-                <Label className="text-sm">Category</Label>
-                <Input value={formData.category || ''} onChange={e => set('category', e.target.value)}
-                  className="mt-1 bg-input border-border" placeholder="e.g. Web Dev" />
+                <Label className="text-sm">Category (Optional)</Label>
+                <Input
+                  value={formData.category || ''}
+                  onChange={e => set('category', e.target.value)}
+                  className="mt-1 bg-input border-border"
+                  placeholder="e.g. Web Dev"
+                />
               </div>
             </div>
             <div className="flex items-center gap-2">

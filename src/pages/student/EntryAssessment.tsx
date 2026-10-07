@@ -142,8 +142,9 @@ export default function EntryAssessment() {
       let score = 0;
       let totalMarks = 0;
       questions.forEach(q => {
-        totalMarks += q.marks;
-        if (answers[q.id] === q.correct_answer) score += q.marks;
+        const qMarks = Number(q.marks) || 1;
+        totalMarks += qMarks;
+        if (q.correct_answer && answers[q.id] === q.correct_answer) score += qMarks;
       });
 
       const percentage = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
