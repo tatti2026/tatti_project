@@ -323,29 +323,33 @@ export async function getAllStudents(
 
 
 // ── COURSES ────────────────────────────────────────────────
-export async function getAllCourses(): Promise<Course[]> {
-  const res = await fetch(`${API_BASE}/courses`, {
+export async function getAllCourses(options?: { activeOnly?: boolean }): Promise<Course[]> {
+  const query = options?.activeOnly ? '?status=available' : '';
+  const res = await fetch(`${API_BASE}/courses${query}`, {
     headers: getHeaders(),
   });
   if (!res.ok) return [];
   const data = await res.json();
-  return (Array.isArray(data) ? data : []) as Course[];
+  const list = (Array.isArray(data) ? data : []) as Course[];
+  if (options?.activeOnly) {
+    return list.filter(c => c && c.status === 'available');
+  }
+  return list;
 }
 
-export async function upsertCourse(course: Partial<Course>): Promise<void> {
-  if (course.id) {
-    await fetch(`${API_BASE}/courses/${course.id}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(course),
-    });
-  } else {
-    await fetch(`${API_BASE}/courses`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(course),
-    });
+export async function upsertCourse(course: Partial<Course>): Promise<Course> {
+  const url = course.id ? `${API_BASE}/courses/${course.id}` : `${API_BASE}/courses`;
+  const method = course.id ? 'PUT' : 'POST';
+  const res = await fetch(url, {
+    method,
+    headers: getHeaders(),
+    body: JSON.stringify(course),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to save course (${res.status})`);
   }
+  return (await res.json()) as Course;
 }
 
 // ── QUESTIONS ──────────────────────────────────────────────

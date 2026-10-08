@@ -32,24 +32,45 @@ export default function CourseRecommendation() {
       if (!s) s = await createStudent({ profile_id: profile.id, email: profile.email });
       setStudent(s);
       const [allCourses, recs] = await Promise.all([getAllCourses(), s ? getStudentRecommendations(s.id) : []]);
-      setCourses(allCourses.filter(c => c.status === 'available'));
+      const availableCourses = allCourses.filter(c => c && c.status === 'available');
+      setCourses(availableCourses);
 
       // Generate recommendations if none exist
       if (recs.length === 0 && s) {
         const mockPcts = [85, 72, 68, 60, 55, 50];
         const newRecs: CourseRecommendationType[] = [];
-        for (let i = 0; i < allCourses.length; i++) {
+        for (let i = 0; i < availableCourses.length; i++) {
           const pct = mockPcts[i % mockPcts.length];
-          await upsertRecommendation({ student_id: s.id, course_id: allCourses[i].id, recommendation_percentage: pct, is_interested: false, is_selected: false });
-          newRecs.push({ id: '', student_id: s.id, course_id: allCourses[i].id, recommendation_percentage: pct, is_interested: false, is_selected: false, created_at: '', course: allCourses[i] });
+          await upsertRecommendation({ student_id: s.id, course_id: availableCourses[i].id, recommendation_percentage: pct, is_interested: false, is_selected: false });
+          newRecs.push({ id: '', student_id: s.id, course_id: availableCourses[i].id, recommendation_percentage: pct, is_interested: false, is_selected: false, created_at: '', course: availableCourses[i] });
         }
         setRecommendations(newRecs);
       } else {
-        const enriched = recs.map(r => ({ ...r, course: allCourses.find(c => c.id === r.course_id) }));
+        const enriched = recs
+          .filter(r => availableCourses.some(c => c.id === r.course_id))
+          .map(r => ({ ...r, course: availableCourses.find(c => c.id === r.course_id) }));
+
+        // Add any missing available courses
+        const existingIds = new Set(enriched.map(r => r.course_id));
+        for (const mc of availableCourses) {
+          if (!existingIds.has(mc.id)) {
+            enriched.push({
+              id: '',
+              student_id: s?.id || '',
+              course_id: mc.id,
+              recommendation_percentage: 75,
+              is_interested: false,
+              is_selected: false,
+              created_at: '',
+              course: mc,
+            });
+          }
+        }
+
         setRecommendations(enriched as CourseRecommendationType[]);
-        const intSet = new Set(recs.filter(r => r.is_interested).map(r => r.course_id));
+        const intSet = new Set(enriched.filter(r => r.is_interested).map(r => r.course_id));
         setInterested(intSet);
-        const sel = recs.find(r => r.is_selected);
+        const sel = enriched.find(r => r.is_selected);
         if (sel) setSelected(sel.course_id);
       }
       setLoading(false);

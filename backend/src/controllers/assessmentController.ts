@@ -143,14 +143,60 @@ export async function submitAssessmentById(req: Request, res: Response) {
 export async function getStudentRecommendations(req: Request, res: Response) {
   try {
     const { studentId } = req.params;
+
+    // Fetch all currently available courses
+    const coursesRes = await query("SELECT * FROM courses WHERE status = 'available' ORDER BY course_name ASC");
+    const availableCourses = coursesRes.rows;
+
+    // Fetch existing recommendations for this student that belong to available courses
     const result = await query(`
       SELECT r.*, row_to_json(c.*) as course 
       FROM course_recommendations r 
       JOIN courses c ON r.course_id = c.id 
-      WHERE r.student_id = $1 
+      WHERE r.student_id = $1 AND c.status = 'available'
       ORDER BY r.recommendation_percentage DESC
     `, [studentId]);
-    return res.json(result.rows);
+
+    const existingRecs = result.rows;
+
+    // If student has existing recommendations, ensure ANY newly activated available course is also included
+    if (existingRecs.length > 0 && availableCourses.length > 0) {
+      const existingCourseIds = new Set(existingRecs.map(r => r.course_id));
+      const missingCourses = availableCourses.filter(c => !existingCourseIds.has(c.id));
+
+      if (missingCourses.length > 0) {
+        const avgPct = Math.round(
+          existingRecs.reduce((sum, r) => sum + (Number(r.recommendation_percentage) || 70), 0) / existingRecs.length
+        ) || 75;
+
+        for (let i = 0; i < missingCourses.length; i++) {
+          const course = missingCourses[i];
+          const pct = Math.max(50, Math.min(95, avgPct - (i * 2)));
+          try {
+            await query(`
+              INSERT INTO course_recommendations (student_id, course_id, recommendation_percentage, is_interested, is_selected)
+              VALUES ($1, $2, $3, false, false)
+              ON CONFLICT (student_id, course_id) DO UPDATE SET
+                recommendation_percentage = EXCLUDED.recommendation_percentage;
+            `, [studentId, course.id, pct]);
+          } catch (e) {
+            console.error('Error inserting recommendation for course:', course.id, e);
+          }
+          existingRecs.push({
+            id: `rec-${course.id}`,
+            student_id: studentId,
+            course_id: course.id,
+            recommendation_percentage: pct,
+            is_interested: false,
+            is_selected: false,
+            course,
+          });
+        }
+      }
+    }
+
+    existingRecs.sort((a, b) => (Number(b.recommendation_percentage) || 0) - (Number(a.recommendation_percentage) || 0));
+    return res.json(existingRecs);
   } catch (err) {
     console.error('Error fetching recommendations:', err);
     res.status(500).json({ error: 'Internal server error' });

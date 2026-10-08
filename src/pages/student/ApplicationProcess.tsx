@@ -454,16 +454,17 @@ export default function ApplicationProcess() {
           getStudentApplication(s.id),
           getStudentPayment(s.id),
         ]);
-        setCourses(allCourses.filter(c => c.status === 'available'));
+        const availableCourses = allCourses.filter(c => c && c.status === 'available');
+        setCourses(availableCourses);
         const selRec = recs.find(r => r.is_selected);
         if (selRec) {
-          const course = allCourses.find(c => c.id === selRec.course_id);
+          const course = availableCourses.find(c => c.id === selRec.course_id);
           setSelectedCourse(course || null);
         }
         if (existingApp) {
           setApplication(existingApp);
           if (existingApp.course_id) {
-            const c = allCourses.find(c => c.id === existingApp.course_id);
+            const c = availableCourses.find(c => c.id === existingApp.course_id);
             if (c) setSelectedCourse(c);
           }
         }

@@ -1,9 +1,21 @@
 import type { Request, Response } from 'express';
 import { query } from '../database/pgPool.js';
 
-export async function getAllCourses(_req: Request, res: Response) {
+export async function getAllCourses(req: Request, res: Response) {
   try {
-    const result = await query('SELECT * FROM courses ORDER BY course_name ASC');
+    const { status, activeOnly } = req.query;
+    let queryStr = 'SELECT * FROM courses';
+    const params: any[] = [];
+
+    if (status) {
+      queryStr += ' WHERE status = $1';
+      params.push(status);
+    } else if (activeOnly === 'true' || activeOnly === '1') {
+      queryStr += " WHERE status = 'available'";
+    }
+
+    queryStr += ' ORDER BY course_name ASC';
+    const result = await query(queryStr, params);
     return res.json(result.rows);
   } catch (err) {
     console.error('Error fetching courses:', err);

@@ -52,21 +52,37 @@ export default function CoursesManagement() {
   const handleSave = async () => {
     if (!formData.course_name?.trim()) { toast.error('Course name is required'); return; }
     setSaving(true);
-    const payload = {
-      ...formData,
-      skills: skillsInput.split(',').map(s => s.trim()).filter(Boolean),
-      career_opportunities: careersInput.split(',').map(s => s.trim()).filter(Boolean),
-    };
-    await upsertCourse(payload);
-    setSaving(false);
-    setShowForm(false);
-    toast.success(formData.id ? 'Course updated' : 'Course added');
-    fetchData();
+    try {
+      const payload = {
+        ...formData,
+        skills: skillsInput.split(',').map(s => s.trim()).filter(Boolean),
+        career_opportunities: careersInput.split(',').map(s => s.trim()).filter(Boolean),
+      };
+      await upsertCourse(payload);
+      setShowForm(false);
+      toast.success(formData.id ? 'Course updated successfully' : 'Course added successfully');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save course');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleToggle = async (c: Course) => {
-    await upsertCourse({ ...c, status: c.status === 'available' ? 'not_available' : 'available' });
-    fetchData();
+    const nextStatus = c.status === 'available' ? 'not_available' : 'available';
+    setCourses(prev => prev.map(item => item.id === c.id ? { ...item, status: nextStatus } : item));
+    try {
+      const updated = await upsertCourse({ id: c.id, status: nextStatus });
+      if (updated && updated.id) {
+        setCourses(prev => prev.map(item => item.id === c.id ? { ...item, ...updated } : item));
+      }
+      toast.success(nextStatus === 'available' ? `Course "${c.course_name}" activated` : `Course "${c.course_name}" deactivated`);
+      fetchData();
+    } catch (err: any) {
+      setCourses(prev => prev.map(item => item.id === c.id ? { ...item, status: c.status } : item));
+      toast.error(err.message || 'Failed to update course status');
+    }
   };
 
   const set = (key: keyof Course, val: unknown) => setFormData(p => ({ ...p, [key]: val }));

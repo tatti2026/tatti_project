@@ -101,14 +101,38 @@ export default function EntryAssessment() {
           });
 
           if (safeRecs.length > 0) {
-            const enriched = safeRecs.map(r => ({
-              ...r,
-              recommendation_percentage: Number(r.recommendation_percentage) || 0,
-              course: safeCourses.find(c => c.id === r.course_id),
-            }));
-            setRecommendations(enriched as CourseRecommendationType[]);
-            setInterestedCourseIds(new Set(safeRecs.filter(r => r.is_interested).map(r => r.course_id)));
-            const sel = safeRecs.find(r => r.is_selected);
+            // Filter to only courses that are available
+            const availableRecs = safeRecs
+              .filter(r => safeCourses.some(c => c.id === r.course_id))
+              .map(r => ({
+                ...r,
+                recommendation_percentage: Number(r.recommendation_percentage) || 0,
+                course: safeCourses.find(c => c.id === r.course_id),
+              }));
+
+            // Include any available courses not yet in safeRecs (e.g. newly activated by admin)
+            const existingCourseIds = new Set(availableRecs.map(r => r.course_id));
+            const missingCourses = safeCourses.filter(c => !existingCourseIds.has(c.id));
+
+            for (const mc of missingCourses) {
+              const defaultPct = Math.round(percentage) || 75;
+              availableRecs.push({
+                id: `rec-${mc.id}`,
+                student_id: s.id,
+                course_id: mc.id,
+                recommendation_percentage: defaultPct,
+                is_interested: false,
+                is_selected: false,
+                created_at: new Date().toISOString(),
+                course: mc,
+              });
+            }
+
+            availableRecs.sort((a, b) => (Number(b.recommendation_percentage) || 0) - (Number(a.recommendation_percentage) || 0));
+
+            setRecommendations(availableRecs as CourseRecommendationType[]);
+            setInterestedCourseIds(new Set(availableRecs.filter(r => r.is_interested).map(r => r.course_id)));
+            const sel = availableRecs.find(r => r.is_selected);
             if (sel) setSelectedCourseId(sel.course_id);
             else if (app?.course_id) setSelectedCourseId(app.course_id);
           } else if (s && safeCourses.length > 0) {
