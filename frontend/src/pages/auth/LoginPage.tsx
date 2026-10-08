@@ -17,7 +17,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Sign Up form states (7 fields in order) — guaranteed empty strings
@@ -73,7 +72,7 @@ export default function LoginPage() {
     e.preventDefault();
     if (!email || !password) { toast.error('Please fill in all fields'); return; }
     setLoading(true);
-    const { error } = await signInWithEmail(email.trim(), password, remember);
+    const { error } = await signInWithEmail(email.trim(), password);
     setLoading(false);
     if (error) toast.error('Invalid credentials. Please check your Student ID / email and password.');
   };
@@ -286,11 +285,7 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="remember" checked={remember} onCheckedChange={v => setRemember(!!v)} />
-                    <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">Remember me</Label>
-                  </div>
+                <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={() => changeMode('forgot')}

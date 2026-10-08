@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Eye, EyeOff, GraduationCap, ClipboardCheck, BookOpen, Award, Loader2, ShieldCheck } from 'lucide-react';
 
@@ -16,7 +15,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signInWithEmail, signUpWithEmail, sendPasswordResetEmail, user, role } = useAuth();
   const navigate = useNavigate();
@@ -32,7 +30,7 @@ export default function LoginPage() {
     e.preventDefault();
     if (!email || !password) { toast.error('Please fill in all fields'); return; }
     setLoading(true);
-    const { error } = await signInWithEmail(email, password, remember);
+    const { error } = await signInWithEmail(email, password);
     setLoading(false);
     if (error) toast.error('Invalid credentials. Please try again.');
   };
@@ -181,11 +179,7 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="remember" checked={remember} onCheckedChange={v => setRemember(!!v)} />
-                    <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">Remember me</Label>
-                  </div>
+                <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={() => setMode('forgot')}

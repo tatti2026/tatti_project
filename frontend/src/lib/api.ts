@@ -11,7 +11,7 @@ const API_BASE = import.meta.env.VITE_API_URL || (
 );
 
 function getHeaders(): HeadersInit {
-  // Check localStorage first (remember-me logins), then sessionStorage (session-only logins).
+  // Check localStorage first, then sessionStorage.
   // Both admin and student tokens must be found regardless of which storage was used.
   const token = localStorage.getItem('tatti_token') || sessionStorage.getItem('tatti_token');
   const headers: Record<string, string> = {

@@ -42,7 +42,7 @@ interface AuthContextType {
   profile: Profile | null;
   role: UserRole | null;
   loading: boolean;
-  signInWithEmail: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: Error | null }>;
+  signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUpWithEmail: (
     paramsOrEmail: string | SignUpParams,
     password?: string,
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Check localStorage first (remember me), then sessionStorage (session-only)
+    // Check localStorage first, then sessionStorage
     const token = localStorage.getItem('tatti_token') || sessionStorage.getItem('tatti_token');
     if (!token) {
       setUser(null);
@@ -109,12 +109,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Sign in with email/password.
    *
-   * rememberMe = true  (default) -> JWT token stored in localStorage (survives browser restart).
-   * rememberMe = false           -> JWT token stored in sessionStorage only (cleared on tab/window close).
-   *
    * SECURITY: Only the JWT token is persisted — passwords are NEVER stored on the client.
    */
-  const signInWithEmail = async (email: string, password: string, rememberMe = true) => {
+  const signInWithEmail = async (email: string, password: string) => {
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
@@ -135,13 +132,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.token) {
-        if (rememberMe) {
-          localStorage.setItem('tatti_token', data.token);
-          sessionStorage.removeItem('tatti_token');
-        } else {
-          sessionStorage.setItem('tatti_token', data.token);
-          localStorage.removeItem('tatti_token');
-        }
+        localStorage.setItem('tatti_token', data.token);
+        sessionStorage.removeItem('tatti_token');
       }
 
       const loggedInUser: User = data.user || {

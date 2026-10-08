@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Eye, EyeOff, GraduationCap, Shield, Loader2, Mail } from 'lucide-react';
@@ -16,7 +15,6 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Forgot password dialog state
@@ -42,7 +40,7 @@ export default function AdminLoginPage() {
     e.preventDefault();
     if (!email || !password) { toast.error('Please fill in all fields'); return; }
     setLoading(true);
-    const { error } = await signInWithEmail(email.trim(), password, remember);
+    const { error } = await signInWithEmail(email.trim(), password);
     setLoading(false);
     if (error) toast.error('Invalid admin credentials');
     else {
@@ -137,15 +135,7 @@ export default function AdminLoginPage() {
                 </button>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="admin-remember"
-                  checked={remember}
-                  onCheckedChange={v => setRemember(!!v)}
-                />
-                <Label htmlFor="admin-remember" className="text-sm text-[#667085] cursor-pointer">Remember me</Label>
-              </div>
+            <div className="flex justify-end">
               <button
                 type="button"
                 onClick={handleForgotOpen}
