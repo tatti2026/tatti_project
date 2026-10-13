@@ -63,7 +63,9 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Main content row */}
+      <div className="flex flex-1 min-h-0">
       {/* Left brand panel */}
       <div className="hidden lg:flex flex-col justify-between w-[45%] xl:w-[42%] relative overflow-hidden" style={{ background: 'linear-gradient(160deg, hsl(220 72% 16%), hsl(220 65% 24%))' }}>
         {/* Subtle pattern */}
@@ -127,7 +129,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right login card */}
-      <div className="flex-1 flex items-center justify-center p-6 md:p-10 bg-background">
+      <div className="flex-1 flex items-center justify-center p-6 md:p-10 bg-background pb-6">
         <div className="w-full max-w-[400px]">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
@@ -204,13 +206,6 @@ export default function LoginPage() {
                   Create an account
                 </button>
               </p>
-              <div className="mt-5 pt-5" style={{ borderTop: '1px solid hsl(var(--border))' }}>
-                <Link to="/admin/login">
-                  <Button variant="outline" className="w-full text-sm h-9 text-muted-foreground hover:text-foreground">
-                    Admin Portal Login
-                  </Button>
-                </Link>
-              </div>
             </div>
           )}
 
@@ -302,7 +297,24 @@ export default function LoginPage() {
             </div>
           )}
         </div>
+
       </div>
+      </div>
+
+      {/* Page footer — portal switcher */}
+      <footer className="py-5 flex items-center justify-center border-t" style={{ borderColor: 'hsl(var(--border))' }}>
+        <Link
+          to="/admin/login"
+          className="text-sm flex items-center gap-1 transition-colors duration-200 group"
+          style={{ color: 'hsl(var(--muted-foreground))' }}
+          id="switch-to-admin-portal"
+          onMouseEnter={e => (e.currentTarget.style.color = 'hsl(213 85% 50%)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'hsl(var(--muted-foreground))')}
+        >
+          Admin Portal
+          <span className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+        </Link>
+      </footer>
     </div>
   );
 }

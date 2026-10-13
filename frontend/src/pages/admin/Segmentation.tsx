@@ -30,9 +30,14 @@ interface AnswerRow {
   optionB: string;
   optionC: string;
   optionD: string;
+  /** Per-option marks from admin config */
+  marksA: number;
+  marksB: number;
+  marksC: number;
+  marksD: number;
   selectedAnswer: 'A' | 'B' | 'C' | 'D' | null;
-  isCorrect: boolean | null;
-  correctAnswer: 'A' | 'B' | 'C' | 'D' | null;
+  /** Marks awarded for the selected option */
+  marksAwarded: number;
 }
 
 const OPTION_LABELS = ['A', 'B', 'C', 'D'] as const;
@@ -55,9 +60,15 @@ function AnswersModal({
     const answers = assessment.answers as Record<string, string>;
     return questions.map((q, idx) => {
       const selected = (answers[q.id] || null) as 'A' | 'B' | 'C' | 'D' | null;
-      const correctAns = (q.correct_answer || null) as 'A' | 'B' | 'C' | 'D' | null;
-      const isCorrect =
-        selected && correctAns ? selected === correctAns : null;
+      const mA = Number(q.marks_a) || 1;
+      const mB = Number(q.marks_b) || 1;
+      const mC = Number(q.marks_c) || 1;
+      const mD = Number(q.marks_d) || 1;
+      let marksAwarded = 0;
+      if (selected === 'A') marksAwarded = mA;
+      else if (selected === 'B') marksAwarded = mB;
+      else if (selected === 'C') marksAwarded = mC;
+      else if (selected === 'D') marksAwarded = mD;
       return {
         questionNumber: idx + 1,
         questionText: q.question_text,
@@ -65,15 +76,18 @@ function AnswersModal({
         optionB: q.option_b,
         optionC: q.option_c,
         optionD: q.option_d,
+        marksA: mA,
+        marksB: mB,
+        marksC: mC,
+        marksD: mD,
         selectedAnswer: selected,
-        isCorrect,
-        correctAnswer: correctAns,
+        marksAwarded,
       };
     });
   }, [assessment, questions]);
 
   const answeredCount = rows.filter(r => r.selectedAnswer).length;
-  const correctCount = rows.filter(r => r.isCorrect === true).length;
+  const totalAwarded = rows.reduce((sum, r) => sum + r.marksAwarded, 0);
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
@@ -96,11 +110,9 @@ function AnswersModal({
               ({assessment.score ?? 0}/{assessment.total_marks ?? rows.length} marks)
             </span>
           )}
-          {rows.some(r => r.correctAnswer !== null) && (
-            <span className="text-xs bg-emerald-500/10 text-emerald-500 rounded-lg px-3 py-1.5 font-semibold border border-emerald-500/20">
-              {correctCount} Correct
-            </span>
-          )}
+          <span className="text-xs bg-emerald-500/10 text-emerald-600 rounded-lg px-3 py-1.5 font-semibold border border-emerald-500/20">
+            {totalAwarded} marks awarded
+          </span>
         </div>
 
         {/* Scrollable answer list */}
@@ -117,36 +129,39 @@ function AnswersModal({
                 C: row.optionC,
                 D: row.optionD,
               };
+              const marksMap: Record<string, number> = {
+                A: row.marksA,
+                B: row.marksB,
+                C: row.marksC,
+                D: row.marksD,
+              };
               return (
                 <div
                   key={row.questionNumber}
                   className="glass-card rounded-xl p-4 border border-border"
                 >
-                  {/* Question */}
+                  {/* Question header */}
                   <div className="flex items-start gap-3 mb-3">
                     <span className="w-7 h-7 rounded-lg gradient-bg flex items-center justify-center text-white text-[11px] font-bold shrink-0">
                       Q{row.questionNumber}
                     </span>
-                    <p className="text-sm font-medium text-foreground leading-snug">
+                    <p className="text-sm font-medium text-foreground leading-snug flex-1">
                       {row.questionText}
                     </p>
+                    {row.selectedAnswer && (
+                      <span className="shrink-0 text-xs font-bold text-primary bg-primary/10 border border-primary/20 rounded-lg px-2 py-1">
+                        +{row.marksAwarded} mk
+                      </span>
+                    )}
                   </div>
 
                   {/* Options grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     {OPTION_LABELS.map(opt => {
                       const isSelected = row.selectedAnswer === opt;
-                      const isCorrectOpt = row.correctAnswer === opt;
-
                       let cls = 'border-border bg-muted/40 text-muted-foreground';
-                      if (isSelected && row.isCorrect === true)
-                        cls = 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600';
-                      else if (isSelected && row.isCorrect === false)
-                        cls = 'border-rose-500/40 bg-rose-500/10 text-rose-500';
-                      else if (isSelected && row.isCorrect === null)
+                      if (isSelected)
                         cls = 'border-primary/40 bg-primary/10 text-primary';
-                      else if (isCorrectOpt && !isSelected && row.correctAnswer !== null)
-                        cls = 'border-emerald-500/30 bg-emerald-500/5 text-emerald-600/70';
 
                       return (
                         <div
@@ -154,15 +169,18 @@ function AnswersModal({
                           className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-all ${cls}`}
                         >
                           <span className={`w-5 h-5 rounded flex items-center justify-center font-bold text-[10px] shrink-0 ${
-                            isSelected ? 'bg-current text-white opacity-90' : 'bg-muted'
+                            isSelected ? 'bg-primary text-white' : 'bg-muted text-foreground'
                           }`}>
                             {opt}
                           </span>
                           <span className="flex-1 font-medium leading-snug">{optionMap[opt]}</span>
+                          <span className={`text-[10px] font-semibold shrink-0 ${
+                            isSelected ? 'text-primary' : 'text-muted-foreground/60'
+                          }`}>
+                            {marksMap[opt]} mk
+                          </span>
                           {isSelected && (
-                            <span className="text-[10px] font-bold shrink-0 opacity-80 ml-auto">
-                              {row.isCorrect === true ? '✓ Correct' : row.isCorrect === false ? '✗ Wrong' : 'Selected'}
-                            </span>
+                            <span className="text-[10px] font-bold shrink-0 ml-1">✓</span>
                           )}
                         </div>
                       );

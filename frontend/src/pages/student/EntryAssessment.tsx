@@ -194,9 +194,20 @@ export default function EntryAssessment() {
       let score = 0;
       let totalMarks = 0;
       questions.forEach(q => {
-        const qMarks = Number(q.marks) || 1;
-        totalMarks += qMarks;
-        if (q.correct_answer && answers[q.id] === q.correct_answer) score += qMarks;
+        // Best possible marks = max of the four option marks
+        const mA = Number(q.marks_a) || 1;
+        const mB = Number(q.marks_b) || 1;
+        const mC = Number(q.marks_c) || 1;
+        const mD = Number(q.marks_d) || 1;
+        const best = Math.max(mA, mB, mC, mD);
+        totalMarks += best;
+
+        // Award the marks for whichever option the student selected
+        const sel = answers[q.id]?.toUpperCase();
+        if (sel === 'A') score += mA;
+        else if (sel === 'B') score += mB;
+        else if (sel === 'C') score += mC;
+        else if (sel === 'D') score += mD;
       });
 
       const percentage = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
@@ -455,10 +466,9 @@ export default function EntryAssessment() {
               </span>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <Badge variant="outline" className="text-[10px] capitalize">
-                    {q.difficulty}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">{q.marks} Mark{q.marks > 1 ? 's' : ''}</span>
+                  <span className="text-xs text-muted-foreground">
+                    Marks: {Math.min(Number(q.marks_a)||1, Number(q.marks_b)||1, Number(q.marks_c)||1, Number(q.marks_d)||1)}–{Math.max(Number(q.marks_a)||1, Number(q.marks_b)||1, Number(q.marks_c)||1, Number(q.marks_d)||1)}
+                  </span>
                 </div>
                 <p className="text-foreground font-semibold text-base leading-relaxed">{q.question_text}</p>
               </div>

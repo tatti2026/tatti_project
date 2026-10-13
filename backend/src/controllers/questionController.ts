@@ -35,11 +35,21 @@ export async function getAllQuestions(_req: Request, res: Response) {
   }
 }
 
+/** Parse and validate an option marks value — must be a non-negative integer. */
+function parseOptionMarks(val: unknown, fallback = 1): number {
+  if (val === null || val === undefined || val === '') return fallback;
+  const n = Number(val);
+  if (Number.isFinite(n) && n >= 0) return Math.round(n);
+  return fallback;
+}
+
 export async function createQuestion(req: Request, res: Response) {
   try {
     const {
       question_text, option_a, option_b, option_c, option_d,
-      correct_answer, marks, difficulty, category, is_active
+      marks_a, marks_b, marks_c, marks_d,
+      // Legacy fields kept nullable so old requests do not break
+      correct_answer, difficulty, category, is_active
     } = req.body;
 
     if (
@@ -52,14 +62,26 @@ export async function createQuestion(req: Request, res: Response) {
       return res.status(400).json({ error: 'Question text and all 4 options are required.' });
     }
 
+    // Validate that all four option marks are provided and are non-negative integers
+    if (
+      marks_a === undefined || marks_a === null || marks_a === '' ||
+      marks_b === undefined || marks_b === null || marks_b === '' ||
+      marks_c === undefined || marks_c === null || marks_c === '' ||
+      marks_d === undefined || marks_d === null || marks_d === ''
+    ) {
+      return res.status(400).json({ error: 'Marks for all four options (A, B, C, D) are required.' });
+    }
+
+    const cleanedMarksA = parseOptionMarks(marks_a);
+    const cleanedMarksB = parseOptionMarks(marks_b);
+    const cleanedMarksC = parseOptionMarks(marks_c);
+    const cleanedMarksD = parseOptionMarks(marks_d);
+
+    // Legacy optional fields
     const cleanedCorrectAnswer = (
       typeof correct_answer === 'string' &&
       ['A', 'B', 'C', 'D'].includes(correct_answer.trim().toUpperCase())
     ) ? correct_answer.trim().toUpperCase() : null;
-
-    const cleanedMarks = (
-      marks !== undefined && marks !== null && marks !== '' && !isNaN(Number(marks))
-    ) ? Number(marks) : null;
 
     const cleanedCategory = (typeof category === 'string' && category.trim()) ? category.trim() : null;
 
@@ -70,20 +92,21 @@ export async function createQuestion(req: Request, res: Response) {
 
     const cleanedIsActive = is_active !== undefined ? Boolean(is_active) : true;
 
+    // The legacy single `marks` column gets the max of the four option marks for backwards compatibility
+    const legacyMarks = Math.max(cleanedMarksA, cleanedMarksB, cleanedMarksC, cleanedMarksD);
+
     console.log('[questionController/createQuestion] Inserting question:', {
       textPreview: question_text.trim().substring(0, 40) + '...',
-      cleanedCorrectAnswer,
-      cleanedMarks,
-      cleanedDifficulty,
-      cleanedCategory,
-      cleanedIsActive,
+      cleanedMarksA, cleanedMarksB, cleanedMarksC, cleanedMarksD,
+      cleanedCorrectAnswer, cleanedIsActive,
     });
 
     const result = await query(`
       INSERT INTO questions (
         question_text, option_a, option_b, option_c, option_d,
-        correct_answer, marks, difficulty, category, is_active
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        marks_a, marks_b, marks_c, marks_d, marks,
+        correct_answer, difficulty, category, is_active
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *;
     `, [
       question_text.trim(),
@@ -91,8 +114,12 @@ export async function createQuestion(req: Request, res: Response) {
       option_b.trim(),
       option_c.trim(),
       option_d.trim(),
+      cleanedMarksA,
+      cleanedMarksB,
+      cleanedMarksC,
+      cleanedMarksD,
+      legacyMarks,
       cleanedCorrectAnswer,
-      cleanedMarks,
       cleanedDifficulty,
       cleanedCategory,
       cleanedIsActive
@@ -112,8 +139,14 @@ export async function updateQuestion(req: Request, res: Response) {
     const { id } = req.params;
     const body = req.body;
 
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({ error: 'Valid question ID is required.' });
+    }
+
     const allowedFields = [
       'question_text', 'option_a', 'option_b', 'option_c', 'option_d',
+      'marks_a', 'marks_b', 'marks_c', 'marks_d',
+      // Legacy fields kept for backwards compatibility
       'correct_answer', 'marks', 'difficulty', 'category', 'is_active'
     ];
 
@@ -133,6 +166,8 @@ export async function updateQuestion(req: Request, res: Response) {
           ) ? val.trim().toUpperCase() : null;
         } else if (field === 'marks') {
           val = (val !== null && val !== '' && !isNaN(Number(val))) ? Number(val) : null;
+        } else if (['marks_a', 'marks_b', 'marks_c', 'marks_d'].includes(field)) {
+          val = parseOptionMarks(val);
         } else if (field === 'category') {
           val = (typeof val === 'string' && val.trim()) ? val.trim() : null;
         } else if (field === 'difficulty') {
@@ -149,8 +184,28 @@ export async function updateQuestion(req: Request, res: Response) {
       }
     }
 
+    // If all option marks are present or updated, synchronize legacy `marks` column
+    const optionMarkFields = ['marks_a', 'marks_b', 'marks_c', 'marks_d'] as const;
+    const allOptionMarksPresent = optionMarkFields.every(f => body[f] !== undefined);
+    if (allOptionMarksPresent) {
+      const legacyMarks = Math.max(
+        parseOptionMarks(body.marks_a),
+        parseOptionMarks(body.marks_b),
+        parseOptionMarks(body.marks_c),
+        parseOptionMarks(body.marks_d),
+      );
+      const marksIdx = fieldsToUpdate.findIndex(f => f.startsWith('marks ='));
+      if (marksIdx >= 0) {
+        values[marksIdx] = legacyMarks;
+      } else {
+        fieldsToUpdate.push(`marks = $${idx}`);
+        values.push(legacyMarks);
+        idx++;
+      }
+    }
+
     if (fieldsToUpdate.length === 0) {
-      return res.json({ message: 'No fields to update' });
+      return res.status(400).json({ error: 'No valid fields provided to update.' });
     }
 
     fieldsToUpdate.push(`updated_at = now()`);
@@ -163,7 +218,13 @@ export async function updateQuestion(req: Request, res: Response) {
       return res.status(404).json({ error: 'Question not found' });
     }
 
-    console.log('[questionController/updateQuestion] Updated question ID:', id);
+    console.log('[questionController/updateQuestion] Updated question ID:', id, {
+      marks_a: result.rows[0].marks_a,
+      marks_b: result.rows[0].marks_b,
+      marks_c: result.rows[0].marks_c,
+      marks_d: result.rows[0].marks_d,
+      marks: result.rows[0].marks,
+    });
     return res.json(result.rows[0]);
   } catch (err: any) {
     console.error('[questionController/updateQuestion] Error updating question:', err.message, err.detail);
@@ -182,4 +243,3 @@ export async function deleteQuestion(req: Request, res: Response) {
     return res.status(500).json({ error: err.message || 'Internal server error while deleting question' });
   }
 }
-

@@ -64,12 +64,13 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
       </div>
 
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-md relative">
         {/* Header */}
         <div className="text-center mb-8">
@@ -122,11 +123,23 @@ export default function AdminLoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Student?{' '}
-          <a href="/login" className="text-primary hover:underline">Go to Student Portal</a>
-        </p>
       </div>
+      </div>
+
+      {/* Page footer — portal switcher */}
+      <footer className="py-5 flex items-center justify-center border-t" style={{ borderColor: 'hsl(var(--border))' }}>
+        <a
+          href="/login"
+          className="text-sm flex items-center gap-1 transition-colors duration-200 group"
+          style={{ color: 'hsl(var(--muted-foreground))' }}
+          id="switch-to-student-portal"
+          onMouseEnter={e => (e.currentTarget.style.color = 'hsl(213 85% 50%)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'hsl(var(--muted-foreground))')}
+        >
+          <span className="transition-transform duration-200 group-hover:-translate-x-0.5">←</span>
+          Go to Student Portal
+        </a>
+      </footer>
 
       {/* Forgot Password Dialog */}
       <Dialog open={forgotOpen} onOpenChange={open => { setForgotOpen(open); if (!open) setForgotMode('form'); }}>

@@ -6,19 +6,43 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import type { Question } from '@/types/index';
 import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Loader2, Search } from 'lucide-react';
 
 const emptyQ = (): Partial<Question> => ({
-  question_text: '', option_a: '', option_b: '', option_c: '', option_d: '',
-  correct_answer: null, marks: null, difficulty: 'medium', category: '', is_active: true,
+  question_text: '',
+  option_a: '', option_b: '', option_c: '', option_d: '',
+  marks_a: 4, marks_b: 3, marks_c: 2, marks_d: 1,
+  is_active: true,
 });
 
-const difficultyColors: Record<string, string> = {
-  easy: 'bg-success/20 text-success', medium: 'bg-warning/20 text-warning', hard: 'bg-destructive/20 text-destructive',
-};
+interface MarksInputProps {
+  value: number | null | undefined;
+  onChange: (val: number | null) => void;
+  label: string;
+}
+
+function MarksInput({ value, onChange, label }: MarksInputProps) {
+  return (
+    <Input
+      type="number"
+      min={0}
+      step={1}
+      placeholder="e.g. 4"
+      value={value ?? ''}
+      onChange={e => onChange(e.target.value === '' ? null : Math.max(0, parseInt(e.target.value, 10) || 0))}
+      className="w-20 shrink-0 bg-input border-border text-center"
+      title={`Marks for ${label}`}
+    />
+  );
+}
+
+function optionMarksLabel(q: Question, opt: 'a' | 'b' | 'c' | 'd'): string {
+  const key = `marks_${opt}` as 'marks_a' | 'marks_b' | 'marks_c' | 'marks_d';
+  const v = q[key];
+  return v !== null && v !== undefined ? `${v} mk` : '1 mk';
+}
 
 export default function QuestionManagement() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -35,8 +59,7 @@ export default function QuestionManagement() {
       const qs = await getAllQuestions();
       setQuestions(qs);
       setFiltered(search.trim() ? qs.filter(q =>
-        q.question_text.toLowerCase().includes(search.toLowerCase()) ||
-        (q.category || '').toLowerCase().includes(search.toLowerCase())
+        q.question_text.toLowerCase().includes(search.toLowerCase())
       ) : qs);
     } catch (err: any) {
       console.error('Failed to load questions:', err);
@@ -52,13 +75,34 @@ export default function QuestionManagement() {
     setSearch(v);
     if (!v) { setFiltered(questions); return; }
     setFiltered(questions.filter(q =>
-      q.question_text.toLowerCase().includes(v.toLowerCase()) ||
-      (q.category || '').toLowerCase().includes(v.toLowerCase())
+      q.question_text.toLowerCase().includes(v.toLowerCase())
     ));
   };
 
   const openAdd = () => { setFormData(emptyQ()); setShowForm(true); };
-  const openEdit = (q: Question) => { setFormData({ ...q }); setShowForm(true); };
+  const openEdit = (q: Question) => {
+    setFormData({
+      ...q,
+      marks_a: q.marks_a ?? 1,
+      marks_b: q.marks_b ?? 1,
+      marks_c: q.marks_c ?? 1,
+      marks_d: q.marks_d ?? 1,
+    });
+    setShowForm(true);
+  };
+
+  const validateOptionMarks = (val: unknown, label: string): number | null => {
+    if (val === null || val === undefined || val === '') {
+      toast.error(`Marks for ${label} are required.`);
+      return null;
+    }
+    const n = Number(val);
+    if (!Number.isFinite(n) || n < 0) {
+      toast.error(`Marks for ${label} must be a non-negative number.`);
+      return null;
+    }
+    return Math.round(n);
+  };
 
   const handleSave = async () => {
     if (!formData.question_text?.trim()) {
@@ -75,6 +119,12 @@ export default function QuestionManagement() {
       return;
     }
 
+    const mA = validateOptionMarks(formData.marks_a, 'Option A');
+    const mB = validateOptionMarks(formData.marks_b, 'Option B');
+    const mC = validateOptionMarks(formData.marks_c, 'Option C');
+    const mD = validateOptionMarks(formData.marks_d, 'Option D');
+    if (mA === null || mB === null || mC === null || mD === null) return;
+
     setSaving(true);
     try {
       const payload: Partial<Question> = {
@@ -84,16 +134,31 @@ export default function QuestionManagement() {
         option_b: formData.option_b.trim(),
         option_c: formData.option_c.trim(),
         option_d: formData.option_d.trim(),
-        correct_answer: formData.correct_answer ? formData.correct_answer : null,
-        marks: formData.marks !== null && formData.marks !== undefined && formData.marks !== ('' as any)
-          ? Number(formData.marks)
-          : null,
-        category: formData.category?.trim() ? formData.category.trim() : null,
-        difficulty: formData.difficulty || 'medium',
+        marks_a: mA,
+        marks_b: mB,
+        marks_c: mC,
+        marks_d: mD,
+        // Clear legacy/removed fields so backend stays clean
+        correct_answer: null,
+        category: null,
         is_active: formData.is_active ?? true,
       };
 
-      await upsertQuestion(payload);
+      const saved = await upsertQuestion(payload);
+      if (!saved || typeof saved !== 'object') {
+        throw new Error('Failed to save question: invalid server response.');
+      }
+
+      // Verify that the marks were saved accurately
+      if (
+        formData.id &&
+        saved.marks_a !== undefined &&
+        saved.marks_a !== null &&
+        (Number(saved.marks_a) !== mA || Number(saved.marks_b) !== mB || Number(saved.marks_c) !== mC || Number(saved.marks_d) !== mD)
+      ) {
+        throw new Error(`Server failed to update option marks (returned A=${saved.marks_a}, B=${saved.marks_b}, C=${saved.marks_c}, D=${saved.marks_d}).`);
+      }
+
       setShowForm(false);
       toast.success(formData.id ? 'Question updated' : 'Question added');
       await fetchData();
@@ -163,16 +228,18 @@ export default function QuestionManagement() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground mb-2">{q.question_text}</p>
                   <div className="grid grid-cols-2 gap-1.5 mb-2">
-                    {[{ label: 'A', text: q.option_a }, { label: 'B', text: q.option_b }, { label: 'C', text: q.option_c }, { label: 'D', text: q.option_d }].map(({ label, text }) => (
-                      <div key={label} className={`text-xs px-2 py-1 rounded flex items-center gap-1.5 ${q.correct_answer === label ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'}`}>
-                        <span className="font-bold">{label}.</span> {text}
+                    {([
+                      { label: 'A', text: q.option_a, mk: optionMarksLabel(q, 'a') },
+                      { label: 'B', text: q.option_b, mk: optionMarksLabel(q, 'b') },
+                      { label: 'C', text: q.option_c, mk: optionMarksLabel(q, 'c') },
+                      { label: 'D', text: q.option_d, mk: optionMarksLabel(q, 'd') },
+                    ]).map(({ label, text, mk }) => (
+                      <div key={label} className="text-xs px-2 py-1 rounded flex items-center gap-1.5 bg-muted text-muted-foreground">
+                        <span className="font-bold shrink-0">{label}.</span>
+                        <span className="flex-1 truncate">{text}</span>
+                        {mk && <span className="shrink-0 font-semibold text-primary/80">{mk}</span>}
                       </div>
                     ))}
-                  </div>
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {q.category && <Badge variant="secondary" className="text-xs">{q.category}</Badge>}
-                    {q.difficulty && <span className={`text-xs px-1.5 py-0.5 rounded ${difficultyColors[q.difficulty] || 'bg-muted text-muted-foreground'}`}>{q.difficulty}</span>}
-                    {q.marks !== null && q.marks !== undefined && <span className="text-xs text-muted-foreground">{q.marks} mark{q.marks > 1 ? 's' : ''}</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -212,7 +279,9 @@ export default function QuestionManagement() {
           <DialogHeader>
             <DialogTitle>{formData.id ? 'Edit Question' : 'Add Question'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
+
+            {/* Question Text */}
             <div>
               <Label className="text-sm">Question Text *</Label>
               <textarea value={formData.question_text || ''}
@@ -221,63 +290,52 @@ export default function QuestionManagement() {
                 placeholder="Enter the question text..."
                 className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-sm text-foreground resize-none focus:outline-none focus:border-primary" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[
-                { key: 'option_a', label: 'Option A *', placeholder: 'Enter option A' },
-                { key: 'option_b', label: 'Option B *', placeholder: 'Enter option B' },
-                { key: 'option_c', label: 'Option C *', placeholder: 'Enter option C' },
-                { key: 'option_d', label: 'Option D *', placeholder: 'Enter option D' },
-              ].map(({ key, label, placeholder }) => (
-                <div key={key}>
-                  <Label className="text-sm">{label}</Label>
-                  <Input
-                    placeholder={placeholder}
-                    value={(formData as Record<string, string>)[key] || ''}
-                    onChange={e => set(key as keyof Question, e.target.value)}
-                    className="mt-1 bg-input border-border"
-                  />
-                </div>
-              ))}
+
+            {/* Options with individual marks */}
+            <div>
+              <Label className="text-sm mb-2 block">Options &amp; Marks *</Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Enter each option's answer text and the marks awarded when a student selects it.
+              </p>
+              <div className="space-y-3">
+                {([
+                  { optKey: 'option_a' as const, marksKey: 'marks_a' as const, label: 'Option A' },
+                  { optKey: 'option_b' as const, marksKey: 'marks_b' as const, label: 'Option B' },
+                  { optKey: 'option_c' as const, marksKey: 'marks_c' as const, label: 'Option C' },
+                  { optKey: 'option_d' as const, marksKey: 'marks_d' as const, label: 'Option D' },
+                ]).map(({ optKey, marksKey, label }) => (
+                  <div key={optKey} className="flex items-center gap-2">
+                    {/* Option badge */}
+                    <span className="w-7 h-7 rounded-md gradient-bg flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      {label.slice(-1)}
+                    </span>
+                    {/* Option text input */}
+                    <Input
+                      placeholder={`${label} answer text *`}
+                      value={(formData as Record<string, string>)[optKey] || ''}
+                      onChange={e => set(optKey, e.target.value)}
+                      className="flex-1 bg-input border-border"
+                    />
+                    {/* Marks label + input */}
+                    <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">Marks</span>
+                    <MarksInput value={formData[marksKey]} onChange={v => set(marksKey, v)} label={label} />
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                💡 Tip: Use different marks (e.g. 4, 3, 2, 1) to reflect how well each answer aligns with a career path.
+              </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <Label className="text-sm">Correct Answer (Optional)</Label>
-                <select
-                  value={formData.correct_answer || ''}
-                  onChange={e => set('correct_answer', e.target.value ? (e.target.value as 'A' | 'B' | 'C' | 'D') : null)}
-                  className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-sm text-foreground focus:outline-none focus:border-primary"
-                >
-                  <option value="">None / Optional</option>
-                  {['A', 'B', 'C', 'D'].map(o => <option key={o} value={o}>Option {o}</option>)}
-                </select>
-              </div>
-              <div>
-                <Label className="text-sm">Marks (Optional)</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  placeholder="e.g. 1"
-                  value={formData.marks !== null && formData.marks !== undefined ? formData.marks : ''}
-                  onChange={e => set('marks', e.target.value === '' ? null : (parseInt(e.target.value, 10) || null))}
-                  className="mt-1 bg-input border-border"
-                />
-              </div>
-              <div>
-                <Label className="text-sm">Category (Optional)</Label>
-                <Input
-                  value={formData.category || ''}
-                  onChange={e => set('category', e.target.value)}
-                  className="mt-1 bg-input border-border"
-                  placeholder="e.g. Web Dev"
-                />
-              </div>
-            </div>
+
+            {/* Active toggle */}
             <div className="flex items-center gap-2">
               <input type="checkbox" id="q-active" checked={formData.is_active ?? true}
                 onChange={e => set('is_active', e.target.checked)} className="w-4 h-4" />
               <Label htmlFor="q-active" className="text-sm cursor-pointer">Active (visible to students)</Label>
             </div>
-            <div className="flex gap-3 pt-2">
+
+            {/* Action buttons */}
+            <div className="flex gap-3 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancel</Button>
               <Button className="flex-1 gradient-bg border-0 text-white" onClick={handleSave} disabled={saving}>
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Save Question

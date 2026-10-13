@@ -153,7 +153,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#F5F7FA]">
+    <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
+      {/* Main content row */}
+      <div className="flex flex-1 min-h-0">
       {/* Left corporate branding panel */}
       <div className="hidden lg:flex flex-col justify-between w-[45%] xl:w-[42%] relative overflow-hidden p-10 bg-[#0B1F3A] text-white">
         {/* Subtle geometric grid */}
@@ -217,7 +219,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right login card */}
-      <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[#F5F7FA]">
+      <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[#F5F7FA] pb-6">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-6 lg:hidden">
@@ -302,12 +304,6 @@ export default function LoginPage() {
                 New student?{' '}
                 <button onClick={() => changeMode('signup')} className="text-[#1D4ED8] font-semibold hover:underline">Sign Up</button>
               </p>
-              <div className="mt-4">
-                <div className="text-center text-xs text-muted-foreground mb-3">— OR —</div>
-                <Link to="/admin/login">
-                  <Button variant="outline" className="w-full text-sm border-[#E4E7EC] hover:bg-[#F8FAFC]">Admin Portal</Button>
-                </Link>
-              </div>
             </div>
           )}
 
@@ -585,6 +581,19 @@ export default function LoginPage() {
         </div>
 
       </div>
+      </div>
+
+      {/* Page footer — portal switcher */}
+      <footer className="py-5 flex items-center justify-center bg-[#F5F7FA] border-t border-[#E4E7EC]">
+        <Link
+          to="/admin/login"
+          className="text-sm text-[#667085] hover:text-[#1D4ED8] transition-colors duration-200 flex items-center gap-1 group"
+          id="switch-to-admin-portal"
+        >
+          Admin Portal
+          <span className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+        </Link>
+      </footer>
     </div>
   );
 }

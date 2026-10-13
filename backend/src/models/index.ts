@@ -65,6 +65,12 @@ export interface QuestionRecord {
   option_c: string;
   option_d: string;
   correct_answer: 'A' | 'B' | 'C' | 'D' | null;
+  /** Per-option marks for career-fit scoring */
+  marks_a: number | null;
+  marks_b: number | null;
+  marks_c: number | null;
+  marks_d: number | null;
+  /** Legacy single marks column kept for backward compatibility */
   marks: number | null;
   difficulty: 'easy' | 'medium' | 'hard' | null;
   category: string | null;

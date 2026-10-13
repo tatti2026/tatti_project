@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Paperclip, FileText, Send, Keyboard } from 'lucide-react';
+import { Paperclip, Send } from 'lucide-react';
 import DocumentUploadModal, { UploadedFileData } from './DocumentUploadModal';
-import VirtualKeyboard from './VirtualKeyboard';
+import { EmojiPickerButton } from './EmojiPicker';
 
 export interface ChatInputProps {
   onSendMessage: (text: string) => void;
@@ -19,7 +19,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 }) => {
   const [text, setText] = useState('');
   const [docModalOpen, setDocModalOpen] = useState(false);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = () => {
@@ -38,61 +37,48 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  // Virtual keyboard callbacks
-  const handleVirtualKeyPress = (char: string) => {
-    setText(prev => prev + char);
-    if (inputRef.current) {
-      inputRef.current.focus();
+  /** Insert emoji at the current cursor position inside the text input */
+  const handleEmojiSelect = (emoji: string) => {
+    const input = inputRef.current;
+    if (!input) {
+      setText(prev => prev + emoji);
+      return;
     }
-  };
-
-  const handleVirtualBackspace = () => {
-    setText(prev => prev.slice(0, -1));
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  };
-
-  const handleVirtualSpace = () => {
-    setText(prev => prev + ' ');
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  };
-
-  const handleVirtualEnter = () => {
-    handleSend();
+    const start = input.selectionStart ?? text.length;
+    const end = input.selectionEnd ?? text.length;
+    const newText = text.slice(0, start) + emoji + text.slice(end);
+    setText(newText);
+    // Restore cursor position after the inserted emoji
+    requestAnimationFrame(() => {
+      input.focus();
+      const pos = start + emoji.length;
+      input.setSelectionRange(pos, pos);
+    });
   };
 
   return (
     <>
       <div className="p-3 border-t border-border bg-card/60 backdrop-blur-sm">
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* 📎 Attachment / Document Upload Buttons */}
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setDocModalOpen(true)}
-              disabled={disabled}
-              title="Upload Document"
-              className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors disabled:opacity-50"
-            >
-              <Paperclip className="w-4 h-4" />
-            </button>
 
-            <button
-              type="button"
-              onClick={() => setDocModalOpen(true)}
-              disabled={disabled}
-              title="Upload Document (PDF, DOC, XLS, etc.)"
-              className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors hidden sm:flex items-center gap-1 text-xs font-medium disabled:opacity-50"
-            >
-              <FileText className="w-4 h-4 text-primary" />
-              <span className="text-[11px]">Doc</span>
-            </button>
-          </div>
+          {/* Attachment button */}
+          <button
+            type="button"
+            onClick={() => setDocModalOpen(true)}
+            disabled={disabled}
+            title="Upload Document"
+            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors disabled:opacity-50 shrink-0"
+          >
+            <Paperclip className="w-4 h-4" />
+          </button>
 
-          {/* Input Field */}
+          {/* Emoji picker button */}
+          <EmojiPickerButton
+            onEmojiSelect={handleEmojiSelect}
+            disabled={disabled}
+          />
+
+          {/* Message input */}
           <div className="relative flex-1">
             <input
               ref={inputRef}
@@ -100,25 +86,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               value={text}
               onChange={e => setText(e.target.value)}
               onKeyDown={handleKeyDown}
-              onClick={() => setKeyboardOpen(true)}
               placeholder={placeholder}
               disabled={disabled}
-              className="w-full bg-input/70 hover:bg-input border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-all pr-9"
+              className="w-full bg-input/70 hover:bg-input border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-all"
             />
-            {/* Keyboard toggle icon inside input */}
-            <button
-              type="button"
-              onClick={() => setKeyboardOpen(prev => !prev)}
-              title={keyboardOpen ? 'Close Virtual Keyboard' : 'Open Virtual Keyboard'}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md transition-colors ${
-                keyboardOpen ? 'text-primary bg-primary/15' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Keyboard className="w-4 h-4" />
-            </button>
           </div>
 
-          {/* Send Button */}
+          {/* Send button */}
           <Button
             type="button"
             onClick={handleSend}
@@ -138,17 +112,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         onUpload={(file) => {
           onSendDocument(file);
         }}
-      />
-
-      {/* Virtual Keyboard */}
-      <VirtualKeyboard
-        open={keyboardOpen}
-        onClose={() => setKeyboardOpen(false)}
-        onKeyPress={handleVirtualKeyPress}
-        onBackspace={handleVirtualBackspace}
-        onSpace={handleVirtualSpace}
-        onEnter={handleVirtualEnter}
-        onUploadDoc={() => setDocModalOpen(true)}
       />
     </>
   );

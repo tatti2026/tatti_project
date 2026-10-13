@@ -6,6 +6,7 @@ export interface EvaluationResult {
   percentage: number;
   totalQuestions: number;
   answeredCount: number;
+  /** For career-fit assessments there is no single "correct" answer, so this is always 0. */
   correctCount: number;
   performanceTier: {
     tier: 'Exceptional' | 'Proficient' | 'Developing' | 'Needs Improvement';
@@ -14,24 +15,44 @@ export interface EvaluationResult {
   };
 }
 
+/**
+ * Career-Fit Scoring — awards marks based on the marks value configured for
+ * whichever option the student selected (marks_a / marks_b / marks_c / marks_d).
+ *
+ * Total marks for percentage calculation = sum of the maximum option marks per question,
+ * which represents the best possible score.
+ */
 export function evaluateAssessmentAnswers(
   questions: QuestionRecord[],
   answers: Record<string, string>
 ): EvaluationResult {
   let score = 0;
   let totalMarks = 0;
-  let correctCount = 0;
   let answeredCount = 0;
 
   for (const q of questions) {
-    totalMarks += q.marks || 1;
-    const studentAns = answers[q.id];
-    if (studentAns) {
+    // Best possible marks for this question = max of all option marks
+    const bestMarks = Math.max(
+      Number(q.marks_a) || 1,
+      Number(q.marks_b) || 1,
+      Number(q.marks_c) || 1,
+      Number(q.marks_d) || 1,
+    );
+    totalMarks += bestMarks;
+
+    const selected = answers[q.id];
+    if (selected) {
       answeredCount++;
-      if (q.correct_answer && studentAns.toUpperCase() === q.correct_answer.toUpperCase()) {
-        score += q.marks || 1;
-        correctCount++;
+      // Award marks for the specific selected option
+      let awarded = 0;
+      switch (selected.toUpperCase()) {
+        case 'A': awarded = Number(q.marks_a) || 1; break;
+        case 'B': awarded = Number(q.marks_b) || 1; break;
+        case 'C': awarded = Number(q.marks_c) || 1; break;
+        case 'D': awarded = Number(q.marks_d) || 1; break;
+        default:  awarded = 0;
       }
+      score += awarded;
     }
   }
 
@@ -70,7 +91,7 @@ export function evaluateAssessmentAnswers(
     percentage: Math.round(percentage * 10) / 10,
     totalQuestions: questions.length,
     answeredCount,
-    correctCount,
+    correctCount: 0, // career-fit has no concept of a single correct answer
     performanceTier,
   };
 }

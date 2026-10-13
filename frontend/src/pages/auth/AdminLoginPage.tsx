@@ -70,7 +70,8 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F5F7FA] p-4">
+    <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-md relative">
         {/* Header */}
         <div className="text-center mb-8">
@@ -151,11 +152,20 @@ export default function AdminLoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-[#667085] mt-6">
-          Student?{' '}
-          <a href="/login" className="text-[#1D4ED8] font-medium hover:underline">Go to Student Portal</a>
-        </p>
       </div>
+      </div>
+
+      {/* Page footer — portal switcher */}
+      <footer className="py-5 flex items-center justify-center bg-[#F5F7FA] border-t border-[#E4E7EC]">
+        <a
+          href="/login"
+          className="text-sm text-[#667085] hover:text-[#1D4ED8] transition-colors duration-200 flex items-center gap-1 group"
+          id="switch-to-student-portal"
+        >
+          <span className="transition-transform duration-200 group-hover:-translate-x-0.5">←</span>
+          Go to Student Portal
+        </a>
+      </footer>
 
       {/* Forgot Password Dialog */}
       <Dialog open={forgotOpen} onOpenChange={open => { setForgotOpen(open); if (!open) setForgotMode('form'); }}>
