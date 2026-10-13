@@ -4,11 +4,15 @@ import { query } from '../database/pgPool.js';
 export async function ensureQuestionsSchema(): Promise<void> {
   try {
     await query(`
+      ALTER TABLE questions ADD COLUMN IF NOT EXISTS marks_a INTEGER DEFAULT 1;
+      ALTER TABLE questions ADD COLUMN IF NOT EXISTS marks_b INTEGER DEFAULT 1;
+      ALTER TABLE questions ADD COLUMN IF NOT EXISTS marks_c INTEGER DEFAULT 1;
+      ALTER TABLE questions ADD COLUMN IF NOT EXISTS marks_d INTEGER DEFAULT 1;
       ALTER TABLE questions ALTER COLUMN correct_answer DROP NOT NULL;
       ALTER TABLE questions ALTER COLUMN marks DROP NOT NULL;
       ALTER TABLE questions ALTER COLUMN difficulty DROP NOT NULL;
     `);
-    console.log('[TATTI Backend] questions table schema verified (optional columns nullable).');
+    console.log('[TATTI Backend] questions table schema verified (option marks columns ensured).');
   } catch (err: any) {
     console.error('[TATTI Backend] Note on questions schema migration:', err.message);
   }
