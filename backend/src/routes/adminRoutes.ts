@@ -21,7 +21,7 @@ import {
 
 const router = Router();
 router.use(requireAuth);
-router.use(requireRole('admin'));
+router.use(requireRole(['admin', 'counsellor']));
 
 // Analytics & Reports
 router.get('/dashboard/stats', getDashboardStats);

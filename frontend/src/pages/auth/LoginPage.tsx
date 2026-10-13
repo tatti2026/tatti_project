@@ -304,6 +304,21 @@ export default function LoginPage() {
                 New student?{' '}
                 <button onClick={() => changeMode('signup')} className="text-[#1D4ED8] font-semibold hover:underline">Sign Up</button>
               </p>
+              <div className="mt-4">
+                <div className="text-center text-xs text-muted-foreground mb-3">— OR —</div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Link to="/admin/login">
+                    <Button variant="outline" className="w-full text-xs font-medium border-[#E4E7EC] hover:bg-[#F8FAFC] text-slate-700">
+                      Admin Portal
+                    </Button>
+                  </Link>
+                  <Link to="/counsellor/login">
+                    <Button variant="outline" className="w-full text-xs font-semibold border-emerald-300 text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100/70 hover:text-emerald-800 transition-colors">
+                      Counsellor Portal
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </div>
           )}
 
@@ -582,18 +597,6 @@ export default function LoginPage() {
 
       </div>
       </div>
-
-      {/* Page footer — portal switcher */}
-      <footer className="py-5 flex items-center justify-center bg-[#F5F7FA] border-t border-[#E4E7EC]">
-        <Link
-          to="/admin/login"
-          className="text-sm text-[#667085] hover:text-[#1D4ED8] transition-colors duration-200 flex items-center gap-1 group"
-          id="switch-to-admin-portal"
-        >
-          Admin Portal
-          <span className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
-        </Link>
-      </footer>
     </div>
   );
 }

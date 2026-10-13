@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePortal } from '@/contexts/PortalContext';
+import CounsellorLayout from '@/components/layouts/CounsellorLayout';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
@@ -98,6 +100,13 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const portal = usePortal();
+
+  // When rendered inside a counsellor route, delegate to CounsellorLayout
+  if (portal === 'counsellor') {
+    return <CounsellorLayout>{children}</CounsellorLayout>;
+  }
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const currentPage = navItems.find(n => n.path === location.pathname)?.label || 'Administration';

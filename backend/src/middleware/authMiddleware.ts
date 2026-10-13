@@ -28,10 +28,11 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
   next();
 }
 
-export function requireRole(role: 'admin' | 'student') {
+export function requireRole(role: 'admin' | 'student' | 'counsellor' | Array<'admin' | 'student' | 'counsellor'>) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    if (!req.user || req.user.role !== role) {
-      return res.status(403).json({ error: `Forbidden: Only ${role} accounts have permission.` });
+    const allowedRoles = Array.isArray(role) ? role : [role];
+    if (!req.user || !allowedRoles.includes(req.user.role as any)) {
+      return res.status(403).json({ error: `Forbidden: Only ${allowedRoles.join(' or ')} accounts have permission.` });
     }
     next();
   };

@@ -27,6 +27,7 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     if (user && role === 'admin') navigate('/admin/dashboard', { replace: true });
+    if (user && role === 'counsellor') navigate('/counsellor/dashboard', { replace: true });
   }, [user, role, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -123,6 +124,11 @@ export default function AdminLoginPage() {
           </form>
         </div>
 
+        <p className="text-center text-xs text-muted-foreground mt-6 space-x-2">
+          <span>Counsellor? <a href="/counsellor/login" className="text-emerald-600 hover:underline font-medium">Counsellor Portal</a></span>
+          <span>·</span>
+          <span>Student? <a href="/login" className="text-primary hover:underline font-medium">Student Portal</a></span>
+        </p>
       </div>
       </div>
 

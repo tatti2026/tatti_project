@@ -17,8 +17,19 @@ export async function login(req: Request, res: Response) {
     // Allow login with email OR student_id (student_id stored in students table)
     let userRow = null;
 
-    // First try direct email login
-    const emailResult = await query('SELECT * FROM users WHERE email = $1', [email]);
+    const cleanEmail = email.trim();
+
+    // First try case-insensitive direct email login
+    let emailResult = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+    
+    // If not found, try fallback for .edu / .edu.in alias
+    if (emailResult.rows.length === 0) {
+      if (cleanEmail.toLowerCase().endsWith('@tatti.edu')) {
+        emailResult = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail + '.in']);
+      } else if (cleanEmail.toLowerCase().endsWith('@tatti.edu.in')) {
+        emailResult = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail.slice(0, -3)]);
+      }
+    }
     if (emailResult.rows.length > 0) {
       userRow = emailResult.rows[0];
 

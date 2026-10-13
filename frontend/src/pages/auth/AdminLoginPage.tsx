@@ -34,6 +34,7 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     if (user && role === 'admin') navigate('/admin/dashboard', { replace: true });
+    if (user && role === 'counsellor') navigate('/counsellor/dashboard', { replace: true });
   }, [user, role, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -102,7 +103,7 @@ export default function AdminLoginPage() {
                 data-lpignore="true"
                 data-1p-ignore="true"
                 data-form-type="other"
-                placeholder="admin@tatti.edu"
+                placeholder="admin@tatti.edu.in"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="mt-1.5 bg-white border-[#D0D5DD] focus:border-[#1D4ED8] focus:ring-[#1D4ED8] h-11"
@@ -152,6 +153,11 @@ export default function AdminLoginPage() {
           </form>
         </div>
 
+        <p className="text-center text-xs text-[#667085] mt-6 space-x-2">
+          <span>Counsellor? <a href="/counsellor/login" className="text-emerald-600 font-medium hover:underline">Counsellor Portal</a></span>
+          <span>·</span>
+          <span>Student? <a href="/login" className="text-[#1D4ED8] font-medium hover:underline">Student Portal</a></span>
+        </p>
       </div>
       </div>
 

@@ -206,6 +206,18 @@ export default function LoginPage() {
                   Create an account
                 </button>
               </p>
+              <div className="mt-5 pt-5 grid grid-cols-2 gap-2" style={{ borderTop: '1px solid hsl(var(--border))' }}>
+                <Link to="/admin/login">
+                  <Button variant="outline" className="w-full text-xs h-9 text-muted-foreground hover:text-foreground">
+                    Admin Portal
+                  </Button>
+                </Link>
+                <Link to="/counsellor/login">
+                  <Button variant="outline" className="w-full text-xs h-9 text-emerald-600 border-emerald-200/80 hover:bg-emerald-50 hover:text-emerald-700">
+                    Counsellor Portal
+                  </Button>
+                </Link>
+              </div>
             </div>
           )}
 
@@ -300,21 +312,6 @@ export default function LoginPage() {
 
       </div>
       </div>
-
-      {/* Page footer — portal switcher */}
-      <footer className="py-5 flex items-center justify-center border-t" style={{ borderColor: 'hsl(var(--border))' }}>
-        <Link
-          to="/admin/login"
-          className="text-sm flex items-center gap-1 transition-colors duration-200 group"
-          style={{ color: 'hsl(var(--muted-foreground))' }}
-          id="switch-to-admin-portal"
-          onMouseEnter={e => (e.currentTarget.style.color = 'hsl(213 85% 50%)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'hsl(var(--muted-foreground))')}
-        >
-          Admin Portal
-          <span className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
-        </Link>
-      </footer>
     </div>
   );
 }

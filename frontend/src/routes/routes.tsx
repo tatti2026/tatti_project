@@ -5,6 +5,7 @@ import { RouteGuard } from '@/components/common/RouteGuard';
 // Auth pages
 import LoginPage from '@/pages/auth/LoginPage';
 import AdminLoginPage from '@/pages/auth/AdminLoginPage';
+import CounsellorLoginPage from '@/pages/auth/CounsellorLoginPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 
 // Student pages
@@ -28,6 +29,20 @@ import Confirmations from '@/pages/admin/Confirmations';
 import Reports from '@/pages/admin/Reports';
 import AdminNotifications from '@/pages/admin/AdminNotifications';
 
+// Counsellor pages (admin page components wrapped in counsellor portal context)
+import {
+  CounsellorDashboard,
+  CounsellorStudentDetails,
+  CounsellorQuestionManagement,
+  CounsellorSegmentation,
+  CounsellorCounsellingManagement,
+  CounsellorFollowUpManagement,
+  CounsellorCoursesManagement,
+  CounsellorConfirmations,
+  CounsellorReports,
+  CounsellorNotifications,
+} from '@/pages/counsellor';
+
 export interface RouteConfig {
   name: string;
   path: string;
@@ -43,6 +58,10 @@ const adminGuard = (el: ReactNode) => (
   <RouteGuard requireAuth requireRole="admin">{el}</RouteGuard>
 );
 
+const counsellorGuard = (el: ReactNode) => (
+  <RouteGuard requireAuth requireRole="counsellor">{el}</RouteGuard>
+);
+
 export const routes: RouteConfig[] = [
   // Root redirect
   { name: 'Root', path: '/', element: <Navigate to="/login" replace />, public: true },
@@ -50,6 +69,7 @@ export const routes: RouteConfig[] = [
   // Auth
   { name: 'Student Login', path: '/login', element: <LoginPage />, public: true },
   { name: 'Admin Login', path: '/admin/login', element: <AdminLoginPage />, public: true },
+  { name: 'Counsellor Login', path: '/counsellor/login', element: <CounsellorLoginPage />, public: true },
   { name: 'Reset Password', path: '/reset-password', element: <ResetPasswordPage />, public: true },
 
   // Student Portal
@@ -77,4 +97,16 @@ export const routes: RouteConfig[] = [
   { name: 'Messages & Notifications', path: '/admin/notifications', element: adminGuard(<AdminNotifications />) },
   // Admin settings removed — redirect to admin dashboard
   { name: 'Admin Settings Redirect', path: '/admin/settings', element: <Navigate to="/admin/dashboard" replace /> },
+
+  // Counsellor Portal — same pages as admin, rendered with CounsellorLayout (green sidebar)
+  { name: 'Counsellor Dashboard', path: '/counsellor/dashboard', element: counsellorGuard(<CounsellorDashboard />) },
+  { name: 'Counsellor Students', path: '/counsellor/students', element: counsellorGuard(<CounsellorStudentDetails />) },
+  { name: 'Counsellor Career Assessment', path: '/counsellor/questions', element: counsellorGuard(<CounsellorQuestionManagement />) },
+  { name: 'Counsellor Segmentation', path: '/counsellor/segmentation', element: counsellorGuard(<CounsellorSegmentation />) },
+  { name: 'Counsellor Counselling', path: '/counsellor/counselling', element: counsellorGuard(<CounsellorCounsellingManagement />) },
+  { name: 'Counsellor Follow-up', path: '/counsellor/followup', element: counsellorGuard(<CounsellorFollowUpManagement />) },
+  { name: 'Counsellor Courses', path: '/counsellor/courses', element: counsellorGuard(<CounsellorCoursesManagement />) },
+  { name: 'Counsellor Confirmations', path: '/counsellor/confirmations', element: counsellorGuard(<CounsellorConfirmations />) },
+  { name: 'Counsellor Reports', path: '/counsellor/reports', element: counsellorGuard(<CounsellorReports />) },
+  { name: 'Counsellor Notifications', path: '/counsellor/notifications', element: counsellorGuard(<CounsellorNotifications />) },
 ];

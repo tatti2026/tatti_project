@@ -40,4 +40,5 @@ history/*.json
 !.env.production
 !frontend/.env.production
 backend/.env
+scratch/
 

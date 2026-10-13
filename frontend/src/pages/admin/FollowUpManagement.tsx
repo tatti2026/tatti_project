@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePortal } from '@/contexts/PortalContext';
 
 function formatCounsellingDateTime(scheduledDate?: string | null, scheduledTime?: string | null): string | null {
   if (!scheduledDate) return null;
@@ -120,6 +121,8 @@ function NotesColumn({ student, notes, notesLoading, onAddNote, onViewNotes }: N
 
 export default function FollowUpManagement() {
   const { profile } = useAuth();
+  const portal = usePortal();
+  const isCounsellor = portal === 'counsellor' || profile?.role === 'counsellor';
 
   const [students, setStudents] = useState<Student[]>([]);
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
@@ -519,13 +522,26 @@ export default function FollowUpManagement() {
                   <div className="hidden lg:block overflow-x-auto">
                     <table className="w-full text-xs" style={{ minWidth: '900px' }}>
                       <colgroup>
-                        <col style={{ width: '22%' }} />
-                        <col style={{ width: '12%' }} />
-                        <col style={{ width: '12%' }} />
-                        <col style={{ width: '14%' }} />
-                        <col style={{ width: '22%' }} />
-                        <col style={{ width: '12%' }} />
-                        <col style={{ width: '6%' }} />
+                        {isCounsellor ? (
+                          <>
+                            <col style={{ width: '26%' }} />
+                            <col style={{ width: '15%' }} />
+                            <col style={{ width: '15%' }} />
+                            <col style={{ width: '18%' }} />
+                            <col style={{ width: '16%' }} />
+                            <col style={{ width: '10%' }} />
+                          </>
+                        ) : (
+                          <>
+                            <col style={{ width: '22%' }} />
+                            <col style={{ width: '12%' }} />
+                            <col style={{ width: '12%' }} />
+                            <col style={{ width: '14%' }} />
+                            <col style={{ width: '22%' }} />
+                            <col style={{ width: '12%' }} />
+                            <col style={{ width: '6%' }} />
+                          </>
+                        )}
                       </colgroup>
                       <thead className="bg-muted/50 border-b border-border text-muted-foreground sticky top-0 z-10">
                         <tr>
@@ -533,7 +549,9 @@ export default function FollowUpManagement() {
                           <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Student ID</th>
                           <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Career Fit Assessment</th>
                           <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Counselling</th>
-                          <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Notes</th>
+                          {!isCounsellor && (
+                            <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Notes</th>
+                          )}
                           <th className="px-3 py-2.5 text-left font-bold uppercase tracking-wider text-[10px]">Application Access</th>
                           <th className="px-3 py-2.5 text-right font-bold uppercase tracking-wider text-[10px]">Update</th>
                         </tr>
@@ -598,15 +616,17 @@ export default function FollowUpManagement() {
                               </td>
 
                               {/* Notes */}
-                              <td className="px-3 py-3 align-top">
-                                <NotesColumn
-                                  student={s}
-                                  notes={studentNotes}
-                                  notesLoading={noteLoading}
-                                  onAddNote={st => openAddNoteDialog(st)}
-                                  onViewNotes={(st, notes) => openViewNotes(st, notes)}
-                                />
-                              </td>
+                              {!isCounsellor && (
+                                <td className="px-3 py-3 align-top">
+                                  <NotesColumn
+                                    student={s}
+                                    notes={studentNotes}
+                                    notesLoading={noteLoading}
+                                    onAddNote={st => openAddNoteDialog(st)}
+                                    onViewNotes={(st, notes) => openViewNotes(st, notes)}
+                                  />
+                                </td>
+                              )}
 
                               {/* Application Access */}
                               <td className="px-3 py-3 align-top">
@@ -725,16 +745,18 @@ export default function FollowUpManagement() {
                             </div>
 
                             {/* Mobile Notes section */}
-                            <div className="rounded-md bg-muted/30 px-2 py-2 border border-border/40 space-y-2">
-                              <span className="font-semibold text-foreground text-[11px]">Notes</span>
-                              <NotesColumn
-                                student={s}
-                                notes={studentNotes}
-                                notesLoading={noteLoading}
-                                onAddNote={st => openAddNoteDialog(st)}
-                                onViewNotes={(st, n) => openViewNotes(st, n)}
-                              />
-                            </div>
+                            {!isCounsellor && (
+                              <div className="rounded-md bg-muted/30 px-2 py-2 border border-border/40 space-y-2">
+                                <span className="font-semibold text-foreground text-[11px]">Notes</span>
+                                <NotesColumn
+                                  student={s}
+                                  notes={studentNotes}
+                                  notesLoading={noteLoading}
+                                  onAddNote={st => openAddNoteDialog(st)}
+                                  onViewNotes={(st, n) => openViewNotes(st, n)}
+                                />
+                              </div>
+                            )}
 
                             <div className="rounded-md bg-muted/30 px-2 py-1.5 border border-border/40">
                               <div className="flex items-center justify-between gap-2 mb-2">
@@ -808,7 +830,7 @@ export default function FollowUpManagement() {
           <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-md bg-card border-border">
             <DialogHeader>
               <DialogTitle className="text-base font-bold text-foreground">
-                {editFU ? 'Update Follow-up Status' : 'Follow-up & Add Note'}
+                {editFU ? 'Update Follow-up Status' : isCounsellor ? 'Follow-up' : 'Follow-up & Add Note'}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3.5 pt-2">
@@ -888,16 +910,18 @@ export default function FollowUpManagement() {
                 </select>
               </div>
 
-              <div>
-                <Label className="text-xs font-semibold">Follow-up Notes / Remarks</Label>
-                <textarea
-                  value={form.notes}
-                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  rows={3}
-                  placeholder="Enter details regarding discussions, candidate intent, next steps..."
-                  className="w-full mt-1 bg-input border border-border rounded-md px-3 py-2 text-xs text-foreground outline-none resize-none"
-                />
-              </div>
+              {!isCounsellor && (
+                <div>
+                  <Label className="text-xs font-semibold">Follow-up Notes / Remarks</Label>
+                  <textarea
+                    value={form.notes}
+                    onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                    rows={3}
+                    placeholder="Enter details regarding discussions, candidate intent, next steps..."
+                    className="w-full mt-1 bg-input border border-border rounded-md px-3 py-2 text-xs text-foreground outline-none resize-none"
+                  />
+                </div>
+              )}
 
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" className="flex-1 text-xs" onClick={() => setShowForm(false)}>

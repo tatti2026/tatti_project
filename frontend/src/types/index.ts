@@ -5,7 +5,7 @@ export interface Option {
   withCount?: boolean;
 }
 
-export type UserRole = 'student' | 'admin';
+export type UserRole = 'student' | 'admin' | 'counsellor';
 export type AssessmentStatus = 'not_started' | 'in_progress' | 'completed';
 export type ApplicationStatus = 'not_started' | 'in_progress' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'confirmed' | 'Confirmed' | 'Pending Verification' | 'pending_verification';
 export type PaymentStatus = 'unpaid' | 'paid' | 'failed' | 'refunded' | 'pending' | 'Pending' | 'Approved' | 'Rejected' | 'Pending Verification' | 'pending_verification';

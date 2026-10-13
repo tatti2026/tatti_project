@@ -65,9 +65,11 @@ export async function sendMessage(req: Request, res: Response) {
       return res.status(404).json({ error: 'Student not found.' });
     }
 
-    const senderType = callerRole === 'admin' ? 'admin' : 'student';
-    const receiverRole = senderType === 'admin' ? 'student' : 'admin';
-    const resolvedSenderName = senderName || (senderType === 'admin' ? 'TATTI Admin' : 'Student');
+    const isStaff = callerRole === 'admin' || callerRole === 'counsellor';
+    const senderType = isStaff ? 'admin' : 'student';
+    const receiverRole = isStaff ? 'student' : 'admin';
+    const defaultStaffName = callerRole === 'counsellor' ? 'TATTI Counsellor' : 'TATTI Admin';
+    const resolvedSenderName = senderName || (isStaff ? defaultStaffName : 'Student');
 
     const result = await query(
       `INSERT INTO direct_messages
@@ -148,8 +150,8 @@ export async function getConversation(req: Request, res: Response) {
 export async function getAllConversations(req: Request, res: Response) {
   try {
     const caller = (req as any).user;
-    if (!caller || caller.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required.' });
+    if (!caller || (caller.role !== 'admin' && caller.role !== 'counsellor')) {
+      return res.status(403).json({ error: 'Admin or Counsellor access required.' });
     }
 
     const result = await query(
@@ -206,8 +208,9 @@ export async function markMessagesRead(req: Request, res: Response) {
     const { studentId } = req.params;
     const callerRole: string = caller.role || 'student';
 
-    // Student reads admin messages; admin reads student messages
-    const targetSenderType = callerRole === 'student' ? 'admin' : 'student';
+    // Student reads admin messages; admin/counsellor reads student messages
+    const isStaff = callerRole === 'admin' || callerRole === 'counsellor';
+    const targetSenderType = isStaff ? 'student' : 'admin';
 
     await query(
       `UPDATE direct_messages
@@ -230,8 +233,8 @@ export async function getUnreadCount(req: Request, res: Response) {
     const caller = (req as any).user;
     if (!caller) return res.status(401).json({ error: 'Unauthorized' });
 
-    if (caller.role === 'admin') {
-      // Admin: total unread student messages across all conversations
+    if (caller.role === 'admin' || caller.role === 'counsellor') {
+      // Admin/Counsellor: total unread student messages across all conversations
       const result = await query(
         `SELECT COUNT(*) AS count FROM direct_messages
          WHERE sender_type = 'student' AND status != 'read'`
