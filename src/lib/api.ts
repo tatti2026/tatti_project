@@ -447,11 +447,16 @@ export async function getStudentMonthlyPerformance(year?: number): Promise<Stude
   const url = year
     ? `${API_BASE}/assessments/monthly-performance?year=${year}`
     : `${API_BASE}/assessments/monthly-performance`;
-  const res = await fetch(url, {
-    headers: getHeaders(),
-  });
-  if (!res.ok) return null;
-  return await res.json();
+  try {
+    const res = await fetch(url, { headers: getHeaders() });
+    if (!res.ok) return null;
+    const data = await res.json();
+    // Guard: backend may return an error object instead of valid performance data
+    if (!data || typeof data !== 'object' || !('summary' in data)) return null;
+    return data as StudentAssessmentPerformance;
+  } catch {
+    return null;
+  }
 }
 
 // ── COURSE RECOMMENDATIONS ─────────────────────────────────
