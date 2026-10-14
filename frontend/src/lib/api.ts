@@ -1017,6 +1017,23 @@ export async function getMyStudentId(): Promise<{ studentId: string | null; stud
   return await res.json();
 }
 
+// ── STUDENT MONTHLY ASSESSMENT PERFORMANCE ───────────────────────────────────
+export async function getStudentMonthlyPerformance(year?: number): Promise<StudentAssessmentPerformance | null> {
+  const url = year
+    ? `${API_BASE}/assessments/monthly-performance?year=${year}`
+    : `${API_BASE}/assessments/monthly-performance`;
+  try {
+    const res = await fetch(url, { headers: getHeaders() });
+    if (!res.ok) return null;
+    const data = await res.json();
+    // Guard: backend may return an error object instead of valid performance data
+    if (!data || typeof data !== 'object' || !('summary' in data)) return null;
+    return data as StudentAssessmentPerformance;
+  } catch {
+    return null;
+  }
+}
+
 // ── COUNSELLOR PRIVATE NOTES ────────────────────────────────────────────────
 export async function getPrivateNotesForCounselling(counsellingId: string): Promise<import('@/types/index').CounsellorPrivateNote | null> {
   const res = await fetch(`${API_BASE}/counsellor/private-notes?counselling_id=${encodeURIComponent(counsellingId)}`, {
