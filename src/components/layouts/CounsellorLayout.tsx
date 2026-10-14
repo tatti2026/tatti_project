@@ -75,16 +75,26 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
               key={path}
               to={path}
               onClick={onNavClick}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-150 group ${
                 active
                   ? 'text-white shadow-sm'
-                  : 'text-emerald-200 hover:text-white'
+                  : 'text-emerald-100 hover:text-orange-400'
               }`}
               style={active ? { backgroundColor: '#059669' } : {}}
-              onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,255,255,0.08)'; }}
-              onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = ''; }}
+              onMouseEnter={e => {
+                if (!active) {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(249, 115, 22, 0.18)';
+                  (e.currentTarget as HTMLElement).style.color = '#FB923C';
+                }
+              }}
+              onMouseLeave={e => {
+                if (!active) {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = '';
+                  (e.currentTarget as HTMLElement).style.color = '';
+                }
+              }}
             >
-              <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-emerald-400'}`} />
+              <Icon className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-white' : 'text-emerald-300 group-hover:text-orange-400'}`} />
               <span className="flex-1 min-w-0 truncate">{label}</span>
               {active && <ChevronRight className="w-3.5 h-3.5 shrink-0 text-white/80" />}
             </Link>

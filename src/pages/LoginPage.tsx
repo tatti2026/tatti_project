@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Eye, EyeOff, GraduationCap, ClipboardCheck, BookOpen, Award, Loader2, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, GraduationCap, ClipboardCheck, Loader2, Heart, Users, HeartHandshake } from 'lucide-react';
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset-sent';
 
@@ -57,9 +57,9 @@ export default function LoginPage() {
   };
 
   const features = [
-    { icon: ClipboardCheck, title: 'Career Fit Assessment', desc: 'AI-powered assessment to match you to the right programme' },
-    { icon: BookOpen, title: 'Course Recommendations', desc: 'Personalized course recommendations based on your profile' },
-    { icon: Award, title: 'Admission Tracking', desc: 'Track your application, payment, and counselling status' },
+    { icon: Users, title: 'Career Assessment' },
+    { icon: ClipboardCheck, title: 'Personalized Recommendations' },
+    { icon: HeartHandshake, title: 'Counselling & Support' },
   ];
 
   return (
@@ -67,63 +67,52 @@ export default function LoginPage() {
       {/* Main content row */}
       <div className="flex flex-1 min-h-0">
       {/* Left brand panel */}
-      <div className="hidden lg:flex flex-col justify-between w-[45%] xl:w-[42%] relative overflow-hidden" style={{ background: 'linear-gradient(160deg, hsl(220 72% 16%), hsl(220 65% 24%))' }}>
-        {/* Subtle pattern */}
-        <div className="absolute inset-0 opacity-[0.04]" style={{
-          backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-          backgroundSize: '32px 32px'
+      <div className="hidden lg:flex flex-col justify-between w-[45%] xl:w-[42%] relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #083b78 0%, #0c2f6c 100%)' }}>
+        <div className="absolute inset-0 opacity-20" style={{
+          backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.18) 0, rgba(255,255,255,0.18) 1px, transparent 1px), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.12) 0, rgba(255,255,255,0.12) 1px, transparent 1px)',
+          backgroundSize: '120px 120px'
         }} />
 
-        <div className="relative z-10 px-10 pt-10">
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-14">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: 'hsl(213 85% 62%)' }}>
-              <GraduationCap className="w-6 h-6 text-white" />
+        <div className="absolute inset-x-0 bottom-0 h-48 opacity-30" style={{
+          background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0) 65%)'
+        }} />
+
+        <div className="relative z-10 px-10 pt-10 pb-8">
+          <div className="flex items-center gap-4 mb-12">
+            <div className="relative w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1ca8ff 0%, #0f66d2 100%)', boxShadow: '0 0 30px rgba(39, 167, 255, 0.5)' }}>
+              <div className="absolute inset-2 rounded-full border-2 border-white/45" />
+              <Heart className="w-8 h-8 text-white" fill="white" />
             </div>
-            <div>
-              <p className="text-white font-bold text-base tracking-wide leading-tight">TATTI</p>
-              <p className="text-white/50 text-xs leading-tight">Tamil Nadu Advanced Technical Training Institute</p>
+            <div className="flex items-center text-4xl font-black tracking-tight text-white" style={{ letterSpacing: '-0.08em' }}>
+              <span className="text-[#ff9f1c]">PSY</span>
+              <span className="text-white">CARE</span>
             </div>
           </div>
 
-          {/* Hero text */}
-          <div className="mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-6" style={{ backgroundColor: 'hsl(213 85% 62% / 0.15)', color: 'hsl(213 85% 75%)', border: '1px solid hsl(213 85% 62% / 0.25)' }}>
-              <ShieldCheck className="w-3 h-3" />
-              Secure Student Portal
-            </div>
-            <h1 className="text-3xl font-bold text-white leading-tight mb-4" style={{ letterSpacing: '-0.03em' }}>
-              Your Academic<br />Journey Starts Here
+          <div className="mb-10">
+            <h1 className="text-4xl xl:text-[3rem] leading-[1.05] font-bold text-white mb-4" style={{ letterSpacing: '-0.05em' }}>
+              Your Mental Well-being<br />Our Priority
             </h1>
-            <p className="text-white/60 text-sm leading-relaxed max-w-xs">
-              Access your TAT Entrance Exam results, counselling sessions, course recommendations, and admission status — all in one secure platform.
+            <p className="text-white/70 text-sm xl:text-[0.95rem] leading-relaxed max-w-[24rem]">
+              PSYCARE is a digital platform designed to support students in understanding their potential, making informed career choices and building a brighter future through personalized career guidance and counselling.
             </p>
           </div>
 
-          {/* Features */}
-          <div className="space-y-4">
-            {features.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: 'hsl(213 85% 62% / 0.15)' }}>
-                  <Icon className="w-4 h-4" style={{ color: 'hsl(213 85% 70%)' }} />
+          <div className="grid grid-cols-3 gap-6 max-w-[28rem]">
+            {features.map(({ icon: Icon, title }) => (
+              <div key={title} className="flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center border border-white/15" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                  <Icon className="w-5 h-5 text-white/90" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-white leading-tight">{title}</p>
-                  <p className="text-xs text-white/50 mt-0.5 leading-relaxed">{desc}</p>
-                </div>
+                <p className="text-[0.8rem] font-medium leading-snug text-white/90 max-w-[6.2rem]">{title}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Bottom trust badge */}
-        <div className="relative z-10 px-10 pb-10">
-          <div className="flex items-center gap-3 p-4 rounded-xl" style={{ backgroundColor: 'hsl(220 72% 20%)', border: '1px solid hsl(220 65% 28%)' }}>
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <div>
-              <p className="text-white text-xs font-medium">Admissions Open — 2024–25</p>
-              <p className="text-white/40 text-[10px]">Applications are currently being accepted</p>
-            </div>
+        <div className="relative z-10 px-8 pb-8 pt-2">
+          <div className="flex items-center justify-center text-[#f8d5b0] text-[1.75rem] font-semibold italic tracking-tight" style={{ letterSpacing: '-0.04em', textShadow: '0 0 18px rgba(255, 166, 77, 0.25)' }}>
+            Better Minds <span className="text-[#ff9f1c]">Brighter Futures</span>
           </div>
         </div>
       </div>
@@ -185,7 +174,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setMode('forgot')}
-                    className="text-sm font-medium hover:underline"
+                    className="text-sm font-medium hover:underline hover:text-orange-600 transition-colors"
                     style={{ color: 'hsl(213 85% 50%)' }}
                   >
                     Forgot password?
@@ -194,7 +183,7 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-10 text-white font-semibold"
+                  className="w-full h-10 text-white font-semibold transition-all duration-150 hover:bg-orange-600"
                   style={{ background: 'hsl(220 72% 20%)', border: 'none' }}
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign In'}
@@ -202,18 +191,18 @@ export default function LoginPage() {
               </form>
               <p className="text-center text-sm text-muted-foreground mt-6">
                 New student?{' '}
-                <button onClick={() => setMode('signup')} className="font-semibold hover:underline" style={{ color: 'hsl(213 85% 50%)' }}>
+                <button onClick={() => setMode('signup')} className="font-semibold hover:underline hover:text-orange-600 transition-colors" style={{ color: 'hsl(213 85% 50%)' }}>
                   Create an account
                 </button>
               </p>
               <div className="mt-5 pt-5 grid grid-cols-2 gap-2" style={{ borderTop: '1px solid hsl(var(--border))' }}>
                 <Link to="/admin/login">
-                  <Button variant="outline" className="w-full text-xs h-9 text-muted-foreground hover:text-foreground">
+                  <Button variant="outline" className="w-full text-xs h-9 text-muted-foreground hover:border-orange-500 hover:bg-orange-50 hover:text-orange-600 transition-all duration-150">
                     Admin Portal
                   </Button>
                 </Link>
                 <Link to="/counsellor/login">
-                  <Button variant="outline" className="w-full text-xs h-9 text-emerald-600 border-emerald-200/80 hover:bg-emerald-50 hover:text-emerald-700">
+                  <Button variant="outline" className="w-full text-xs h-9 text-emerald-600 border-emerald-200/80 hover:border-orange-500 hover:bg-orange-50 hover:text-orange-600 transition-all duration-150">
                     Counsellor Portal
                   </Button>
                 </Link>
@@ -253,13 +242,20 @@ export default function LoginPage() {
                     value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                     className="h-10 bg-white border-border focus:border-primary" />
                 </div>
-                <Button type="submit" disabled={loading} className="w-full h-10 text-white font-semibold" style={{ background: 'hsl(220 72% 20%)', border: 'none' }}>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-10 text-white font-semibold transition-all duration-150 hover:bg-orange-600"
+                  style={{ background: 'hsl(220 72% 20%)', border: 'none' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#EA580C'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'hsl(220 72% 20%)'; }}
+                >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Account'}
                 </Button>
               </form>
               <p className="text-center text-sm text-muted-foreground mt-6">
                 Already have an account?{' '}
-                <button onClick={() => setMode('login')} className="font-semibold hover:underline" style={{ color: 'hsl(213 85% 50%)' }}>
+                <button onClick={() => setMode('login')} className="font-semibold hover:underline hover:text-orange-600 transition-colors" style={{ color: 'hsl(213 85% 50%)' }}>
                   Sign in
                 </button>
               </p>
@@ -278,13 +274,20 @@ export default function LoginPage() {
                   <Label htmlFor="fp-email" className="text-sm font-medium text-foreground mb-1.5 block">Email Address</Label>
                   <Input id="fp-email" type="email" placeholder="Enter your registered email"
                     value={email} onChange={e => setEmail(e.target.value)}
-                    className="h-10 bg-white border-border focus:border-primary" />
+                    className="h-10 bg-white border-border focus:border-primary hover:border-orange-400" />
                 </div>
-                <Button type="submit" disabled={loading} className="w-full h-10 text-white font-semibold" style={{ background: 'hsl(220 72% 20%)', border: 'none' }}>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-10 text-white font-semibold transition-all duration-150 hover:bg-orange-600"
+                  style={{ background: 'hsl(220 72% 20%)', border: 'none' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#EA580C'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'hsl(220 72% 20%)'; }}
+                >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Reset Link'}
                 </Button>
               </form>
-              <button onClick={() => setMode('login')} className="text-center text-sm hover:underline w-full mt-5 font-medium" style={{ color: 'hsl(213 85% 50%)' }}>
+              <button onClick={() => setMode('login')} className="text-center text-sm hover:underline hover:text-orange-600 transition-colors w-full mt-5 font-medium" style={{ color: 'hsl(213 85% 50%)' }}>
                 ← Back to Sign In
               </button>
             </div>
@@ -303,7 +306,7 @@ export default function LoginPage() {
                 If an account exists for <span className="text-foreground font-medium">{email}</span>, a password reset link has been sent.
               </p>
               <p className="text-muted-foreground text-xs mb-6">Check your spam folder if you don't see it within a few minutes.</p>
-              <button onClick={() => { setMode('login'); setEmail(''); }} className="text-sm font-medium hover:underline" style={{ color: 'hsl(213 85% 50%)' }}>
+              <button onClick={() => { setMode('login'); setEmail(''); }} className="text-sm font-medium hover:underline hover:text-orange-600 transition-colors" style={{ color: 'hsl(213 85% 50%)' }}>
                 Back to Sign In
               </button>
             </div>

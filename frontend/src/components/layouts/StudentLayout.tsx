@@ -85,22 +85,22 @@ function SidebarContent({
               key={path}
               to={path}
               onClick={onNavClick}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-150 group ${
                 active
                   ? 'bg-[#1D4ED8] text-white shadow-sm'
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  : 'text-slate-300 hover:bg-orange-500/15 hover:text-orange-400'
               }`}
             >
               <div className="relative shrink-0">
                 <Icon
-                  className={`w-4 h-4 ${
+                  className={`w-4 h-4 transition-colors ${
                     isAppProcess
                       ? isUnlocked
                         ? 'text-emerald-400'
                         : 'text-amber-400'
                       : active
                         ? 'text-white'
-                        : 'text-slate-400'
+                        : 'text-slate-400 group-hover:text-orange-400'
                   }`}
                 />
               </div>

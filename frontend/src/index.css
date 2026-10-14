@@ -192,3 +192,37 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* ── Interactive Page Hover: Smooth Orange Transitions ── */
+aside nav a:hover:not([data-active="true"]):not(.bg-\[\#1D4ED8\]):not(.bg-\[\#059669\]),
+.nav-page-item:hover {
+  color: #FB923C !important;
+  background-color: rgba(249, 115, 22, 0.16) !important;
+}
+
+aside nav a:hover:not([data-active="true"]):not(.bg-\[\#1D4ED8\]):not(.bg-\[\#059669\]) svg {
+  color: #F97316 !important;
+}
+
+/* Page segment tabs hover */
+[role="tab"]:hover:not([data-state="active"]) {
+  color: #EA580C !important;
+  border-color: rgba(249, 115, 22, 0.4) !important;
+}
+
+/* ── Login & Auth Pages: Orange Hover Transitions ── */
+.glass-card input:hover:not(:disabled):not(:focus),
+input[name*="tatti_"]:hover:not(:disabled):not(:focus) {
+  border-color: #FB923C !important;
+}
+
+.glass-card button:not(:disabled):hover {
+  transition: all 150ms ease;
+}
+
+.glass-card a:hover,
+.glass-card button.text-primary:hover,
+.glass-card button.text-\[\#1D4ED8\]:hover {
+  color: #EA580C !important;
+}
+

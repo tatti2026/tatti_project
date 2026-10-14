@@ -84,11 +84,11 @@ export default function CounsellorLoginPage() {
 
         <div className="glass-card rounded-2xl p-8">
           <div
-            className="flex items-center gap-2 mb-6 p-3 rounded-lg border"
+            className="flex items-center gap-2 mb-6 p-3 rounded-lg border hover:border-orange-400 hover:bg-orange-50 transition-all duration-150 group cursor-pointer"
             style={{ background: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.25)' }}
           >
-            <UserCheck className="w-4 h-4 shrink-0" style={{ color: '#059669' }} />
-            <span className="text-xs font-medium" style={{ color: '#059669' }}>Authorised Counsellors Only</span>
+            <UserCheck className="w-4 h-4 shrink-0 group-hover:text-orange-600 transition-colors" style={{ color: '#059669' }} />
+            <span className="text-xs font-medium group-hover:text-orange-600 transition-colors" style={{ color: '#059669' }}>Authorised Counsellors Only</span>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
@@ -100,7 +100,7 @@ export default function CounsellorLoginPage() {
                 placeholder="counsellor@tatti.edu.in"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="mt-1.5 bg-input border-border"
+                className="mt-1.5 bg-input border-border hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 transition-colors"
               />
             </div>
             <div>
@@ -112,12 +112,12 @@ export default function CounsellorLoginPage() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="bg-input border-border pr-10"
+                  className="bg-input border-border pr-10 hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-orange-600 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -127,8 +127,7 @@ export default function CounsellorLoginPage() {
               <button
                 type="button"
                 onClick={handleForgotOpen}
-                className="text-sm hover:underline"
-                style={{ color: '#059669' }}
+                className="text-sm hover:underline text-[#059669] hover:text-orange-600 transition-colors"
               >
                 Forgot Password?
               </button>
@@ -136,8 +135,10 @@ export default function CounsellorLoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full border-0 text-white font-semibold h-11"
-              style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)' }}
+              className="w-full border-0 text-white font-semibold h-11 transition-all duration-150 hover:bg-orange-600 hover:shadow-md"
+              style={{ background: loading ? undefined : 'linear-gradient(135deg, #059669 0%, #047857 100%)' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#EA580C'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)'; }}
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <UserCheck className="w-4 h-4 mr-2" />}
               Counsellor Sign In
@@ -145,11 +146,10 @@ export default function CounsellorLoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Admin?{' '}
-          <a href="/admin/login" className="hover:underline" style={{ color: '#059669' }}>Go to Admin Portal</a>
-          {' · '}
-          <a href="/login" className="hover:underline" style={{ color: '#059669' }}>Student Portal</a>
+        <p className="text-center text-xs text-muted-foreground mt-6 space-x-2">
+          <span>Admin? <a href="/admin/login" className="hover:underline text-[#059669] hover:text-orange-600 transition-colors">Go to Admin Portal</a></span>
+          <span>·</span>
+          <span><a href="/login" className="hover:underline text-[#059669] hover:text-orange-600 transition-colors">Student Portal</a></span>
         </p>
       </div>
 
@@ -180,8 +180,10 @@ export default function CounsellorLoginPage() {
               <Button
                 type="submit"
                 disabled={forgotLoading}
-                className="w-full border-0 text-white font-semibold h-10"
+                className="w-full border-0 text-white font-semibold h-10 transition-all duration-150"
                 style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#EA580C'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)'; }}
               >
                 {forgotLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Send Reset Link
@@ -205,7 +207,7 @@ export default function CounsellorLoginPage() {
                 </p>
                 <p className="text-muted-foreground text-xs">Check your spam folder if you don't see it within a few minutes.</p>
               </div>
-              <Button variant="outline" className="w-full" onClick={() => setForgotOpen(false)}>
+              <Button variant="outline" className="w-full hover:border-orange-500 hover:text-orange-600 hover:bg-orange-50 transition-colors" onClick={() => setForgotOpen(false)}>
                 Close
               </Button>
             </div>

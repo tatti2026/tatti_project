@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Eye, EyeOff, GraduationCap, BookOpen, Monitor, Wifi, Loader2, CheckCircle2, Copy } from 'lucide-react';
+import { Eye, EyeOff, GraduationCap, Loader2, CheckCircle2, Copy, Heart, Users, ChartNoAxesColumnIncreasing, HeartHandshake } from 'lucide-react';
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset-sent';
 
@@ -156,64 +156,54 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
       {/* Main content row */}
       <div className="flex flex-1 min-h-0">
-      {/* Left corporate branding panel */}
-      <div className="hidden lg:flex flex-col justify-between w-[45%] xl:w-[42%] relative overflow-hidden p-10 bg-[#0B1F3A] text-white">
-        {/* Subtle geometric grid */}
-        <div
-          className="absolute inset-0 opacity-[0.03] pointer-events-none"
-          style={{
-            backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-            backgroundSize: '24px 24px',
-          }}
-        />
+      {/* Left branding panel */}
+      <div className="hidden md:flex flex-col justify-between w-[54%] relative overflow-hidden px-8 xl:px-16 py-8 text-white" style={{ background: 'linear-gradient(160deg, #073b78 0%, #0a3471 58%, #082a62 100%)' }}>
+        <div className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.12) 1px, transparent 0), radial-gradient(ellipse at 15% 75%, rgba(32,133,225,0.30), transparent 48%), radial-gradient(ellipse at 95% 100%, rgba(73,151,231,0.22), transparent 38%)',
+          backgroundSize: '32px 32px, auto, auto'
+        }} />
+        <div className="absolute -left-20 bottom-12 w-64 h-64 rounded-full border-[24px] border-white/[0.04] pointer-events-none" />
+        <div className="absolute -left-10 bottom-20 w-44 h-44 rounded-full border-[14px] border-white/[0.035] pointer-events-none" />
 
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-10">
-            <div className="w-12 h-12 bg-[#1D4ED8] rounded-xl flex items-center justify-center shadow-md">
-              <GraduationCap className="w-7 h-7 text-white" />
+        <div className="relative z-10 w-full max-w-[25rem] mx-auto">
+          <div className="flex items-center gap-2 mb-8">
+            <div className="relative w-[4.75rem] h-[4.75rem] rounded-full flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #30baff, #0862c8)', boxShadow: '0 0 28px rgba(46,171,255,0.42)' }}>
+              <div className="absolute inset-2 rounded-full border-2 border-white/50" />
+              <Heart className="w-9 h-9 text-white" fill="white" />
             </div>
-            <div>
-              <h1 className="text-white font-bold text-xl leading-tight tracking-wide">TATTI</h1>
-              <p className="text-slate-400 text-xs leading-tight">Tamil Nadu Advanced Technical Training Institute</p>
+            <div className="flex items-center text-[2.8rem] font-black tracking-tight" style={{ letterSpacing: '-0.07em' }}>
+              <span className="text-[#ff9f36]">PSY</span><span>CARE</span>
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 bg-blue-500/15 border border-blue-400/25 rounded-full px-3.5 py-1 mb-6">
-            <BookOpen className="w-3.5 h-3.5 text-blue-300" />
-            <span className="text-blue-200 text-xs font-medium">Official Student Portal</span>
-          </div>
-
-          <h2 className="text-3xl font-bold text-white mb-4 leading-tight">
-            Academic & Career<br />Excellence Platform
-          </h2>
-          <p className="text-slate-300 text-sm leading-relaxed max-w-sm">
-            Access your TAT Entrance Examination scores, specialized career recommendations, admission verification, and counselling progress securely.
+          <h1 className="text-4xl leading-[1.08] font-bold mb-4" style={{ letterSpacing: '-0.035em' }}>
+            Your Mental Well-being<br />Our Priority
+          </h1>
+          <div className="w-14 h-1 rounded-full mb-4 bg-[#ff9f36]" />
+          <p className="text-white/75 text-base leading-relaxed max-w-[22rem]">
+            PSYCARE is a digital platform designed to support students in understanding their potential, making informed career choices and building a brighter future through personalized career guidance and counselling.
           </p>
-        </div>
 
-        {/* Feature Highlights */}
-        <div className="relative z-10 flex flex-col gap-3">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 max-w-[24rem] mt-7">
             {[
-              { icon: Monitor, text: 'Online Assessment' },
-              { icon: BookOpen, text: 'Course Matching' },
-              { icon: Wifi, text: 'Live Tracking' },
+              { icon: Users, text: 'Career Assessment' },
+              { icon: ChartNoAxesColumnIncreasing, text: 'Personalized Recommendations' },
+              { icon: HeartHandshake, text: 'Counselling & Support' },
             ].map(({ icon: Icon, text }) => (
-              <div key={text} className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3 flex flex-col items-center gap-1.5">
-                <Icon className="w-4 h-4 text-blue-400" />
-                <span className="text-slate-300 text-[11px] font-medium text-center">{text}</span>
+              <div key={text} className="flex flex-col items-center text-center gap-2">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#1681d9]/70 border border-white/10 shadow-sm">
+                  <Icon className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xs xl:text-sm font-medium leading-snug text-white/90">{text}</span>
               </div>
             ))}
           </div>
+        </div>
 
-          <div className="bg-slate-800/70 rounded-xl p-3.5 border border-slate-700/80 flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#1D4ED8]/25 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-4 h-4 text-blue-400" />
-            </div>
-            <div>
-              <p className="text-white text-xs font-semibold">Academic Session 2026–2027</p>
-              <p className="text-slate-400 text-[10px]">Verified Admission Portal • TATTI Edu</p>
-            </div>
+        <div className="relative z-10 flex justify-center pb-1">
+          <div className="relative text-[1.7rem] font-semibold italic tracking-tight" style={{ letterSpacing: '-0.035em' }}>
+            Better Minds&nbsp; Brighter Futures
+            <span className="absolute -bottom-2 left-[29%] w-[55%] h-[2px] rounded-full bg-[#ff9f36] -rotate-[5deg]" />
           </div>
         </div>
       </div>
@@ -253,7 +243,7 @@ export default function LoginPage() {
                     placeholder="e.g. 2026-TATTI-001"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="mt-1.5 bg-input border-border"
+                    className="mt-1.5 bg-input border-border hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 transition-colors"
                   />
                   <p className="text-[11px] text-muted-foreground mt-1">
                     Use the Student ID received during signup
@@ -276,12 +266,12 @@ export default function LoginPage() {
                       placeholder="Enter your password"
                       value={password}
                       onChange={e => setPassword(e.target.value)}
-                      className="bg-input border-border pr-10"
+                      className="bg-input border-border pr-10 hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 transition-colors"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-orange-600 transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -291,29 +281,29 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => changeMode('forgot')}
-                    className="text-sm text-primary hover:underline"
+                    className="text-sm text-primary hover:text-orange-600 hover:underline transition-colors"
                   >
                     Forgot Password?
                   </button>
                 </div>
-                <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-[#1e40af] text-white font-semibold h-11 rounded-lg shadow-sm transition-colors">
+                <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-orange-600 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign In'}
                 </Button>
               </form>
               <p className="text-center text-sm text-muted-foreground mt-5">
                 New student?{' '}
-                <button onClick={() => changeMode('signup')} className="text-[#1D4ED8] font-semibold hover:underline">Sign Up</button>
+                <button onClick={() => changeMode('signup')} className="text-[#1D4ED8] hover:text-orange-600 font-semibold hover:underline transition-colors">Sign Up</button>
               </p>
               <div className="mt-4">
                 <div className="text-center text-xs text-muted-foreground mb-3">— OR —</div>
                 <div className="grid grid-cols-2 gap-2.5">
                   <Link to="/admin/login">
-                    <Button variant="outline" className="w-full text-xs font-medium border-[#E4E7EC] hover:bg-[#F8FAFC] text-slate-700">
+                    <Button variant="outline" className="w-full text-xs font-medium border-[#E4E7EC] hover:border-orange-500 hover:bg-orange-50 hover:text-orange-600 text-slate-700 transition-all duration-150 shadow-sm">
                       Admin Portal
                     </Button>
                   </Link>
                   <Link to="/counsellor/login">
-                    <Button variant="outline" className="w-full text-xs font-semibold border-emerald-300 text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100/70 hover:text-emerald-800 transition-colors">
+                    <Button variant="outline" className="w-full text-xs font-semibold border-emerald-300 text-emerald-700 bg-emerald-50/60 hover:border-orange-500 hover:bg-orange-50 hover:text-orange-600 transition-all duration-150 shadow-sm">
                       Counsellor Portal
                     </Button>
                   </Link>
@@ -338,7 +328,7 @@ export default function LoginPage() {
                   </div>
 
                   {/* Highlighted Student ID Card */}
-                  <div className="p-4 bg-blue-50 border-2 border-dashed border-[#1D4ED8]/40 rounded-xl flex items-center justify-between">
+                  <div className="p-4 bg-blue-50 border-2 border-dashed border-[#1D4ED8]/40 hover:border-orange-500/50 rounded-xl flex items-center justify-between transition-colors">
                     <div className="text-left">
                       <span className="text-[11px] font-semibold tracking-wider text-[#1D4ED8] uppercase block">Your Student ID</span>
                       <span className="text-xl font-bold text-[#0B1F3A] font-mono">{createdStudentId}</span>
@@ -348,7 +338,7 @@ export default function LoginPage() {
                       variant="outline"
                       size="sm"
                       onClick={handleCopyStudentId}
-                      className="flex items-center gap-1 text-xs border-[#1D4ED8]/30 text-[#1D4ED8] hover:bg-blue-100"
+                      className="flex items-center gap-1 text-xs border-[#1D4ED8]/30 text-[#1D4ED8] hover:border-orange-500 hover:bg-orange-50 hover:text-orange-600 transition-colors"
                     >
                       <Copy className="w-3.5 h-3.5" />
                       Copy
@@ -362,7 +352,7 @@ export default function LoginPage() {
                   <Button
                     type="button"
                     onClick={handleProceedAfterSignup}
-                    className="w-full bg-[#1D4ED8] hover:bg-[#1e40af] text-white font-semibold h-11 rounded-lg shadow-sm transition-colors"
+                    className="w-full bg-[#1D4ED8] hover:bg-orange-600 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150"
                   >
                     Proceed to Sign In
                   </Button>
@@ -526,21 +516,21 @@ export default function LoginPage() {
                         className="mt-0.5"
                       />
                       <Label htmlFor="tos" className="text-xs text-muted-foreground cursor-pointer">
-                        I agree to the <span className="text-primary">User Agreement</span> and <span className="text-primary">Privacy Policy</span>
+                        I agree to the <span className="text-primary hover:text-orange-600 transition-colors">User Agreement</span> and <span className="text-primary hover:text-orange-600 transition-colors">Privacy Policy</span>
                       </Label>
                     </div>
 
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-[#1D4ED8] hover:bg-[#1e40af] text-white font-semibold h-11 rounded-lg shadow-sm transition-colors mt-2"
+                      className="w-full bg-[#1D4ED8] hover:bg-orange-600 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150 mt-2"
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Account'}
                     </Button>
                   </form>
                   <p className="text-center text-sm text-muted-foreground mt-4">
                     Already have an account?{' '}
-                    <button onClick={() => changeMode('login')} className="text-[#1D4ED8] font-semibold hover:underline">Sign In</button>
+                    <button onClick={() => changeMode('login')} className="text-[#1D4ED8] hover:text-orange-600 font-semibold hover:underline transition-colors">Sign In</button>
                   </p>
                 </>
               )}
@@ -567,14 +557,14 @@ export default function LoginPage() {
                     placeholder="Enter your registered email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="mt-1.5 bg-input border-border"
+                    className="mt-1.5 bg-input border-border hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 transition-colors"
                   />
                 </div>
-                <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-[#1e40af] text-white font-semibold h-11 rounded-lg shadow-sm transition-colors">
+                <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-orange-600 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Reset Link'}
                 </Button>
               </form>
-              <button onClick={() => changeMode('login')} className="text-center text-sm text-[#1D4ED8] font-medium hover:underline w-full mt-4">Back to Sign In</button>
+              <button onClick={() => changeMode('login')} className="text-center text-sm text-[#1D4ED8] hover:text-orange-600 font-medium hover:underline transition-colors w-full mt-4">Back to Sign In</button>
             </div>
           )}
 
@@ -590,7 +580,7 @@ export default function LoginPage() {
                 If an account exists for <span className="text-foreground font-medium">{email}</span>, a password reset link has been sent.
               </p>
               <p className="text-muted-foreground text-xs mb-6">Check your spam folder if you don't see it within a few minutes.</p>
-              <button onClick={() => { changeMode('login'); }} className="text-sm text-primary hover:underline">Back to Sign In</button>
+              <button onClick={() => { changeMode('login'); }} className="text-sm text-primary hover:text-orange-600 hover:underline transition-colors">Back to Sign In</button>
             </div>
           )}
         </div>
