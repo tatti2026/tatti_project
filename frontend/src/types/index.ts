@@ -224,3 +224,27 @@ export interface AdminAuditLog {
   created_at: string;
 }
 
+export interface MonthlyPerformancePoint {
+  monthIndex: number;
+  month: string;
+  shortMonth: string;
+  year: number;
+  score: number | null;
+  assessmentCount: number;
+  hasAssessment: boolean;
+}
+
+export interface StudentAssessmentPerformance {
+  studentId: string;
+  selectedYear: number;
+  availableYears: number[];
+  summary: {
+    latestScore: number | null;
+    averageScore: number | null;
+    totalCompleted: number;
+  };
+  monthly: MonthlyPerformancePoint[];
+  recordsCount: number;
+}
+
+

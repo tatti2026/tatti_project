@@ -13,6 +13,7 @@ import {
   CheckCircle2, Circle, ArrowRight, UserCheck, Lock, Unlock, ShieldCheck
 } from 'lucide-react';
 import { getApplicationAccess, isApplicationUnlocked } from '@/services/applicationAccessService';
+import MonthlyCareerAssessmentGraph from '@/components/student/MonthlyCareerAssessmentGraph';
 
 const journeySteps = [
   { key: 'registration', label: 'Registration', icon: UserCheck },
@@ -112,25 +113,25 @@ export default function StudentDashboard() {
     <StudentLayout>
       <div className="space-y-6 animate-fade-in">
         {/* Welcome */}
-        <div className="bg-white border border-[#E4E7EC] rounded-xl p-6 shadow-sm">
+        <div className="bg-white border border-[#FED7AA] rounded-xl p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-xl font-bold text-[#172033] mb-1">
+              <h1 className="text-xl font-bold text-[#172554] mb-1">
                 Welcome back, {profile?.full_name || profile?.email?.split('@')[0] || 'Student'}!
               </h1>
-              <p className="text-[#667085] text-sm">Track your TAT Entrance Exam and admission journey.</p>
+              <p className="text-[#64748B] text-sm">Track your TAT Entrance Exam and admission journey.</p>
             </div>
             <div className="shrink-0 text-right">
-              <p className="text-xs text-[#667085] mb-1 font-medium">Overall Progress</p>
-              <p className="text-2xl font-bold text-[#1D4ED8]">{progress}%</p>
+              <p className="text-xs text-[#64748B] mb-1 font-medium">Overall Progress</p>
+              <p className="text-2xl font-bold text-[#9A3412]">{progress}%</p>
             </div>
           </div>
-          <Progress value={progress} className="mt-4 h-2 bg-slate-100" />
+          <Progress value={progress} className="mt-4 h-2 bg-[#FFEDD5]" />
         </div>
 
         {/* Journey Roadmap */}
-        <div className="bg-white border border-[#E4E7EC] rounded-xl p-6 shadow-sm">
-          <h2 className="text-sm font-semibold text-[#172033] mb-5 tracking-tight">Admission Milestones</h2>
+        <div className="bg-white border border-[#FED7AA] rounded-xl p-6 shadow-sm">
+          <h2 className="text-sm font-semibold text-[#172554] mb-5 tracking-tight">Admission Milestones</h2>
           <div className="overflow-x-auto">
             <div className="flex items-center gap-0 min-w-max pb-2">
               {journeySteps.map((step, idx) => {
@@ -142,22 +143,22 @@ export default function StudentDashboard() {
                     <div className="flex flex-col items-center gap-1.5">
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all ${
                         done ? 'bg-emerald-600 border-emerald-600 text-white' :
-                        active ? 'bg-blue-50 border-[#1D4ED8] text-[#1D4ED8]' :
-                        'bg-slate-50 border-[#E4E7EC] text-slate-400'
+                        active ? 'bg-[#FFE0B2] border-[#F59E0B] text-[#9A3412]' :
+                        'bg-[#FFEDD5]/40 border-[#FED7AA] text-slate-400'
                       }`}>
                         {done ? (
                           <CheckCircle2 className="w-4 h-4 text-white" />
                         ) : (
-                          <Icon className={`w-4 h-4 ${active ? 'text-[#1D4ED8]' : 'text-slate-400'}`} />
+                          <Icon className={`w-4 h-4 ${active ? 'text-[#9A3412]' : 'text-slate-400'}`} />
                         )}
                       </div>
                       <span className={`text-[11px] font-medium whitespace-nowrap ${
-                        done || active ? 'text-[#172033]' : 'text-[#667085]'
+                        done || active ? 'text-[#172554]' : 'text-[#64748B]'
                       }`}>{step.label}</span>
-                      {active && <div className="w-1.5 h-1.5 bg-[#1D4ED8] rounded-full animate-pulse" />}
+                      {active && <div className="w-1.5 h-1.5 bg-[#F59E0B] rounded-full animate-pulse" />}
                     </div>
                     {idx < journeySteps.length - 1 && (
-                      <div className={`w-10 h-0.5 mx-1 mb-5 ${idx < currentStep ? 'bg-emerald-600' : 'bg-[#E4E7EC]'}`} />
+                      <div className={`w-10 h-0.5 mx-1 mb-5 ${idx < currentStep ? 'bg-emerald-600' : 'bg-[#FED7AA]'}`} />
                     )}
                   </div>
                 );
@@ -169,24 +170,27 @@ export default function StudentDashboard() {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           {kpiCards.map(({ label, status, icon: Icon, action, actionLabel }) => (
-            <div key={label} className="bg-white border border-[#E4E7EC] rounded-xl p-5 shadow-sm hover:border-[#D0D5DD] transition-all">
+            <div key={label} className="bg-white border border-[#FED7AA] rounded-xl p-5 shadow-sm hover:border-[#FDBA74] transition-all">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-9 h-9 rounded-lg bg-blue-50 text-[#1D4ED8] flex items-center justify-center">
+                <div className="w-9 h-9 rounded-lg bg-[#FFE0B2]/50 text-[#9A3412] flex items-center justify-center">
                   <Icon className="w-4 h-4" />
                 </div>
                 <StatusBadge status={status} />
               </div>
-              <p className="text-sm font-semibold text-[#172033] mb-3">{label}</p>
-              <button onClick={action} className="text-xs text-[#1D4ED8] font-medium hover:underline flex items-center gap-1">
+              <p className="text-sm font-semibold text-[#172554] mb-3">{label}</p>
+              <button onClick={action} className="text-xs text-[#9A3412] font-medium hover:text-[#C66A16] hover:underline flex items-center gap-1">
                 {actionLabel} <ArrowRight className="w-3 h-3" />
               </button>
             </div>
           ))}
         </div>
 
+        {/* Monthly Career Assessment Performance Line Graph */}
+        <MonthlyCareerAssessmentGraph onTakeAssessment={() => navigate('/student/assessment')} />
+
         {/* Quick Actions */}
-        <div className="bg-white border border-[#E4E7EC] rounded-xl p-6 shadow-sm">
-          <h2 className="text-sm font-semibold text-[#172033] mb-4">Quick Actions</h2>
+        <div className="bg-white border border-[#FED7AA] rounded-xl p-6 shadow-sm">
+          <h2 className="text-sm font-semibold text-[#172554] mb-4">Quick Actions</h2>
           <div className="flex flex-wrap gap-3">
             {student?.assessment_status !== 'completed' && (
               <Button onClick={() => navigate('/student/assessment')} size="sm" className="bg-[#1D4ED8] hover:bg-[#1e40af] text-white border-0 shadow-sm">
@@ -203,7 +207,7 @@ export default function StudentDashboard() {
                 onClick={() => navigate('/student/assessment')}
                 variant="outline"
                 size="sm"
-                className="border-[#E4E7EC] text-[#344054] hover:bg-[#F8FAFC]"
+                className="border-[#FED7AA] text-[#172554] hover:bg-[#FFEDD5]/50"
               >
                 <BookOpen className="w-4 h-4 mr-2" />
                 View Course Recommendations

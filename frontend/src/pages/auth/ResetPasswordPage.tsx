@@ -74,7 +74,7 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#F5F7FA]">
+    <div className="min-h-screen flex bg-[#FFF7ED]">
       {/* Left corporate branding panel */}
       <div className="hidden lg:flex flex-col justify-between w-[45%] xl:w-[42%] relative overflow-hidden p-10 bg-[#0B1F3A] text-white">
         <div
@@ -119,7 +119,7 @@ export default function ResetPasswordPage() {
       </div>
 
       {/* Right form card */}
-      <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[#F5F7FA]">
+      <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[#FFF7ED]">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-6 lg:hidden">
@@ -127,12 +127,12 @@ export default function ResetPasswordPage() {
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="font-bold text-[#172033]">TATTI</p>
-              <p className="text-xs text-[#667085]">Student Portal</p>
+              <p className="font-bold text-[#172554]">TATTI</p>
+              <p className="text-xs text-[#64748B]">Student Portal</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 md:p-8 animate-fade-in shadow-[0_1px_3px_rgba(16,24,40,0.06),0_1px_2px_rgba(16,24,40,0.04)] border border-[#E4E7EC]">
+          <div className="bg-white rounded-2xl p-6 md:p-8 animate-fade-in shadow-[0_1px_3px_rgba(245,158,11,0.06),0_1px_2px_rgba(245,158,11,0.04)] border border-[#FED7AA]">
             {success ? (
               <div className="text-center py-6 space-y-4">
                 <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto border border-emerald-200">

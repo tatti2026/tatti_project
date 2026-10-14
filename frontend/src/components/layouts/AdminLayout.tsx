@@ -73,13 +73,13 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
               onClick={onNavClick}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-150 group ${
                 active
-                  ? 'bg-[#1D4ED8] text-white shadow-sm'
-                  : 'text-slate-300 hover:bg-orange-500/15 hover:text-orange-400'
+                  ? 'bg-[#FFE0B2] text-[#9A3412] font-semibold shadow-sm'
+                  : 'text-slate-300 hover:bg-orange-500/15 hover:text-orange-300'
               }`}
             >
-              <Icon className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-white' : 'text-slate-400 group-hover:text-orange-400'}`} />
+              <Icon className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#C66A16]' : 'text-slate-400 group-hover:text-orange-300'}`} />
               <span className="flex-1 min-w-0 leading-snug break-words">{label}</span>
-              {active && <ChevronRight className="w-3.5 h-3.5 shrink-0 text-white/80" />}
+              {active && <ChevronRight className="w-3.5 h-3.5 shrink-0 text-[#9A3412]" />}
             </Link>
           );
         })}
@@ -112,7 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const currentPage = navItems.find(n => n.path === location.pathname)?.label || 'Administration';
 
   return (
-    <div className="flex min-h-screen w-full bg-[#F5F7FA]">
+    <div className="flex min-h-screen w-full bg-[#FFF7ED]">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-[#0B1F3A]">
         <SidebarContent />
@@ -121,7 +121,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main Container */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top Header */}
-        <header className="h-16 border-b border-[#E4E7EC] bg-white flex items-center justify-between px-6 gap-4 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <header className="h-16 border-b border-[#FED7AA] bg-white flex items-center justify-between px-6 gap-4 shrink-0 shadow-[0_1px_2px_rgba(245,158,11,0.04)]">
           <div className="flex items-center gap-3 min-w-0">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
@@ -134,8 +134,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </SheetContent>
             </Sheet>
             <div>
-              <span className="text-base font-semibold text-[#172033] tracking-tight">{currentPage}</span>
-              <p className="text-[11px] text-[#667085] hidden sm:block">Tamil Nadu Advanced Technical Training Institute</p>
+              <span className="text-base font-semibold text-[#172554] tracking-tight">{currentPage}</span>
+              <p className="text-[11px] text-[#64748B] hidden sm:block">Tamil Nadu Advanced Technical Training Institute</p>
             </div>
           </div>
 
@@ -148,7 +148,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Content Area */}
-        <main className="flex-1 min-w-0 overflow-y-auto p-5 md:p-8 bg-[#F5F7FA]">
+        <main className="flex-1 min-w-0 overflow-y-auto p-5 md:p-8 bg-[#FFF7ED]">
           {children}
         </main>
       </div>

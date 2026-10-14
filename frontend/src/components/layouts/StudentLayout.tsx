@@ -87,8 +87,8 @@ function SidebarContent({
               onClick={onNavClick}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-150 group ${
                 active
-                  ? 'bg-[#1D4ED8] text-white shadow-sm'
-                  : 'text-slate-300 hover:bg-orange-500/15 hover:text-orange-400'
+                  ? 'bg-[#FFE0B2] text-[#9A3412] font-semibold shadow-sm'
+                  : 'text-slate-300 hover:bg-orange-500/15 hover:text-orange-300'
               }`}
             >
               <div className="relative shrink-0">
@@ -99,8 +99,8 @@ function SidebarContent({
                         ? 'text-emerald-400'
                         : 'text-amber-400'
                       : active
-                        ? 'text-white'
-                        : 'text-slate-400 group-hover:text-orange-400'
+                        ? 'text-[#C66A16]'
+                        : 'text-slate-400 group-hover:text-orange-300'
                   }`}
                 />
               </div>
@@ -122,13 +122,13 @@ function SidebarContent({
 
               {/* Unread notification badge */}
               {isNotifications && unreadCount > 0 && (
-                <span className="ml-auto shrink-0 min-w-[18px] h-[18px] rounded-full bg-[#1D4ED8] text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-sm">
+                <span className="ml-auto shrink-0 min-w-[18px] h-[18px] rounded-full bg-[#F59E0B] text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-sm">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
 
               {active && !isAppProcess && !isNotifications && (
-                <ChevronRight className="w-3.5 h-3.5 shrink-0 text-white/80" />
+                <ChevronRight className="w-3.5 h-3.5 shrink-0 text-[#9A3412]" />
               )}
             </Link>
           );
@@ -223,7 +223,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
   }, [profile, studentId]);
 
   return (
-    <div className="flex min-h-screen w-full bg-[#F5F7FA]">
+    <div className="flex min-h-screen w-full bg-[#FFF7ED]">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-[#0B1F3A]">
         <SidebarContent unreadCount={unreadCount} isUnlocked={isUnlocked} />
@@ -232,7 +232,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
       {/* Main content container */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top header */}
-        <header className="h-16 border-b border-[#E4E7EC] bg-white flex items-center justify-between px-6 gap-4 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <header className="h-16 border-b border-[#FED7AA] bg-white flex items-center justify-between px-6 gap-4 shrink-0 shadow-[0_1px_2px_rgba(245,158,11,0.04)]">
           {/* Mobile hamburger */}
           <div className="flex items-center gap-3">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -251,10 +251,10 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
             </Sheet>
 
             <div>
-              <span className="text-base font-semibold text-[#172033] tracking-tight">
+              <span className="text-base font-semibold text-[#172554] tracking-tight">
                 TATTI Student Portal
               </span>
-              <p className="text-[11px] text-[#667085] hidden sm:block">
+              <p className="text-[11px] text-[#64748B] hidden sm:block">
                 Tamil Nadu Advanced Technical Training Institute
               </p>
             </div>
@@ -262,11 +262,11 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
 
           <div className="flex items-center gap-3">
             <Link to="/student/notifications">
-              <Button variant="outline" size="sm" className="relative h-9 px-3 border-[#E4E7EC] text-[#344054] hover:bg-[#F8FAFC]">
+              <Button variant="outline" size="sm" className="relative h-9 px-3 border-[#FED7AA] text-[#172554] hover:bg-[#FFEDD5]/50">
                 <Bell className="w-4 h-4 mr-1.5 text-slate-500" />
                 <span className="text-xs">Notifications</span>
                 {unreadCount > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#1D4ED8] text-white text-[10px] font-bold">
+                  <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#F59E0B] text-white text-[10px] font-bold">
                     {unreadCount}
                   </span>
                 )}
@@ -276,7 +276,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-5 md:p-8 overflow-y-auto bg-[#F5F7FA]">
+        <main className="flex-1 p-5 md:p-8 overflow-y-auto bg-[#FFF7ED]">
           {children}
         </main>
       </div>

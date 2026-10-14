@@ -1,7 +1,8 @@
 import type {
   Student, Assessment, Course, Question,
   CourseRecommendation, Application, Payment,
-  Counselling, Notification, FollowUp, Profile
+  Counselling, Notification, FollowUp, Profile,
+  StudentAssessmentPerformance, MonthlyPerformancePoint,
 } from '@/types/index';
 
 const API_BASE = import.meta.env.VITE_API_URL || (
@@ -440,6 +441,17 @@ export async function submitAssessment(id: string, score: number, totalMarks: nu
     headers: getHeaders(),
     body: JSON.stringify({ score, totalMarks, answers }),
   });
+}
+
+export async function getStudentMonthlyPerformance(year?: number): Promise<StudentAssessmentPerformance | null> {
+  const url = year
+    ? `${API_BASE}/assessments/monthly-performance?year=${year}`
+    : `${API_BASE}/assessments/monthly-performance`;
+  const res = await fetch(url, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return null;
+  return await res.json();
 }
 
 // ── COURSE RECOMMENDATIONS ─────────────────────────────────

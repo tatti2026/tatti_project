@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Eye, EyeOff, GraduationCap, ClipboardCheck, Loader2, Heart, Users, HeartHandshake } from 'lucide-react';
+import { Eye, EyeOff, GraduationCap, Loader2, Heart, Users, ChartNoAxesColumnIncreasing } from 'lucide-react';
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset-sent';
 
@@ -57,62 +57,85 @@ export default function LoginPage() {
   };
 
   const features = [
-    { icon: Users, title: 'Career Assessment' },
-    { icon: ClipboardCheck, title: 'Personalized Recommendations' },
-    { icon: HeartHandshake, title: 'Counselling & Support' },
+    { icon: Users, title: 'Career Support' },
+    { icon: ChartNoAxesColumnIncreasing, title: 'Personalized Recommendations & Counselling' },
   ];
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Main content row */}
       <div className="flex flex-1 min-h-0">
-      {/* Left brand panel */}
-      <div className="hidden lg:flex flex-col justify-between w-[45%] xl:w-[42%] relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #083b78 0%, #0c2f6c 100%)' }}>
-        <div className="absolute inset-0 opacity-20" style={{
-          backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.18) 0, rgba(255,255,255,0.18) 1px, transparent 1px), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.12) 0, rgba(255,255,255,0.12) 1px, transparent 1px)',
-          backgroundSize: '120px 120px'
+      {/* Left brand panel – light orange theme */}
+      <div
+        className="hidden lg:flex flex-col justify-between w-[45%] xl:w-[42%] relative overflow-hidden"
+        style={{ background: '#FFE0B2' }}
+      >
+        {/* Soft dotted pattern */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage: 'radial-gradient(circle at 1px 1px, #FED7AA 1px, transparent 0)',
+          backgroundSize: '32px 32px',
         }} />
-
-        <div className="absolute inset-x-0 bottom-0 h-48 opacity-30" style={{
-          background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0) 65%)'
-        }} />
+        {/* Decorative circles – soft orange */}
+        <div className="absolute -left-20 bottom-12 w-64 h-64 rounded-full border-[24px] pointer-events-none" style={{ borderColor: '#FED7AA' }} />
+        <div className="absolute -left-10 bottom-20 w-44 h-44 rounded-full border-[14px] pointer-events-none" style={{ borderColor: '#FED7AA' }} />
 
         <div className="relative z-10 px-10 pt-10 pb-8">
+          {/* Logo row */}
           <div className="flex items-center gap-4 mb-12">
-            <div className="relative w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1ca8ff 0%, #0f66d2 100%)', boxShadow: '0 0 30px rgba(39, 167, 255, 0.5)' }}>
-              <div className="absolute inset-2 rounded-full border-2 border-white/45" />
+            <div
+              className="relative w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ background: '#F59E0B', boxShadow: '0 0 28px rgba(245,158,11,0.35)' }}
+            >
+              <div className="absolute inset-2 rounded-full border-2 border-white/60" />
               <Heart className="w-8 h-8 text-white" fill="white" />
             </div>
-            <div className="flex items-center text-4xl font-black tracking-tight text-white" style={{ letterSpacing: '-0.08em' }}>
-              <span className="text-[#ff9f1c]">PSY</span>
-              <span className="text-white">CARE</span>
+            <div className="flex items-center text-4xl font-black tracking-tight" style={{ letterSpacing: '-0.08em' }}>
+              <span style={{ color: '#EA580C' }}>PSY</span>
+              <span style={{ color: '#172554' }}>CARE</span>
             </div>
           </div>
 
           <div className="mb-10">
-            <h1 className="text-4xl xl:text-[3rem] leading-[1.05] font-bold text-white mb-4" style={{ letterSpacing: '-0.05em' }}>
+            <h1
+              className="text-4xl xl:text-[3rem] leading-[1.05] font-bold mb-3"
+              style={{ letterSpacing: '-0.05em', color: '#172554' }}
+            >
               Your Mental Well-being<br />Our Priority
             </h1>
-            <p className="text-white/70 text-sm xl:text-[0.95rem] leading-relaxed max-w-[24rem]">
+            {/* Orange underline */}
+            <div className="w-14 h-1 rounded-full mb-4" style={{ background: '#F59E0B' }} />
+            <p className="text-sm xl:text-[0.95rem] leading-relaxed max-w-[24rem]" style={{ color: '#172554' }}>
               PSYCARE is a digital platform designed to support students in understanding their potential, making informed career choices and building a brighter future through personalized career guidance and counselling.
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-6 max-w-[28rem]">
+          {/* Two feature items – centred evenly */}
+          <div className="flex justify-center gap-10 max-w-[28rem]">
             {features.map(({ icon: Icon, title }) => (
-              <div key={title} className="flex flex-col items-center text-center gap-3">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center border border-white/15" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <Icon className="w-5 h-5 text-white/90" />
+              <div key={title} className="flex flex-col items-center text-center gap-3 flex-1">
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm"
+                  style={{ background: '#F59E0B' }}
+                >
+                  <Icon className="w-5 h-5" style={{ color: '#172554' }} />
                 </div>
-                <p className="text-[0.8rem] font-medium leading-snug text-white/90 max-w-[6.2rem]">{title}</p>
+                <p className="text-[0.8rem] font-medium leading-snug max-w-[6.2rem]" style={{ color: '#9A3412' }}>{title}</p>
               </div>
             ))}
           </div>
         </div>
 
+        {/* Bottom tagline */}
         <div className="relative z-10 px-8 pb-8 pt-2">
-          <div className="flex items-center justify-center text-[#f8d5b0] text-[1.75rem] font-semibold italic tracking-tight" style={{ letterSpacing: '-0.04em', textShadow: '0 0 18px rgba(255, 166, 77, 0.25)' }}>
-            Better Minds <span className="text-[#ff9f1c]">Brighter Futures</span>
+          <div
+            className="relative flex items-center justify-center text-[1.75rem] font-semibold italic tracking-tight"
+            style={{ letterSpacing: '-0.04em', color: '#172554' }}
+          >
+            Better Minds&nbsp; Brighter Futures
+            <span
+              className="absolute -bottom-2 left-[29%] w-[45%] h-[2px] rounded-full -rotate-[5deg]"
+              style={{ background: '#F59E0B' }}
+            />
           </div>
         </div>
       </div>
@@ -147,7 +170,14 @@ export default function LoginPage() {
                     placeholder="Enter your email address"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="h-10 bg-white border-border text-foreground placeholder:text-muted-foreground focus:border-primary"
+                    className="h-10 transition-colors"
+                    style={{
+                      background: '#FFFFFF',
+                      border: '1px solid #FED7AA',
+                      color: '#172554',
+                    }}
+                    onFocus={e => { e.currentTarget.style.border = '1px solid #F59E0B'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.2)'; }}
+                    onBlur={e => { e.currentTarget.style.border = '1px solid #FED7AA'; e.currentTarget.style.boxShadow = 'none'; }}
                   />
                 </div>
                 <div>
@@ -159,7 +189,14 @@ export default function LoginPage() {
                       placeholder="Enter your password"
                       value={password}
                       onChange={e => setPassword(e.target.value)}
-                      className="h-10 bg-white border-border text-foreground placeholder:text-muted-foreground pr-10 focus:border-primary"
+                      className="h-10 pr-10 transition-colors"
+                      style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #FED7AA',
+                        color: '#172554',
+                      }}
+                      onFocus={e => { e.currentTarget.style.border = '1px solid #F59E0B'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.2)'; }}
+                      onBlur={e => { e.currentTarget.style.border = '1px solid #FED7AA'; e.currentTarget.style.boxShadow = 'none'; }}
                     />
                     <button
                       type="button"
@@ -197,12 +234,24 @@ export default function LoginPage() {
               </p>
               <div className="mt-5 pt-5 grid grid-cols-2 gap-2" style={{ borderTop: '1px solid hsl(var(--border))' }}>
                 <Link to="/admin/login">
-                  <Button variant="outline" className="w-full text-xs h-9 text-muted-foreground hover:border-orange-500 hover:bg-orange-50 hover:text-orange-600 transition-all duration-150">
+                  <Button
+                    variant="outline"
+                    className="w-full text-xs h-9 font-medium transition-all duration-150 shadow-sm"
+                    style={{ background: '#FFF7ED', border: '1px solid #FED7AA', color: '#172554' }}
+                    onMouseEnter={e => { const b = e.currentTarget; b.style.background='#FFE0B2'; b.style.border='1px solid #F59E0B'; b.style.color='#9A3412'; }}
+                    onMouseLeave={e => { const b = e.currentTarget; b.style.background='#FFF7ED'; b.style.border='1px solid #FED7AA'; b.style.color='#172554'; }}
+                  >
                     Admin Portal
                   </Button>
                 </Link>
                 <Link to="/counsellor/login">
-                  <Button variant="outline" className="w-full text-xs h-9 text-emerald-600 border-emerald-200/80 hover:border-orange-500 hover:bg-orange-50 hover:text-orange-600 transition-all duration-150">
+                  <Button
+                    variant="outline"
+                    className="w-full text-xs h-9 font-medium transition-all duration-150 shadow-sm"
+                    style={{ background: '#FFF7ED', border: '1px solid #FED7AA', color: '#172554' }}
+                    onMouseEnter={e => { const b = e.currentTarget; b.style.background='#FFE0B2'; b.style.border='1px solid #F59E0B'; b.style.color='#9A3412'; }}
+                    onMouseLeave={e => { const b = e.currentTarget; b.style.background='#FFF7ED'; b.style.border='1px solid #FED7AA'; b.style.color='#172554'; }}
+                  >
                     Counsellor Portal
                   </Button>
                 </Link>

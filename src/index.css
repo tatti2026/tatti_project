@@ -5,63 +5,75 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── TATTI Portal — Professional Corporate Design System ── */
+/* ── PSYCARE Portal — Light Orange Corporate Design System ── */
 @layer base {
   :root {
-    /* Background: Light cool grey / off-white #F5F7FA */
-    --background: 216 28% 97%;
-    /* Main Text: Deep corporate slate #172033 */
-    --foreground: 221 39% 15%;
+    /* Main page background: #FFF7ED */
+    --background: 33 100% 96.5%;
+    /* Main text: #172554 */
+    --foreground: 226 57% 21%;
 
     /* Cards: Pure White #FFFFFF */
     --card: 0 0% 100%;
-    --card-foreground: 221 39% 15%;
+    --card-foreground: 226 57% 21%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 221 39% 15%;
+    --popover-foreground: 226 57% 21%;
 
     /* Primary: Deep Navy #0B1F3A */
     --primary: 215 68% 14%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Light grey/blue #F0F4F8 */
-    --secondary: 210 24% 95%;
-    --secondary-foreground: 221 39% 15%;
+    /* Secondary background: #FFEDD5 */
+    --secondary: 34 100% 92%;
+    --secondary-foreground: 15 86% 34%;
 
-    /* Muted */
-    --muted: 214 20% 95%;
-    /* Secondary Text: #667085 */
-    --muted-foreground: 220 13% 46%;
+    /* Muted (Light orange section / subtle fill): #FFEDD5 */
+    --muted: 34 100% 92%;
+    /* Secondary text: #64748B */
+    --muted-foreground: 215 16% 47%;
 
-    /* Accent: Corporate Blue #1D4ED8 */
-    --accent: 224 76% 48%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent: Light orange section #FFE0B2 / Primary orange #F59E0B */
+    --accent: 36 100% 85%;
+    --accent-foreground: 15 86% 34%;
 
     /* Destructive / Error: Professional Red #DC2626 */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders: #E4E7EC, Inputs: Pure White #FFFFFF */
-    --border: 220 16% 91%;
-    --input: 0 0% 100%;
-    --ring: 224 76% 48%;
+    /* Borders: #FED7AA, Inputs: Pure White #FFFFFF with #FED7AA border */
+    --border: 32 98% 83%;
+    --input: 32 98% 83%;
+    --ring: 38 92% 50%;
     --radius: 0.75rem;
+
+    /* Light-orange palette tokens */
+    --theme-main-bg: #FFF7ED;
+    --theme-secondary-bg: #FFEDD5;
+    --theme-section-bg: #FFE0B2;
+    --theme-primary-accent: #F59E0B;
+    --theme-dark-orange-text: #9A3412;
+    --theme-icon-orange: #C66A16;
+    --theme-card-bg: #FFFFFF;
+    --theme-main-text: #172554;
+    --theme-secondary-text: #64748B;
+    --theme-border: #FED7AA;
 
     /* Sidebar: Deep Navy #0B1F3A */
     --sidebar-background: 215 68% 14%;
     --sidebar-foreground: 215 20% 70%;
-    --sidebar-primary: 224 76% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 50% 20%;
-    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-primary: 36 100% 85%;
+    --sidebar-primary-foreground: 15 86% 34%;
+    --sidebar-accent: 36 100% 85%;
+    --sidebar-accent-foreground: 15 86% 34%;
     --sidebar-border: 215 45% 22%;
-    --sidebar-ring: 224 76% 48%;
+    --sidebar-ring: 38 92% 50%;
 
     /* Charts */
-    --chart-1: 224 76% 48%;
+    --chart-1: 38 92% 50%;
     --chart-2: 215 68% 14%;
     --chart-3: 152 69% 36%;
-    --chart-4: 38 92% 48%;
+    --chart-4: 24 95% 53%;
     --chart-5: 350 75% 50%;
 
     /* Semantic extras */
@@ -69,14 +81,14 @@
     --warning: 38 92% 48%;
     --info: 224 76% 48%;
 
-    /* Gradients: Clean subtle corporate accents */
+    /* Gradients: Clean subtle light-orange accents */
     --gradient-primary: linear-gradient(135deg, #0B1F3A 0%, #1D4ED8 100%);
-    --gradient-subtle: linear-gradient(180deg, #FFFFFF 0%, #F5F7FA 100%);
-    --gradient-card: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+    --gradient-subtle: linear-gradient(180deg, #FFFFFF 0%, #FFF7ED 100%);
+    --gradient-card: linear-gradient(180deg, #FFFFFF 0%, #FFF7ED 100%);
 
-    /* Shadows: Soft corporate shadows */
-    --shadow-card: 0 1px 3px 0 rgba(16, 24, 40, 0.05), 0 1px 2px -1px rgba(16, 24, 40, 0.05);
-    --shadow-hover: 0 4px 8px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
+    /* Shadows: Soft warm orange-tinted shadows */
+    --shadow-card: 0 1px 3px 0 rgba(245, 158, 11, 0.05), 0 1px 2px -1px rgba(245, 158, 11, 0.05);
+    --shadow-hover: 0 4px 8px -2px rgba(245, 158, 11, 0.08), 0 2px 4px -2px rgba(245, 158, 11, 0.04);
   }
 }
 
@@ -84,7 +96,7 @@
   * {
     @apply border-border;
     scrollbar-width: thin;
-    scrollbar-color: #CBD5E1 transparent;
+    scrollbar-color: #FED7AA transparent;
   }
 
   body {
@@ -92,22 +104,22 @@
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #F5F7FA;
-    color: #172033;
+    background-color: #FFF7ED;
+    color: #172554;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 600;
-    color: #172033;
+    color: #172554;
     letter-spacing: -0.015em;
   }
 }
 
 @layer utilities {
   .gradient-text {
-    color: #1D4ED8;
-    background-image: linear-gradient(135deg, #0B1F3A 0%, #1D4ED8 100%);
+    color: #9A3412;
+    background-image: linear-gradient(135deg, #9A3412 0%, #F59E0B 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -121,9 +133,9 @@
   /* Corporate white content card */
   .glass-card {
     background-color: #FFFFFF;
-    border: 1px solid #E4E7EC;
+    border: 1px solid #FED7AA;
     border-radius: 0.75rem;
-    box-shadow: 0 1px 3px 0 rgba(16, 24, 40, 0.05), 0 1px 2px -1px rgba(16, 24, 40, 0.05);
+    box-shadow: 0 1px 3px 0 rgba(245, 158, 11, 0.05), 0 1px 2px -1px rgba(245, 158, 11, 0.05);
   }
 
   .sidebar-item {
@@ -140,15 +152,19 @@
   }
 
   .sidebar-item:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    color: #FFFFFF;
+    background-color: rgba(249, 115, 22, 0.15);
+    color: #FB923C;
   }
 
   .sidebar-item-active {
-    background-color: #1D4ED8;
-    color: #FFFFFF !important;
+    background-color: #FFE0B2;
+    color: #9A3412 !important;
     font-weight: 600;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+
+  .sidebar-item-active svg {
+    color: #C66A16 !important;
   }
 
   .status-badge {
@@ -165,16 +181,16 @@
 
   .kpi-card {
     background-color: #FFFFFF;
-    border: 1px solid #E4E7EC;
+    border: 1px solid #FED7AA;
     border-radius: 0.75rem;
     padding: 1.25rem;
-    box-shadow: 0 1px 3px 0 rgba(16, 24, 40, 0.05), 0 1px 2px -1px rgba(16, 24, 40, 0.05);
+    box-shadow: 0 1px 3px 0 rgba(245, 158, 11, 0.05), 0 1px 2px -1px rgba(245, 158, 11, 0.05);
     transition: all 200ms ease;
   }
 
   .kpi-card:hover {
-    border-color: #D0D5DD;
-    box-shadow: 0 4px 8px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
+    border-color: #FDBA74;
+    box-shadow: 0 4px 8px -2px rgba(245, 158, 11, 0.08), 0 2px 4px -2px rgba(245, 158, 11, 0.04);
   }
 
   .animate-fade-in {

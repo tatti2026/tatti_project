@@ -7,13 +7,17 @@ import {
   submitAssessmentById,
   getStudentRecommendations,
   upsertRecommendation,
-  getAllAssessments
+  getAllAssessments,
+  getStudentMonthlyPerformance,
 } from '../controllers/assessmentController.js';
+import { requireAuth } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
 router.get('/', getAllAssessments);
 router.get('/questions', getActiveQuestions);
+router.get('/monthly-performance', requireAuth, getStudentMonthlyPerformance);
+router.get('/student/:studentId/monthly-performance', requireAuth, getStudentMonthlyPerformance);
 router.post('/submit', submitAssessment);
 
 router.get('/student/:studentId', getStudentAssessment);

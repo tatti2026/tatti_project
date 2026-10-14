@@ -13,6 +13,7 @@ import {
   CheckCircle2, Circle, ArrowRight, UserCheck, Lock, Unlock, ShieldCheck
 } from 'lucide-react';
 import { getApplicationAccess, isApplicationUnlocked } from '@/services/applicationAccessService';
+import MonthlyCareerAssessmentGraph from '@/components/student/MonthlyCareerAssessmentGraph';
 
 const journeySteps = [
   { key: 'registration', label: 'Registration', icon: UserCheck },
@@ -183,6 +184,9 @@ export default function StudentDashboard() {
             </div>
           ))}
         </div>
+
+        {/* Monthly Career Assessment Performance Line Graph */}
+        <MonthlyCareerAssessmentGraph onTakeAssessment={() => navigate('/student/assessment')} />
 
         {/* Quick Actions */}
         <div className="glass-card rounded-xl p-5">

@@ -71,7 +71,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5F7FA]">
+    <div className="min-h-screen flex flex-col bg-[#FFF7ED]">
       <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-md relative">
         {/* Header */}
@@ -79,19 +79,19 @@ export default function AdminLoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#0B1F3A] mb-4 shadow-md">
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-[#172033] mb-1 tracking-tight">TATTI Admin Portal</h1>
-          <p className="text-[#667085] text-sm">Administrative Management & Student Operations</p>
+          <h1 className="text-2xl font-bold text-[#172554] mb-1 tracking-tight">TATTI Admin Portal</h1>
+          <p className="text-[#64748B] text-sm">Administrative Management & Student Operations</p>
         </div>
 
-        <div className="bg-white border border-[#E4E7EC] rounded-2xl p-8 shadow-[0_1px_3px_rgba(16,24,40,0.06),0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="flex items-center gap-2 mb-6 p-3 bg-blue-50/80 hover:bg-orange-50 hover:border-orange-200 rounded-lg border border-blue-200/80 transition-all duration-150 group cursor-pointer">
-            <Shield className="w-4 h-4 text-[#1D4ED8] group-hover:text-orange-600 shrink-0 transition-colors" />
-            <span className="text-xs text-[#1D4ED8] group-hover:text-orange-600 font-medium transition-colors">Authorized Administrative Personnel Only</span>
+        <div className="bg-white border border-[#FED7AA] rounded-2xl p-8 shadow-[0_1px_3px_rgba(245,158,11,0.06),0_1px_2px_rgba(245,158,11,0.04)]">
+          <div className="flex items-center gap-2 mb-6 p-3 bg-[#FFE0B2]/40 hover:bg-[#FFE0B2]/70 hover:border-orange-300 rounded-lg border border-[#FED7AA] transition-all duration-150 group cursor-pointer">
+            <Shield className="w-4 h-4 text-[#9A3412] group-hover:text-orange-700 shrink-0 transition-colors" />
+            <span className="text-xs text-[#9A3412] group-hover:text-orange-700 font-medium transition-colors">Authorized Administrative Personnel Only</span>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5" autoComplete="off" autoCapitalize="none" spellCheck={false}>
             <div>
-              <Label htmlFor="admin-email" className="text-sm font-medium text-[#344054]">Admin Email</Label>
+              <Label htmlFor="admin-email" className="text-sm font-medium text-[#172554]">Admin Email</Label>
               <Input
                 id="admin-email"
                 name="tatti_admin_access_identifier"
@@ -106,11 +106,11 @@ export default function AdminLoginPage() {
                 placeholder="admin@tatti.edu.in"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="mt-1.5 bg-white border-[#D0D5DD] hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 h-11 transition-colors"
+                className="mt-1.5 bg-white border-[#FED7AA] hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 h-11 transition-colors"
               />
             </div>
             <div>
-              <Label htmlFor="admin-pw" className="text-sm font-medium text-[#344054]">Password</Label>
+              <Label htmlFor="admin-pw" className="text-sm font-medium text-[#172554]">Password</Label>
               <div className="relative mt-1.5">
                 <Input
                   id="admin-pw"
@@ -126,7 +126,7 @@ export default function AdminLoginPage() {
                   placeholder="Enter admin password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="bg-white border-[#D0D5DD] hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 pr-10 h-11 transition-colors"
+                  className="bg-white border-[#FED7AA] hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 pr-10 h-11 transition-colors"
                 />
                 <button
                   type="button"
@@ -141,7 +141,7 @@ export default function AdminLoginPage() {
               <button
                 type="button"
                 onClick={handleForgotOpen}
-                className="text-sm text-[#1D4ED8] font-medium hover:text-orange-600 hover:underline transition-colors"
+                className="text-sm text-[#9A3412] font-medium hover:text-orange-600 hover:underline transition-colors"
               >
                 Forgot Password?
               </button>
@@ -153,7 +153,7 @@ export default function AdminLoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-[#667085] mt-6 space-x-2">
+        <p className="text-center text-xs text-[#64748B] mt-6 space-x-2">
           <span>Counsellor? <a href="/counsellor/login" className="text-emerald-600 font-medium hover:text-orange-600 hover:underline transition-colors">Counsellor Portal</a></span>
           <span>·</span>
           <span>Student? <a href="/login" className="text-[#1D4ED8] font-medium hover:text-orange-600 hover:underline transition-colors">Student Portal</a></span>
@@ -162,10 +162,10 @@ export default function AdminLoginPage() {
       </div>
 
       {/* Page footer — portal switcher */}
-      <footer className="py-5 flex items-center justify-center bg-[#F5F7FA] border-t border-[#E4E7EC]">
+      <footer className="py-5 flex items-center justify-center bg-[#FFF7ED] border-t border-[#FED7AA]">
         <a
           href="/login"
-          className="text-sm text-[#667085] hover:text-orange-600 transition-colors duration-200 flex items-center gap-1 group"
+          className="text-sm text-[#64748B] hover:text-orange-600 transition-colors duration-200 flex items-center gap-1 group"
           id="switch-to-student-portal"
         >
           <span className="transition-transform duration-200 group-hover:-translate-x-0.5">←</span>
@@ -175,9 +175,9 @@ export default function AdminLoginPage() {
 
       {/* Forgot Password Dialog */}
       <Dialog open={forgotOpen} onOpenChange={open => { setForgotOpen(open); if (!open) setForgotMode('form'); }}>
-        <DialogContent className="sm:max-w-md bg-white border-[#E4E7EC]">
+        <DialogContent className="sm:max-w-md bg-white border-[#FED7AA]">
           <DialogHeader>
-            <DialogTitle className="text-[#172033]">
+            <DialogTitle className="text-[#172554]">
               {forgotMode === 'form' ? 'Reset Admin Password' : 'Check Your Email'}
             </DialogTitle>
           </DialogHeader>
