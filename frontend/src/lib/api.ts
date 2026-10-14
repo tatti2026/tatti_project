@@ -7,7 +7,7 @@ import type {
 
 const API_BASE = import.meta.env.VITE_API_URL || (
   import.meta.env.PROD
-    ? 'https://tattiproject-production-506b.up.railway.app/api'
+    ? (typeof window !== 'undefined' ? '/api' : 'https://tattiproject-production-e5af.up.railway.app/api')
     : 'http://localhost:5000/api'
 );
 

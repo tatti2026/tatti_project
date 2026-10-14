@@ -249,7 +249,10 @@ export async function getStudentMonthlyPerformance(req: AuthenticatedRequest, re
     if (req.user.role === 'admin' && req.params.studentId) {
       targetStudentId = req.params.studentId;
     } else {
-      const sRes = await query('SELECT id FROM students WHERE profile_id = $1', [req.user.userId]);
+      const sRes = await query(
+        'SELECT id FROM students WHERE profile_id = $1 OR (email = $2 AND email IS NOT NULL AND email != \'\') LIMIT 1',
+        [req.user.userId, req.user.email]
+      );
       if (sRes.rows.length === 0) {
         return res.status(404).json({ error: 'Student record not found for authenticated user.' });
       }
@@ -262,12 +265,12 @@ export async function getStudentMonthlyPerformance(req: AuthenticatedRequest, re
 
     const result = await query(`
       SELECT id, student_id, score, total_marks, percentage, status,
-             COALESCE(submitted_at, created_at) as completed_at
+             COALESCE(submitted_at, created_at, NOW()) as completed_at
       FROM assessments
       WHERE student_id = $1
         AND status = 'completed'
         AND (percentage IS NOT NULL OR (score IS NOT NULL AND total_marks > 0))
-      ORDER BY COALESCE(submitted_at, created_at) ASC
+      ORDER BY COALESCE(submitted_at, created_at, NOW()) ASC
     `, [targetStudentId]);
 
     const records = result.rows.map(row => {
@@ -276,12 +279,13 @@ export async function getStudentMonthlyPerformance(req: AuthenticatedRequest, re
       const pct = row.percentage !== null && row.percentage !== undefined
         ? Number(row.percentage)
         : totalMarks > 0 ? (score / totalMarks) * 100 : 0;
+      const parsedDate = row.completed_at ? new Date(row.completed_at) : new Date();
       return {
         id: row.id,
         score,
         totalMarks,
         percentage: Math.round(pct * 10) / 10,
-        completedAt: new Date(row.completed_at),
+        completedAt: isNaN(parsedDate.getTime()) ? new Date() : parsedDate,
       };
     });
 
@@ -322,8 +326,27 @@ export async function getStudentMonthlyPerformance(req: AuthenticatedRequest, re
         score: avgScore,
         assessmentCount: count,
         hasAssessment: count > 0,
+        attempts: monthRecs.map(r => ({
+          id: r.id,
+          score: r.score,
+          totalMarks: r.totalMarks,
+          percentage: r.percentage,
+          date: r.completedAt.toISOString(),
+        })),
       };
     });
+
+    const attempts = yearRecords.map(r => ({
+      id: r.id,
+      date: r.completedAt.toISOString(),
+      label: `${shortMonthNames[r.completedAt.getMonth()]} ${r.completedAt.getDate()}`,
+      month: monthNames[r.completedAt.getMonth()],
+      shortMonth: shortMonthNames[r.completedAt.getMonth()],
+      year: r.completedAt.getFullYear(),
+      score: r.score,
+      totalMarks: r.totalMarks,
+      percentage: r.percentage,
+    }));
 
     const totalCompleted = records.length;
     let latestScore: number | null = null;
@@ -345,6 +368,7 @@ export async function getStudentMonthlyPerformance(req: AuthenticatedRequest, re
         totalCompleted,
       },
       monthly: monthlyData,
+      attempts,
       recordsCount: yearRecords.length,
     });
   } catch (err) {

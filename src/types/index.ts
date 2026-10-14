@@ -220,6 +220,19 @@ export interface MonthlyPerformancePoint {
   score: number | null;
   assessmentCount: number;
   hasAssessment: boolean;
+  attempts?: Array<{ id: string; score: number; totalMarks: number; percentage: number; date: string }>;
+}
+
+export interface AssessmentAttemptPoint {
+  id: string;
+  date: string;
+  label: string;
+  month: string;
+  shortMonth: string;
+  year: number;
+  score: number;
+  totalMarks: number;
+  percentage: number;
 }
 
 export interface StudentAssessmentPerformance {
@@ -232,6 +245,7 @@ export interface StudentAssessmentPerformance {
     totalCompleted: number;
   };
   monthly: MonthlyPerformancePoint[];
+  attempts?: AssessmentAttemptPoint[];
   recordsCount: number;
 }
 

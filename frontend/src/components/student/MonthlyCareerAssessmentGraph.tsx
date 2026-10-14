@@ -2,18 +2,29 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine
+  Tooltip, ResponsiveContainer,
 } from 'recharts';
 import {
   Trophy, Target, CheckCircle2, AlertCircle,
-  RotateCw, ArrowRight, ClipboardList, TrendingUp
+  RotateCw, ClipboardList, TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStudentMonthlyPerformance } from '@/lib/api';
-import type { StudentAssessmentPerformance, MonthlyPerformancePoint } from '@/types/index';
+import type { StudentAssessmentPerformance, AssessmentAttemptPoint } from '@/types/index';
 
 interface MonthlyCareerAssessmentGraphProps {
   onTakeAssessment?: () => void;
+}
+
+interface ChartDataPoint {
+  id: string;
+  label: string;
+  monthYear: string;
+  score: number | null;
+  awardedMarks?: number;
+  totalMarks?: number;
+  date?: string;
+  assessmentCount?: number;
 }
 
 export default function MonthlyCareerAssessmentGraph({ onTakeAssessment }: MonthlyCareerAssessmentGraphProps) {
@@ -58,33 +69,84 @@ export default function MonthlyCareerAssessmentGraph({ onTakeAssessment }: Month
     }
   };
 
-  // Custom Tooltip component
+  // Build chart points:
+  // If the student has assessment attempts, display all individual attempts in chronological order.
+  // Each attempt preserves actual awarded marks and maximum possible marks.
+  // If only 12-month data is available, fall back to monthly points.
+  const chartData: ChartDataPoint[] = React.useMemo(() => {
+    if (!data) return [];
+
+    if (data.attempts && data.attempts.length > 0) {
+      // Group by month to label multi-attempts within the same month clearly
+      const monthCounts: Record<string, number> = {};
+      data.attempts.forEach((a) => {
+        const key = `${a.shortMonth} ${a.year}`;
+        monthCounts[key] = (monthCounts[key] || 0) + 1;
+      });
+
+      const monthIndexTracker: Record<string, number> = {};
+      return data.attempts.map((att: AssessmentAttemptPoint) => {
+        const key = `${att.shortMonth} ${att.year}`;
+        monthIndexTracker[key] = (monthIndexTracker[key] || 0) + 1;
+        const attemptNum = monthIndexTracker[key];
+        const isMulti = (monthCounts[key] || 0) > 1;
+
+        return {
+          id: att.id,
+          label: isMulti ? `${att.shortMonth} #${attemptNum}` : `${att.shortMonth} ${att.year}`,
+          monthYear: `${att.month} ${att.year}`,
+          score: att.percentage,
+          awardedMarks: att.score,
+          totalMarks: att.totalMarks,
+          date: att.date,
+          assessmentCount: 1,
+        };
+      });
+    }
+
+    // Default: 12-month series
+    return (data.monthly || []).map((m) => ({
+      id: `month-${m.monthIndex}`,
+      label: m.shortMonth,
+      monthYear: `${m.month} ${m.year}`,
+      score: m.score,
+      assessmentCount: m.assessmentCount,
+    }));
+  }, [data]);
+
+  // Custom Tooltip component displaying chronological attempt details
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const item = payload[0].payload as MonthlyPerformancePoint;
+      const item = payload[0].payload as ChartDataPoint;
       if (item.score === null) {
         return (
           <div className="bg-white border border-[#FED7AA] p-3 rounded-xl shadow-lg text-xs min-w-[150px]">
-            <p className="font-bold text-[#172554] mb-1">{item.month} {item.year}</p>
+            <p className="font-bold text-[#172554] mb-1">{item.monthYear}</p>
             <p className="text-[#64748B] italic">No assessment yet</p>
           </div>
         );
       }
       return (
-        <div className="bg-white border border-[#FED7AA] p-3.5 rounded-xl shadow-lg text-xs space-y-1.5 min-w-[180px]">
-          <div className="flex items-center justify-between border-b border-[#FED7AA]/60 pb-1.5 mb-1.5">
-            <span className="font-bold text-[#172554]">{item.month} {item.year}</span>
-            <span className="text-[10px] bg-[#FFE0B2] text-[#9A3412] px-2 py-0.5 rounded-full font-semibold">
-              {item.assessmentCount} {item.assessmentCount === 1 ? 'assessment' : 'assessments'}
-            </span>
+        <div className="bg-white border border-[#FED7AA] p-3.5 rounded-xl shadow-lg text-xs space-y-1.5 min-w-[190px]">
+          <div className="flex items-center justify-between border-b border-[#FED7AA]/60 pb-1.5 mb-1.5 gap-2">
+            <span className="font-bold text-[#172554] truncate">{item.monthYear}</span>
+            {item.totalMarks !== undefined && item.totalMarks > 0 ? (
+              <span className="text-[10px] bg-[#FFE0B2] text-[#9A3412] px-2 py-0.5 rounded-full font-semibold shrink-0">
+                {item.awardedMarks} / {item.totalMarks} marks
+              </span>
+            ) : item.assessmentCount ? (
+              <span className="text-[10px] bg-[#FFE0B2] text-[#9A3412] px-2 py-0.5 rounded-full font-semibold shrink-0">
+                {item.assessmentCount} {item.assessmentCount === 1 ? 'assessment' : 'assessments'}
+              </span>
+            ) : null}
           </div>
           <div className="flex items-baseline justify-between pt-0.5">
             <span className="text-[#64748B] font-medium">Score:</span>
             <span className="text-base font-extrabold text-[#EA580C]">{item.score}%</span>
           </div>
-          {item.assessmentCount > 1 && (
-            <p className="text-[10px] text-[#64748B] italic pt-0.5">
-              Monthly average score
+          {item.date && (
+            <p className="text-[10px] text-[#64748B] pt-0.5">
+              Completed on {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
           )}
         </div>
@@ -107,26 +169,38 @@ export default function MonthlyCareerAssessmentGraph({ onTakeAssessment }: Month
           </p>
         </div>
 
-        {/* Year Selector (if available) */}
-        {data && data.availableYears && data.availableYears.length > 1 && (
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="text-xs text-[#64748B] font-medium">Year:</span>
-            <select
-              value={selectedYear || data.selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="bg-white border border-[#FED7AA] text-xs font-semibold text-[#172554] rounded-lg px-2.5 py-1.5 outline-none hover:border-[#F59E0B] focus:border-[#F59E0B] transition-colors shadow-sm cursor-pointer"
+        {/* Year Selector & Refresh */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {data && data.availableYears && data.availableYears.length > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#64748B] font-medium">Year:</span>
+              <select
+                value={selectedYear || data.selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="bg-white border border-[#FED7AA] text-xs font-semibold text-[#172554] rounded-lg px-2.5 py-1.5 outline-none hover:border-[#F59E0B] focus:border-[#F59E0B] transition-colors shadow-sm cursor-pointer"
+              >
+                {data.availableYears.map((yr) => (
+                  <option key={yr} value={yr}>
+                    {yr}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {data && (
+            <button
+              onClick={() => fetchData(selectedYear)}
+              disabled={loading}
+              title="Refresh Assessment Performance"
+              className="p-1.5 text-[#64748B] hover:text-[#EA580C] hover:bg-[#FFF7ED] rounded-lg transition-colors border border-transparent hover:border-[#FED7AA]"
             >
-              {data.availableYears.map((yr) => (
-                <option key={yr} value={yr}>
-                  {yr}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+              <RotateCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#EA580C]' : ''}`} />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Loading State */}
+      {/* Loading Skeleton State */}
       {loading && !data && (
         <div className="bg-white border border-[#FED7AA] rounded-xl p-8 shadow-sm space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -166,9 +240,9 @@ export default function MonthlyCareerAssessmentGraph({ onTakeAssessment }: Month
             <ClipboardList className="w-7 h-7" />
           </div>
           <div className="max-w-md mx-auto space-y-1.5">
-            <h3 className="text-base font-bold text-[#172554]">No assessment history yet</h3>
+            <h3 className="text-base font-bold text-[#172554]">No assessment performance data available yet.</h3>
             <p className="text-xs sm:text-sm text-[#64748B]">
-              Complete your Career Fit Assessment to start tracking your monthly progress.
+              Take your Career Fit Assessment to see your scores and track your monthly progress.
             </p>
           </div>
           <div>
@@ -246,10 +320,12 @@ export default function MonthlyCareerAssessmentGraph({ onTakeAssessment }: Month
                   <span className="w-2 h-2 rounded-full bg-[#EA580C]" />
                   <span>Score Trend</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full border border-dashed border-[#64748B]" />
-                  <span>No test taken</span>
-                </div>
+                {(!data.attempts || data.attempts.length === 0) && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full border border-dashed border-[#64748B]" />
+                    <span>No test taken</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -257,7 +333,7 @@ export default function MonthlyCareerAssessmentGraph({ onTakeAssessment }: Month
             <div className="w-full h-72 sm:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
-                  data={data.monthly}
+                  data={chartData}
                   margin={{ top: 15, right: 15, left: -10, bottom: 5 }}
                 >
                   <CartesianGrid
@@ -266,7 +342,7 @@ export default function MonthlyCareerAssessmentGraph({ onTakeAssessment }: Month
                     vertical={false}
                   />
                   <XAxis
-                    dataKey="shortMonth"
+                    dataKey="label"
                     tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }}
                     axisLine={{ stroke: '#FED7AA' }}
                     tickLine={{ stroke: '#FED7AA' }}
@@ -288,13 +364,13 @@ export default function MonthlyCareerAssessmentGraph({ onTakeAssessment }: Month
                     strokeWidth={2.5}
                     connectNulls={false}
                     dot={{
-                      r: 4.5,
+                      r: 5,
                       fill: '#EA580C',
                       stroke: '#FFFFFF',
                       strokeWidth: 2,
                     }}
                     activeDot={{
-                      r: 6.5,
+                      r: 7,
                       fill: '#EA580C',
                       stroke: '#FFFFFF',
                       strokeWidth: 2.5,
@@ -306,7 +382,7 @@ export default function MonthlyCareerAssessmentGraph({ onTakeAssessment }: Month
 
             <div className="mt-3 pt-3 border-t border-[#FED7AA]/30 flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-[#64748B] gap-2">
               <p>
-                * Values represent completed career assessment percentages calculated by submission date.
+                * Values represent completed career assessment percentages calculated from awarded marks vs maximum marks in chronological order.
               </p>
               {data.recordsCount === 0 && (
                 <p className="text-[#9A3412] font-medium">

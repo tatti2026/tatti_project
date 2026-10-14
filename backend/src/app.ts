@@ -25,8 +25,8 @@ app.use('/api', apiRouter);
 
 // Serve frontend static assets if available (supports single-service deployment)
 const possibleDistPaths = [
-  path.resolve(__dirname, '../../frontend/dist'),
   path.resolve(__dirname, '../../dist'),
+  path.resolve(__dirname, '../../frontend/dist'),
   path.resolve(__dirname, '../public'),
 ];
 const staticPath = possibleDistPaths.find(p => fs.existsSync(p));

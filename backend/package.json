@@ -1,6 +1,6 @@
 {
   "name": "tatti-portal-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "TATTI Student Management Portal - Backend REST API",
   "main": "dist/server.js",
   "type": "module",
