@@ -1,5 +1,8 @@
-import { useEffect, useState } from 'react';
-import { getAllStudents, getAllCounselling, upsertCounselling, updateStudent } from '@/lib/api';
+import { useEffect, useState, useCallback } from 'react';
+import {
+  getAllStudents, getAllCounselling, upsertCounselling, updateStudent,
+  getPrivateNotesForCounselling, addPrivateNote, updatePrivateNote, deletePrivateNote,
+} from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import StatusBadge from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -8,9 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TablePagination, getSessionPageSize, setSessionPageSize } from '@/components/common/TablePagination';
 import { toast } from 'sonner';
-import type { Student, Counselling } from '@/types/index';
-import { Plus, Pencil, Loader2, Search, Calendar } from 'lucide-react';
+import type { Student, Counselling, CounsellorPrivateNote } from '@/types/index';
+import { Plus, Pencil, Loader2, Search, Calendar, Lock, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { usePortal } from '@/contexts/PortalContext';
 
 type CounsForm = {
   student_id: string;
@@ -23,7 +27,185 @@ type CounsForm = {
   status: string;
 };
 
+// ── Private Notes Modal ────────────────────────────────────────────────────────
+interface PrivateNotesModalProps {
+  open: boolean;
+  onClose: () => void;
+  counselling: Counselling | null;
+  students: Student[];
+  existingNote: CounsellorPrivateNote | null;
+  onSaved: (note: CounsellorPrivateNote) => void;
+}
+
+function PrivateNotesModal({ open, onClose, counselling, students, existingNote, onSaved }: PrivateNotesModalProps) {
+  const [text, setText] = useState(existingNote?.note_text ?? '');
+  const [saving, setSaving] = useState(false);
+  const MAX_CHARS = 2000;
+
+  // Sync text when the modal opens for a new row or edit
+  useEffect(() => {
+    setText(existingNote?.note_text ?? '');
+  }, [existingNote, open]);
+
+  const student = counselling ? students.find(s => s.id === counselling.student_id) : null;
+
+  const handleSave = async () => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      toast.error('Note cannot be empty.');
+      return;
+    }
+    if (trimmed.length > MAX_CHARS) {
+      toast.error(`Note cannot exceed ${MAX_CHARS} characters.`);
+      return;
+    }
+    if (!counselling) return;
+    setSaving(true);
+
+    let saved: CounsellorPrivateNote | null = null;
+    if (existingNote) {
+      saved = await updatePrivateNote(existingNote.id, trimmed);
+    } else {
+      const studentId = counselling.student_id;
+      saved = await addPrivateNote(counselling.id, studentId, trimmed);
+    }
+
+    setSaving(false);
+    if (saved) {
+      toast.success(existingNote ? 'Private note updated.' : 'Private note saved.');
+      onSaved(saved);
+      onClose();
+    } else {
+      toast.error('Failed to save note. Please try again.');
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-lg bg-card border-border max-h-[90dvh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+            <span
+              style={{
+                background: '#FEF3C7',
+                borderRadius: '50%',
+                width: 28,
+                height: 28,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Lock style={{ width: 14, height: 14, color: '#F59E0B' }} />
+            </span>
+            {existingNote ? 'Edit Private Note' : 'Add Private Note'}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3.5 pt-1 text-xs">
+          {/* Private indicator */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: '#FFF7ED',
+              border: '1px solid #FED7AA',
+              borderRadius: 8,
+              padding: '8px 12px',
+            }}
+          >
+            <Lock style={{ width: 12, height: 12, color: '#F59E0B', flexShrink: 0 }} />
+            <span style={{ color: '#9A3412', fontStyle: 'italic', fontSize: 11 }}>
+              Private – only you can see this
+            </span>
+          </div>
+
+          {/* Student reference */}
+          {student && (
+            <div style={{ background: '#FFF7ED', borderRadius: 8, padding: '8px 12px', border: '1px solid #FED7AA' }}>
+              <p style={{ color: '#172554', fontWeight: 600 }}>{student.full_name || student.email}</p>
+              {student.student_id && (
+                <p style={{ color: '#9A3412', fontFamily: 'monospace', fontSize: 11 }}>{student.student_id}</p>
+              )}
+            </div>
+          )}
+
+          {/* Textarea */}
+          <div>
+            <Label className="text-xs font-semibold" style={{ color: '#172554' }}>
+              Private Note
+            </Label>
+            <textarea
+              value={text}
+              onChange={e => setText(e.target.value)}
+              rows={6}
+              maxLength={MAX_CHARS}
+              placeholder="Write your private counselling note here…"
+              style={{
+                width: '100%',
+                marginTop: 6,
+                background: '#FFFFFF',
+                border: '1px solid #FED7AA',
+                borderRadius: 8,
+                padding: '10px 12px',
+                fontSize: 12,
+                color: '#172554',
+                outline: 'none',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+                lineHeight: 1.6,
+                transition: 'border-color 0.15s, box-shadow 0.15s',
+              }}
+              onFocus={e => {
+                e.target.style.borderColor = '#F59E0B';
+                e.target.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.2)';
+              }}
+              onBlur={e => {
+                e.target.style.borderColor = '#FED7AA';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
+            <p style={{ textAlign: 'right', marginTop: 3, color: text.length > MAX_CHARS ? '#DC2626' : '#94A3B8', fontSize: 10 }}>
+              {text.length} / {MAX_CHARS}
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button
+              variant="outline"
+              type="button"
+              className="text-xs"
+              style={{ borderColor: '#FED7AA', color: '#172554' }}
+              onClick={onClose}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="text-xs font-semibold px-5 text-white border-0"
+              style={{ background: '#F59E0B' }}
+              onClick={handleSave}
+              disabled={saving || text.trim().length === 0}
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Lock className="w-3.5 h-3.5 mr-1.5" />}
+              Save Note
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 export default function CounsellingManagement() {
+  const portal = usePortal();
+  const isCounsellor = portal === 'counsellor';
+
   const [students, setStudents] = useState<Student[]>([]);
   const [counsellings, setCounsellings] = useState<Counselling[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +217,13 @@ export default function CounsellingManagement() {
   const [pageSize, setPageSize] = useState(() => getSessionPageSize('counselling', 10));
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Private notes state (counsellor portal only)
+  const [privateNotes, setPrivateNotes] = useState<Record<string, CounsellorPrivateNote | null>>({});
+  const [notesLoading, setNotesLoading] = useState<Record<string, boolean>>({});
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [noteTargetCounselling, setNoteTargetCounselling] = useState<Counselling | null>(null);
+  const [noteEditing, setNoteEditing] = useState<CounsellorPrivateNote | null>(null);
 
   const [form, setForm] = useState<CounsForm>({
     student_id: '',
@@ -65,6 +254,21 @@ export default function CounsellingManagement() {
     fetchData();
   }, [page, pageSize, search]);
 
+  // Load private notes when counsellings change (counsellor portal only)
+  const loadPrivateNote = useCallback(async (counsellingId: string) => {
+    if (!isCounsellor) return;
+    setNotesLoading(prev => ({ ...prev, [counsellingId]: true }));
+    const note = await getPrivateNotesForCounselling(counsellingId);
+    setPrivateNotes(prev => ({ ...prev, [counsellingId]: note }));
+    setNotesLoading(prev => ({ ...prev, [counsellingId]: false }));
+  }, [isCounsellor]);
+
+  useEffect(() => {
+    if (isCounsellor && counsellings.length > 0) {
+      counsellings.forEach(c => loadPrivateNote(c.id));
+    }
+  }, [counsellings, isCounsellor, loadPrivateNote]);
+
   const openSchedule = (studentId?: string) => {
     setEditCounselling(null);
     setForm({
@@ -93,6 +297,36 @@ export default function CounsellingManagement() {
       status: c.status || 'scheduled',
     });
     setShowForm(true);
+  };
+
+  const openAddNote = (c: Counselling) => {
+    setNoteTargetCounselling(c);
+    setNoteEditing(null);
+    setShowNotesModal(true);
+  };
+
+  const openEditNote = (c: Counselling) => {
+    setNoteTargetCounselling(c);
+    setNoteEditing(privateNotes[c.id] ?? null);
+    setShowNotesModal(true);
+  };
+
+  const handleNoteSaved = (note: CounsellorPrivateNote) => {
+    setPrivateNotes(prev => ({ ...prev, [note.counselling_id]: note }));
+  };
+
+  const handleDeleteNote = async (counsellingId: string) => {
+    const note = privateNotes[counsellingId];
+    if (!note) return;
+    const confirmed = window.confirm('Delete this private note? This cannot be undone.');
+    if (!confirmed) return;
+    const ok = await deletePrivateNote(note.id);
+    if (ok) {
+      setPrivateNotes(prev => ({ ...prev, [counsellingId]: null }));
+      toast.success('Private note deleted.');
+    } else {
+      toast.error('Failed to delete note.');
+    }
   };
 
   // Schedule Counselling Handler
@@ -137,6 +371,11 @@ export default function CounsellingManagement() {
     setPage(1);
   };
 
+  // Column headers change based on portal
+  const tableHeaders = isCounsellor
+    ? ['Student', 'Student ID', 'Counsellor', 'Date', 'Time', 'Type', 'Status', 'Private Notes', 'Actions']
+    : ['Student', 'Student ID', 'Counsellor', 'Date', 'Time', 'Type', 'Status', 'Actions'];
+
   return (
     <AdminLayout>
       <div className="space-y-6 animate-fade-in">
@@ -145,7 +384,7 @@ export default function CounsellingManagement() {
           <div>
             <h1 className="text-xl font-bold text-foreground">Counselling Management</h1>
             <p className="text-muted-foreground text-sm">
-              Assign counsellors, set dates & times, schedule sessions and dispatch student notifications
+              Assign counsellors, set dates &amp; times, schedule sessions and dispatch student notifications
             </p>
           </div>
           <Button onClick={() => openSchedule()} className="gradient-bg border-0 text-white shrink-0 text-xs">
@@ -200,28 +439,38 @@ export default function CounsellingManagement() {
             <table className="w-full text-xs">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  {['Student', 'Student ID', 'Counsellor', 'Date', 'Time', 'Type', 'Status', 'Actions'].map(h => (
-                    <th key={h} className="px-3 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
+                  {tableHeaders.map(h => (
+                    <th key={h} className="px-3 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap">
+                      {h === 'Private Notes' ? (
+                        <span className="flex items-center gap-1">
+                          <Lock style={{ width: 12, height: 12, color: '#F59E0B' }} />
+                          Private Notes
+                        </span>
+                      ) : h}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                    <td colSpan={tableHeaders.length} className="py-12 text-center text-muted-foreground">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
                       <p className="mt-2 text-xs">Loading sessions...</p>
                     </td>
                   </tr>
                 ) : filteredCounsellings.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                    <td colSpan={tableHeaders.length} className="py-12 text-center text-muted-foreground">
                       No counselling sessions scheduled yet. Click &quot;Schedule Counselling&quot; above to create one.
                     </td>
                   </tr>
                 ) : (
                   filteredCounsellings.map(c => {
                     const s = students.find(st => st.id === c.student_id);
+                    const note = privateNotes[c.id];
+                    const noteLoading = notesLoading[c.id];
+
                     return (
                       <tr key={c.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                         <td className="px-3 py-3 whitespace-nowrap font-medium text-foreground">
@@ -247,6 +496,64 @@ export default function CounsellingManagement() {
                         <td className="px-3 py-3 whitespace-nowrap">
                           <StatusBadge status={c.status} />
                         </td>
+
+                        {/* Private Notes column — counsellor portal only */}
+                        {isCounsellor && (
+                          <td className="px-3 py-3" style={{ minWidth: 200, maxWidth: 260 }}>
+                            {noteLoading ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                            ) : note ? (
+                              <div className="space-y-1">
+                                <p
+                                  className="text-xs leading-snug"
+                                  style={{ color: '#172554' }}
+                                  title={note.note_text}
+                                >
+                                  {note.note_text.length > 60
+                                    ? note.note_text.slice(0, 60) + '…'
+                                    : note.note_text}
+                                </p>
+                                <p style={{ color: '#94A3B8', fontSize: 10 }}>
+                                  Updated {new Date(note.updated_at).toLocaleString()}
+                                </p>
+                                <div className="flex items-center gap-1 pt-0.5">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 px-2 text-[11px]"
+                                    style={{ color: '#172554' }}
+                                    onClick={() => openEditNote(c)}
+                                  >
+                                    <Pencil className="w-3 h-3 mr-0.5" /> View / Edit
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 px-2 text-[11px]"
+                                    style={{ color: '#DC2626' }}
+                                    onClick={() => handleDeleteNote(c.id)}
+                                  >
+                                    <Trash2 className="w-3 h-3 mr-0.5" /> Delete
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-start gap-1">
+                                <span style={{ color: '#64748B', fontSize: 11 }}>No private notes</span>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 px-2 text-[11px]"
+                                  style={{ borderColor: '#FED7AA', color: '#9A3412' }}
+                                  onClick={() => openAddNote(c)}
+                                >
+                                  <Plus className="w-3 h-3 mr-0.5" /> Add Note
+                                </Button>
+                              </div>
+                            )}
+                          </td>
+                        )}
+
                         <td className="px-3 py-3 whitespace-nowrap">
                           <Button
                             size="sm"
@@ -369,7 +676,7 @@ export default function CounsellingManagement() {
 
               {/* Notes */}
               <div>
-                <Label className="text-xs font-semibold">Notes & Instructions</Label>
+                <Label className="text-xs font-semibold">Notes &amp; Instructions</Label>
                 <textarea
                   value={form.notes}
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
@@ -409,6 +716,18 @@ export default function CounsellingManagement() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* ── PRIVATE NOTES MODAL ── */}
+        {isCounsellor && (
+          <PrivateNotesModal
+            open={showNotesModal}
+            onClose={() => setShowNotesModal(false)}
+            counselling={noteTargetCounselling}
+            students={students}
+            existingNote={noteEditing}
+            onSaved={handleNoteSaved}
+          />
+        )}
       </div>
     </AdminLayout>
   );

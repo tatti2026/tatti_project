@@ -4,7 +4,7 @@ import { config } from '../config/environment.js';
 export interface TokenPayload {
   userId: string;
   email: string;
-  role: 'student' | 'admin';
+  role: 'student' | 'admin' | 'counsellor' | string;
 }
 
 export function generateToken(payload: TokenPayload): string {

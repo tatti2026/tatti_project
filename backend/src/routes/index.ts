@@ -13,6 +13,7 @@ import followUpNotesRoutes from './followUpNotesRoutes.js';
 import profileRoutes from './profileRoutes.js';
 import adminRoutes from './adminRoutes.js';
 import messageRoutes from './messageRoutes.js';
+import counsellorPrivateNotesRoutes from './counsellorPrivateNotesRoutes.js';
 
 const apiRouter = Router();
 
@@ -27,6 +28,8 @@ apiRouter.use('/applications', applicationRoutes);
 apiRouter.use('/payment', paymentRoutes);
 apiRouter.use('/payments', paymentRoutes);
 apiRouter.use('/counselling', counsellingRoutes);
+apiRouter.use('/counsellor/private-notes', counsellorPrivateNotesRoutes);
+apiRouter.use('/counselling/private-notes', counsellorPrivateNotesRoutes);
 apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/follow-ups', followUpRoutes);
 apiRouter.use('/follow-up-notes', followUpNotesRoutes);

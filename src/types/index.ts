@@ -235,4 +235,15 @@ export interface StudentAssessmentPerformance {
   recordsCount: number;
 }
 
+export interface CounsellorPrivateNote {
+  id: string;
+  student_id: string;
+  counselling_id: string;
+  counsellor_id: string;
+  note_text: string;
+  created_at: string;
+  updated_at: string;
+}
+
+
 

@@ -1017,3 +1017,46 @@ export async function getMyStudentId(): Promise<{ studentId: string | null; stud
   return await res.json();
 }
 
+// ── COUNSELLOR PRIVATE NOTES ────────────────────────────────────────────────
+export async function getPrivateNotesForCounselling(counsellingId: string): Promise<import('@/types/index').CounsellorPrivateNote | null> {
+  const res = await fetch(`${API_BASE}/counsellor/private-notes?counselling_id=${encodeURIComponent(counsellingId)}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  // Backend returns an array; pick the first note for this counselling session
+  const rows = Array.isArray(data) ? data : [];
+  return rows.length > 0 ? (rows[0] as import('@/types/index').CounsellorPrivateNote) : null;
+}
+
+export async function addPrivateNote(counsellingId: string, studentId: string, noteText: string): Promise<import('@/types/index').CounsellorPrivateNote | null> {
+  const res = await fetch(`${API_BASE}/counsellor/private-notes`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ counselling_id: counsellingId, student_id: studentId, note_text: noteText }),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  // Backend returns the row directly (not wrapped in { note: ... })
+  return data as import('@/types/index').CounsellorPrivateNote | null;
+}
+
+export async function updatePrivateNote(noteId: string, noteText: string): Promise<import('@/types/index').CounsellorPrivateNote | null> {
+  const res = await fetch(`${API_BASE}/counsellor/private-notes/${noteId}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({ note_text: noteText }),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data as import('@/types/index').CounsellorPrivateNote | null;
+}
+
+export async function deletePrivateNote(noteId: string): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/counsellor/private-notes/${noteId}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  return res.ok;
+}
+
