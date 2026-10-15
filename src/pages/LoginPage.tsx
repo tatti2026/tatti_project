@@ -163,11 +163,11 @@ export default function LoginPage() {
               </div>
               <form onSubmit={handleLogin} className="space-y-5">
                 <div>
-                  <Label htmlFor="email" className="text-sm font-medium text-foreground mb-1.5 block">Email Address</Label>
+                  <Label htmlFor="email" className="text-sm font-medium text-foreground mb-1.5 block">Student Email or Student ID</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Enter your email address"
+                    placeholder="Enter your email or Student ID"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     className="h-10 transition-colors"

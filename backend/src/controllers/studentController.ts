@@ -263,8 +263,6 @@ export async function getAllStudents(req: Request, res: Response) {
     const enriched = dataRes.rows.map((s: any) => {
       const appCourse = s.course_info?.course_name || null;
       const computedCourse = appCourse || s.selected_course || s.recommended_course_name || null;
-      const computedParentName = s.parent_name || (s.full_name ? `R. ${s.full_name.split(' ')[0]} (Parent)` : 'Parent / Guardian');
-      const computedParentPhone = s.parent_phone || (s.phone ? `+91 94441 ${s.phone.slice(-4).padStart(4, '0')}` : '+91 94441 55667');
 
       const assessScore = s.assessment_info?.score != null ? Number(s.assessment_info.score) : null;
       const assessTotal = s.assessment_info?.total_marks != null ? Number(s.assessment_info.total_marks) : null;
@@ -274,8 +272,8 @@ export async function getAllStudents(req: Request, res: Response) {
 
       return {
         ...s,
-        parent_name: computedParentName,
-        parent_phone: computedParentPhone,
+        parent_name: s.parent_name || null,
+        parent_phone: s.parent_phone || null,
         selected_course: computedCourse,
         application_access_status: s.application_access_status || 'locked',
         application_unlocked_by: s.application_unlocked_by || null,

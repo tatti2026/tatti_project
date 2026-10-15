@@ -225,6 +225,7 @@ CREATE TABLE IF NOT EXISTS public.follow_ups (
     intent_level VARCHAR(50) DEFAULT 'medium',
     last_interaction TIMESTAMPTZ,
     followup_date DATE,
+    followup_time TIME,
     followup_status TEXT DEFAULT 'pending',
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),

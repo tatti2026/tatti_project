@@ -2,6 +2,10 @@ import type { Request, Response } from 'express';
 import { query } from '../database/pgPool.js';
 import { verifyToken } from '../utils/jwt.js';
 
+export async function ensureFollowUpTimeColumn(): Promise<void> {
+  await query('ALTER TABLE follow_ups ADD COLUMN IF NOT EXISTS followup_time TIME');
+}
+
 async function getAdminInfo(req: Request): Promise<{ adminId: string | null; adminName: string }> {
   let adminId: string | null = null;
   let adminName: string = (req.body && req.body.admin_name) || 'Admin';
@@ -107,6 +111,8 @@ export async function getFollowUps(req: Request, res: Response) {
     let dataQuery = `
       SELECT 
         f.*,
+        f.followup_date::text AS followup_date,
+        f.followup_time::text AS followup_time,
         s.full_name as student_name,
         s.student_id as student_code,
         s.email as student_email,
@@ -151,7 +157,7 @@ export async function upsertFollowUp(req: Request, res: Response) {
         studentId = findStudent.rows[0]?.student_id;
       }
 
-      const allowedFields = ['intent_level', 'last_interaction', 'followup_date', 'followup_status', 'notes'];
+      const allowedFields = ['intent_level', 'last_interaction', 'followup_date', 'followup_time', 'followup_status', 'notes'];
       const updates: string[] = [];
       const values: any[] = [];
       let idx = 1;
@@ -167,7 +173,7 @@ export async function upsertFollowUp(req: Request, res: Response) {
       updates.push('updated_at = now()');
       values.push(f.id);
 
-      const queryStr = `UPDATE follow_ups SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`;
+      const queryStr = `UPDATE follow_ups SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *, followup_date::text AS followup_date, followup_time::text AS followup_time`;
       const result = await query(queryStr, values);
       const updatedRow = result.rows[0];
 
@@ -183,12 +189,12 @@ export async function upsertFollowUp(req: Request, res: Response) {
       });
     } else {
       const result = await query(`
-        INSERT INTO follow_ups (student_id, intent_level, last_interaction, followup_date, followup_status, notes)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING *;
+        INSERT INTO follow_ups (student_id, intent_level, last_interaction, followup_date, followup_time, followup_status, notes)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *, followup_date::text AS followup_date, followup_time::text AS followup_time;
       `, [
         f.student_id, f.intent_level || 'medium', f.last_interaction || null,
-        f.followup_date || null, f.followup_status || 'pending', f.notes || ''
+        f.followup_date || null, f.followup_time || null, f.followup_status || 'pending', f.notes || ''
       ]);
       const createdRow = result.rows[0];
 
@@ -220,7 +226,7 @@ export async function updateFollowUp(req: Request, res: Response) {
       studentId = findStudent.rows[0]?.student_id;
     }
 
-    const allowedFields = ['intent_level', 'last_interaction', 'followup_date', 'followup_status', 'notes'];
+    const allowedFields = ['intent_level', 'last_interaction', 'followup_date', 'followup_time', 'followup_status', 'notes'];
     const updates: string[] = [];
     const values: any[] = [];
     let idx = 1;
@@ -240,7 +246,7 @@ export async function updateFollowUp(req: Request, res: Response) {
     updates.push('updated_at = now()');
     values.push(id);
 
-    const queryStr = `UPDATE follow_ups SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`;
+    const queryStr = `UPDATE follow_ups SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *, followup_date::text AS followup_date, followup_time::text AS followup_time`;
     const result = await query(queryStr, values);
     const updatedRow = result.rows[0];
 
@@ -258,4 +264,3 @@ export async function updateFollowUp(req: Request, res: Response) {
     res.status(500).json({ error: 'Internal server error' });
   }
 }
-

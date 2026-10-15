@@ -186,6 +186,7 @@ export interface FollowUp {
   intent_level: FollowupIntent;
   last_interaction: string | null;
   followup_date: string | null;
+  followup_time: string | null;
   followup_status: string | null;
   notes: string | null;
   created_at: string;
@@ -258,6 +259,5 @@ export interface CounsellorPrivateNote {
   created_at: string;
   updated_at: string;
 }
-
 
 

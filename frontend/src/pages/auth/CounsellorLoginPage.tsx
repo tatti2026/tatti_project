@@ -109,6 +109,7 @@ export default function CounsellorLoginPage() {
                 <Input
                   id="counsellor-pw"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   placeholder="Enter your password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}

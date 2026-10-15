@@ -265,7 +265,7 @@ export default function LoginPage() {
               <p className="text-muted-foreground text-sm mb-6">Sign in to continue your student journey</p>
               <form onSubmit={handleLogin} className="space-y-4" autoComplete="off" autoCapitalize="none" spellCheck={false}>
                 <div>
-                  <Label htmlFor="tatti-student-id" className="text-sm font-medium">Student ID</Label>
+                  <Label htmlFor="tatti-student-id" className="text-sm font-medium">Student Email or Student ID</Label>
                   <Input
                     id="tatti-student-id"
                     name="tatti_auth_student_identifier"
@@ -277,7 +277,7 @@ export default function LoginPage() {
                     data-lpignore="true"
                     data-1p-ignore="true"
                     data-form-type="other"
-                    placeholder="e.g. 2026-TATTI-001"
+                    placeholder="Enter your email or Student ID"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     className="mt-1.5 transition-colors"
@@ -290,7 +290,7 @@ export default function LoginPage() {
                     onBlur={e => { e.currentTarget.style.border = '1px solid #FED7AA'; e.currentTarget.style.boxShadow = 'none'; }}
                   />
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    Use the Student ID received during signup
+                    Sign in with the email address or Student ID you registered with.
                   </p>
                 </div>
                 <div>

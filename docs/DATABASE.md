@@ -6,6 +6,8 @@ The TATTI Student Management Portal database is powered by PostgreSQL / Supabase
 Consolidated schema location: [`database/schema/full_schema.sql`](file:///c:/Users/acer/Downloads/tatti-portal-source-code/database/schema/full_schema.sql).
 Seed script location: [`database/seed/seed_data.sql`](file:///c:/Users/acer/Downloads/tatti-portal-source-code/database/seed/seed_data.sql).
 
+Follow-up schedules store the follow-up date and time in India Standard Time in `follow_ups.followup_date` and `follow_ups.followup_time`. The follow-up screen displays an in-page reminder during the hour before the scheduled time while the admin or counsellor has the site open.
+
 ---
 
 ## 2. Entity Relationship Diagram (Mermaid)
@@ -122,3 +124,7 @@ erDiagram
 | `00005_notifications_and_audit.sql` | Notifications system, direct messaging logs |
 | `00006_sample_data.sql` | Default questions, course catalog, seed accounts |
 | `00007_application_access_and_audit.sql` | Application access locking status and security audit log |
+| `00008_parent_details.sql` | Student parent and guardian details |
+| `00009_counselling_reminders.sql` | Scheduled counselling reminder support |
+| `00010_counsellor_private_notes.sql` | Private counsellor notes |
+| `00011_followup_reminder_time.sql` | Follow-up reminder times |

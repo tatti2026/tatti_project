@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getAllStudents, getFollowUps, getAllCounselling, upsertFollowUp,
   unlockStudentApplication, lockStudentApplication,
@@ -20,11 +20,12 @@ import { toast } from 'sonner';
 import type { Student, FollowUp, Counselling } from '@/types/index';
 import {
   Plus, Pencil, Loader2, Trophy, Target,
-  TrendingDown, Eye, Calendar, Lock, Unlock,
+  TrendingDown, Eye, Calendar, Lock, Unlock, BellRing, CheckCircle2, Clock3, CalendarClock,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, formatDistanceToNowStrict } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePortal } from '@/contexts/PortalContext';
+import { getFollowUpScheduledAt, isFollowUpReminderDue } from '@/utils/followUpReminder';
 
 function formatCounsellingDateTime(scheduledDate?: string | null, scheduledTime?: string | null): string | null {
   if (!scheduledDate) return null;
@@ -64,6 +65,13 @@ export default function FollowUpManagement() {
 
   const [students, setStudents] = useState<Student[]>([]);
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+  const [reminderClock, setReminderClock] = useState(() => new Date());
+  const [activeReminderKey, setActiveReminderKey] = useState<string | null>(null);
+  const [acknowledgedReminderKeys, setAcknowledgedReminderKeys] = useState<Set<string>>(() => new Set());
+  const [snoozedReminders, setSnoozedReminders] = useState<Record<string, number>>({});
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const activeReminderKeyRef = useRef<string | null>(null);
+  const playedReminderKeyRef = useRef<string | null>(null);
   const [counsellings, setCounsellings] = useState<Counselling[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -84,11 +92,20 @@ export default function FollowUpManagement() {
     student_id: '',
     intent_level: 'medium',
     followup_date: '',
+    followup_time: '',
     followup_status: 'pending',
     notes: ''
   });
 
-
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setReminderClock(new Date());
+      getFollowUps()
+        .then(result => setFollowUps(Array.isArray(result) ? result : result?.data || []))
+        .catch(error => console.error('Failed to refresh follow-up reminders:', error));
+    }, 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   // ── CORE DATA ─────────────────────────────────────────────
   const handleConfirmAction = async () => {
@@ -132,6 +149,131 @@ export default function FollowUpManagement() {
     fetchData();
   }, []);
 
+  const upcomingFollowUpReminders = useMemo(() => followUps.flatMap(followUp => {
+      if (!isFollowUpReminderDue(followUp, reminderClock)) return [];
+
+      const scheduledAt = getFollowUpScheduledAt(followUp);
+      if (!scheduledAt) return [];
+
+      const student = students.find(item => item.id === followUp.student_id);
+      return [{
+        key: `${followUp.id}-${scheduledAt.getTime()}`,
+        studentName: student?.full_name || student?.email || 'Student',
+        studentId: student?.student_id || '-',
+        studentEmail: student?.email || '-',
+        followUpNote: followUp.notes?.trim() || '',
+        scheduledAt,
+      }];
+    }), [followUps, reminderClock, students]);
+
+  const eligibleFollowUpReminders = upcomingFollowUpReminders.filter(reminder =>
+    !acknowledgedReminderKeys.has(reminder.key) &&
+    (!snoozedReminders[reminder.key] || snoozedReminders[reminder.key] <= reminderClock.getTime())
+  );
+
+  useEffect(() => {
+    if (activeReminderKey && !eligibleFollowUpReminders.some(reminder => reminder.key === activeReminderKey)) {
+      setActiveReminderKey(null);
+    } else if (!activeReminderKey && eligibleFollowUpReminders.length > 0) {
+      setActiveReminderKey(eligibleFollowUpReminders[0].key);
+    }
+  }, [activeReminderKey, eligibleFollowUpReminders]);
+
+  const activeReminder = eligibleFollowUpReminders.find(reminder => reminder.key === activeReminderKey) || null;
+  activeReminderKeyRef.current = activeReminderKey;
+
+  const playReminderSound = useCallback(() => {
+    const reminderKey = activeReminderKeyRef.current;
+    const context = audioContextRef.current;
+    if (!reminderKey || !context || playedReminderKeyRef.current === reminderKey) return;
+
+    playedReminderKeyRef.current = reminderKey;
+    void context.resume().then(() => {
+      if (activeReminderKeyRef.current !== reminderKey) return;
+      const startAt = context.currentTime;
+      [880, 660, 880].forEach((frequency, index) => {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const toneStart = startAt + index * 0.18;
+        oscillator.type = 'sine';
+        oscillator.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.0001, toneStart);
+        gain.gain.exponentialRampToValueAtTime(0.14, toneStart + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, toneStart + 0.14);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(toneStart);
+        oscillator.stop(toneStart + 0.15);
+      });
+    }).catch(error => {
+      if (playedReminderKeyRef.current === reminderKey) playedReminderKeyRef.current = null;
+      console.warn('Could not play follow-up reminder sound:', error);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (typeof window.AudioContext !== 'undefined') {
+      try {
+        audioContextRef.current ??= new window.AudioContext();
+        playReminderSound();
+      } catch (error) {
+        console.warn('Could not initialize follow-up reminder sound:', error);
+      }
+    }
+    const activateReminderSound = () => {
+      if (typeof window.AudioContext === 'undefined') return;
+      try {
+        audioContextRef.current ??= new window.AudioContext();
+        if (audioContextRef.current.state === 'suspended') {
+          void audioContextRef.current.resume().catch(error => {
+            console.warn('Could not enable follow-up reminder sound:', error);
+          });
+        }
+        playReminderSound();
+      } catch (error) {
+        console.warn('Could not initialize follow-up reminder sound:', error);
+      }
+    };
+    window.addEventListener('pointerdown', activateReminderSound);
+    window.addEventListener('keydown', activateReminderSound);
+    return () => {
+      window.removeEventListener('pointerdown', activateReminderSound);
+      window.removeEventListener('keydown', activateReminderSound);
+      const context = audioContextRef.current;
+      audioContextRef.current = null;
+      void context?.close();
+    };
+  }, [playReminderSound]);
+
+  useEffect(() => {
+    if (activeReminderKey) playReminderSound();
+  }, [activeReminderKey, playReminderSound]);
+
+  const acknowledgeReminder = () => {
+    if (!activeReminder) return;
+    setAcknowledgedReminderKeys(previous => new Set(previous).add(activeReminder.key));
+    setActiveReminderKey(null);
+  };
+
+  const snoozeReminder = () => {
+    if (!activeReminder) return;
+    playedReminderKeyRef.current = null;
+    setSnoozedReminders(previous => ({
+      ...previous,
+      [activeReminder.key]: Date.now() + 5 * 60 * 1000,
+    }));
+    setActiveReminderKey(null);
+  };
+
+  const viewReminderStudent = () => {
+    if (!activeReminder) return;
+    const followUpId = activeReminder.key.slice(0, activeReminder.key.lastIndexOf('-'));
+    const followUp = followUps.find(item => item.id === followUpId);
+    const student = students.find(item => item.id === followUp?.student_id);
+    if (student) setViewStudent(student);
+    acknowledgeReminder();
+  };
+
   useEffect(() => {
     (async () => {
       const nextTotals: Record<string, number> = { high: 0, medium: 0, low: 0 };
@@ -160,6 +302,7 @@ export default function FollowUpManagement() {
       student_id: sid,
       intent_level: intent,
       followup_date: format(new Date(), 'yyyy-MM-dd'),
+      followup_time: '',
       followup_status: 'pending',
       notes: ''
     });
@@ -171,7 +314,8 @@ export default function FollowUpManagement() {
     setForm({
       student_id: fu.student_id,
       intent_level: fu.intent_level || 'medium',
-      followup_date: fu.followup_date || format(new Date(), 'yyyy-MM-dd'),
+      followup_date: fu.followup_date?.slice(0, 10) || format(new Date(), 'yyyy-MM-dd'),
+      followup_time: fu.followup_time?.slice(0, 5) || '',
       followup_status: fu.followup_status || 'pending',
       notes: fu.notes || ''
     });
@@ -181,6 +325,10 @@ export default function FollowUpManagement() {
   const handleSave = async () => {
     if (!form.student_id) {
       toast.error('Please select a student');
+      return;
+    }
+    if (!form.followup_date || !form.followup_time) {
+      toast.error('Please select a follow-up date and time');
       return;
     }
     setSaving(true);
@@ -313,6 +461,7 @@ export default function FollowUpManagement() {
                       <tbody className="divide-y divide-border/60">
                         {segmentData[key as keyof typeof segmentData].map(s => {
                           const fu = getStudentFU(s.id);
+                          const fuScheduledAt = fu ? getFollowUpScheduledAt(fu) : null;
                           const c = counsellings.find(couns => couns.student_id === s.id);
                           const formattedDate = formatCounsellingDateTime(c?.scheduled_date, c?.scheduled_time);
                           const isScheduled = c && c.status && c.status !== 'not_scheduled' && formattedDate;
@@ -364,6 +513,12 @@ export default function FollowUpManagement() {
                                   <StatusBadge status={s.counselling_status} />
                                 ) : (
                                   <StatusBadge status="not_scheduled" />
+                                )}
+                                {fuScheduledAt && (
+                                  <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-amber-700">
+                                    <BellRing className="h-3 w-3 shrink-0" />
+                                    Follow-up: {format(fuScheduledAt, 'dd MMM yyyy, h:mm a')}
+                                  </span>
                                 )}
                               </td>
 
@@ -429,6 +584,7 @@ export default function FollowUpManagement() {
                   <div className="lg:hidden space-y-3 p-3">
                     {segmentData[key as keyof typeof segmentData].map(s => {
                       const fu = getStudentFU(s.id);
+                      const fuScheduledAt = fu ? getFollowUpScheduledAt(fu) : null;
                       const c = counsellings.find(couns => couns.student_id === s.id);
                       const formattedDate = formatCounsellingDateTime(c?.scheduled_date, c?.scheduled_time);
                       const isScheduled = c && c.status && c.status !== 'not_scheduled' && formattedDate;
@@ -480,6 +636,15 @@ export default function FollowUpManagement() {
                                 )}
                               </div>
                             </div>
+                            {fuScheduledAt && (
+                              <div className="flex items-center justify-between gap-3 rounded-md border border-amber-300/50 bg-amber-50/60 px-2 py-1.5 text-amber-800">
+                                <span>Follow-up reminder</span>
+                                <span className="flex items-center gap-1 text-right font-medium">
+                                  <BellRing className="h-3 w-3 shrink-0" />
+                                  {format(fuScheduledAt, 'dd MMM, h:mm a')}
+                                </span>
+                              </div>
+                            )}
 
                             <div className="rounded-md bg-muted/30 px-2 py-1.5 border border-border/40">
                               <div className="flex items-center justify-between gap-2 mb-2">
@@ -548,6 +713,65 @@ export default function FollowUpManagement() {
           ))}
         </Tabs>
 
+        {activeReminder && (
+          <section
+            role="alertdialog"
+            aria-labelledby="follow-up-reminder-title"
+            aria-describedby="follow-up-reminder-description"
+            className="pointer-events-auto fixed left-1/2 top-1/2 z-[100] max-h-[calc(100vh-2rem)] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-2xl"
+          >
+            {activeReminder && (() => {
+              const minutesUntil = Math.max(0, Math.round((activeReminder.scheduledAt.getTime() - reminderClock.getTime()) / 60_000));
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-2 border-b border-slate-200 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="rounded-lg bg-amber-100 p-2.5 text-amber-700">
+                        <BellRing className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h2 id="follow-up-reminder-title" className="text-base font-semibold">Follow-up Reminder!</h2>
+                        <p className="mt-0.5 text-xs text-slate-500">PSY CARE · Scheduled follow-up</p>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-orange-100 px-2 py-1 text-[11px] font-semibold text-orange-700">
+                      {minutesUntil <= 5 ? 'Due now' : `Due in ${formatDistanceToNowStrict(activeReminder.scheduledAt)}`}
+                    </span>
+                  </div>
+
+                  <div className="space-y-0.5 text-sm">
+                    <p className="font-semibold">{activeReminder.studentName}</p>
+                    <p className="text-xs text-slate-600">Student ID: {activeReminder.studentId}</p>
+                    <p className="text-xs text-slate-600">Email: {activeReminder.studentEmail}</p>
+                  </div>
+
+                  <div id="follow-up-reminder-description" className="space-y-1.5 rounded-lg bg-slate-100 p-3">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                      <CalendarClock className="h-4 w-4 text-blue-600" />
+                      {format(activeReminder.scheduledAt, 'dd MMM yyyy')} · {format(activeReminder.scheduledAt, 'h:mm a')}
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      Reminder: {activeReminder.followUpNote || 'Contact the student for the scheduled follow-up.'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Button onClick={acknowledgeReminder} className="h-9 w-full rounded-full bg-slate-950 text-sm text-white hover:bg-slate-800">
+                      <CheckCircle2 className="mr-2 h-4 w-4" /> Acknowledge
+                    </Button>
+                    <Button onClick={snoozeReminder} variant="outline" className="h-9 w-full rounded-full border-slate-300 text-sm text-slate-600">
+                      <Clock3 className="mr-2 h-4 w-4" /> Snooze for 5 minutes
+                    </Button>
+                    <Button onClick={viewReminderStudent} variant="outline" className="h-9 w-full rounded-full border-slate-300 text-sm text-slate-600">
+                      View student details
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
+          </section>
+        )}
+
         {/* ── FOLLOW-UP / EDIT DIALOG ── */}
         <Dialog open={showForm} onOpenChange={setShowForm}>
           <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-md bg-card border-border">
@@ -570,6 +794,7 @@ export default function FollowUpManagement() {
                       student_id: sid,
                       intent_level: existingFU?.intent_level || f.intent_level || 'medium',
                       followup_date: existingFU?.followup_date || f.followup_date || format(new Date(), 'yyyy-MM-dd'),
+                      followup_time: existingFU?.followup_time?.slice(0, 5) || '',
                       followup_status: existingFU?.followup_status || f.followup_status || 'pending',
                       notes: existingFU?.notes || ''
                     }));
@@ -589,6 +814,7 @@ export default function FollowUpManagement() {
                 <div>
                   <Label className="text-xs font-semibold">Follow-up Date</Label>
                   <Input
+                    required
                     type="date"
                     value={form.followup_date}
                     onChange={e => setForm(f => ({ ...f, followup_date: e.target.value }))}
@@ -596,18 +822,28 @@ export default function FollowUpManagement() {
                   />
                 </div>
                 <div>
-                  <Label className="text-xs font-semibold">Status</Label>
-                  <select
-                    value={form.followup_status}
-                    onChange={e => setForm(f => ({ ...f, followup_status: e.target.value }))}
-                    className="w-full mt-1 bg-input border border-border rounded-md px-3 py-2 text-xs text-foreground outline-none"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
+                  <Label className="text-xs font-semibold">Follow-up Time</Label>
+                  <Input
+                    required
+                    type="time"
+                    value={form.followup_time}
+                    onChange={e => setForm(f => ({ ...f, followup_time: e.target.value }))}
+                    className="mt-1 bg-input border-border text-xs"
+                  />
                 </div>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold">Status</Label>
+                <select
+                  value={form.followup_status}
+                  onChange={e => setForm(f => ({ ...f, followup_status: e.target.value }))}
+                  className="w-full mt-1 bg-input border border-border rounded-md px-3 py-2 text-xs text-foreground outline-none"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
               </div>
 
               <div>
