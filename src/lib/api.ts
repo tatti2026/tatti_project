@@ -766,6 +766,32 @@ export function resolvePaymentScreenshotUrl(
 
 
 // ── COUNSELLING ────────────────────────────────────────────
+export interface StudentReminder {
+  kind: 'counselling' | 'follow_up';
+  id: string;
+  scheduled_date: string;
+  scheduled_time: string | null;
+  counsellor_name?: string | null;
+  mode?: string | null;
+  venue_or_link?: string | null;
+  instructions?: string | null;
+  reminder_option?: string | null;
+  reminder_datetime?: string | null;
+  updated_at?: string | null;
+  notes?: string | null;
+}
+
+export async function getStudentReminders(): Promise<StudentReminder[]> {
+  const res = await fetch(`${API_BASE}/students/me/reminders`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to load reminders');
+  }
+  return await res.json();
+}
+
 export async function getStudentCounselling(studentId: string): Promise<Counselling | null> {
   const res = await fetch(`${API_BASE}/counselling/student/${studentId}`, {
     headers: getHeaders(),
@@ -1021,4 +1047,3 @@ export async function getMyStudentId(): Promise<{ studentId: string | null; stud
   if (!res.ok) return { studentId: null, studentCode: null };
   return await res.json();
 }
-

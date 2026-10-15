@@ -1,6 +1,65 @@
 import type { Request, Response } from 'express';
 import { query } from '../database/pgPool.js';
 import { getStudentApplicationAccess } from '../services/applicationAccessService.js';
+import type { AuthenticatedRequest } from '../middleware/authMiddleware.js';
+
+export async function getStudentReminders(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (req.user?.role !== 'student') {
+      return res.status(403).json({ error: 'Only student accounts can view student reminders.' });
+    }
+
+    const profileId = req.user.userId;
+    const [counsellingResult, followUpResult] = await Promise.all([
+      query(`
+        SELECT
+          'counselling' AS kind,
+          c.id,
+          c.scheduled_date::text AS scheduled_date,
+          c.scheduled_time::text AS scheduled_time,
+          c.counsellor_name,
+          c.mode,
+          c.venue_or_link,
+          c.instructions,
+          c.reminder_option,
+          c.reminder_datetime::text AS reminder_datetime,
+          c.updated_at::text AS updated_at
+        FROM counselling c
+        JOIN students s ON s.id = c.student_id
+        WHERE s.profile_id = $1
+          AND c.scheduled_date IS NOT NULL
+          AND c.reminder_datetime IS NOT NULL
+          AND c.reminder_datetime <= now()
+          AND (c.scheduled_date + COALESCE(c.scheduled_time::time, TIME '10:30'))
+              AT TIME ZONE 'Asia/Kolkata' > now()
+          AND LOWER(COALESCE(c.status, 'scheduled')) NOT IN ('completed', 'cancelled', 'rejected', 'selected')
+        ORDER BY c.scheduled_date, c.scheduled_time
+      `, [profileId]),
+      query(`
+        SELECT
+          'follow_up' AS kind,
+          f.id,
+          f.followup_date::text AS scheduled_date,
+          f.followup_time::text AS scheduled_time,
+          f.notes
+        FROM follow_ups f
+        JOIN students s ON s.id = f.student_id
+        WHERE s.profile_id = $1
+          AND f.followup_date IS NOT NULL
+          AND f.followup_time IS NOT NULL
+          AND (f.followup_date + f.followup_time) AT TIME ZONE 'Asia/Kolkata' > now()
+          AND (f.followup_date + f.followup_time) AT TIME ZONE 'Asia/Kolkata' <= now() + INTERVAL '1 hour'
+          AND LOWER(COALESCE(f.followup_status, 'pending')) IN ('pending', 'in_progress')
+        ORDER BY f.followup_date, f.followup_time
+      `, [profileId]),
+    ]);
+
+    return res.json([...counsellingResult.rows, ...followUpResult.rows]);
+  } catch (err) {
+    console.error('Error fetching student reminders:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
 
 export async function getStudentByProfileId(req: Request, res: Response) {
   try {

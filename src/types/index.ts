@@ -165,6 +165,8 @@ export interface Counselling {
   venue_or_link: string | null;
   instructions: string | null;
   notes: string | null;
+  reminder_option?: string | null;
+  reminder_datetime?: string | null;
   status: CounsellingStatus;
   created_at: string;
   updated_at: string;
@@ -259,5 +261,4 @@ export interface CounsellorPrivateNote {
   created_at: string;
   updated_at: string;
 }
-
 

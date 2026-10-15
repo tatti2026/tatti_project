@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { getNotifications, getStudentByProfileId } from '@/lib/api';
 import { getStudentUnreadMessagesCount } from '@/services/messagingService';
+import StudentAppointmentReminders from '@/components/student/StudentAppointmentReminders';
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -280,6 +281,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
           {children}
         </main>
       </div>
+      <StudentAppointmentReminders />
     </div>
   );
 }

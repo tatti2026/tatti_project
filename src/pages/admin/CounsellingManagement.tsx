@@ -79,7 +79,7 @@ export default function CounsellingManagement() {
       scheduled_time: c.scheduled_time || '10:30 AM',
       counselling_type: c.mode || 'Online',
       notes: c.notes || '',
-      reminder: '1 day before',
+      reminder: c.reminder_option || '1 day before',
       status: c.status || 'scheduled',
     });
     setShowForm(true);
