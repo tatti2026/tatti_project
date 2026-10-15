@@ -227,7 +227,7 @@ export default function CounsellingManagement() {
 
   const [form, setForm] = useState<CounsForm>({
     student_id: '',
-    counsellor_name: 'TATTI Counsellor',
+    counsellor_name: 'PSY CARE Counsellor',
     scheduled_date: '2026-09-15',
     scheduled_time: '10:30 AM',
     counselling_type: 'Online',
@@ -273,7 +273,7 @@ export default function CounsellingManagement() {
     setEditCounselling(null);
     setForm({
       student_id: studentId || '',
-      counsellor_name: 'TATTI Counsellor',
+      counsellor_name: 'PSY CARE Counsellor',
       scheduled_date: format(new Date(Date.now() + 86400000), 'yyyy-MM-dd'),
       scheduled_time: '10:30 AM',
       counselling_type: 'Online',
@@ -288,7 +288,7 @@ export default function CounsellingManagement() {
     setEditCounselling(c);
     setForm({
       student_id: c.student_id,
-      counsellor_name: c.counsellor_name || 'TATTI Counsellor',
+      counsellor_name: c.counsellor_name || 'PSY CARE Counsellor',
       scheduled_date: c.scheduled_date || '',
       scheduled_time: c.scheduled_time || '10:30 AM',
       counselling_type: c.mode || 'Online',
@@ -480,7 +480,7 @@ export default function CounsellingManagement() {
                           {s?.student_id || '-'}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap font-medium text-foreground">
-                          {c.counsellor_name || 'TATTI Counsellor'}
+                          {c.counsellor_name || 'PSY CARE Counsellor'}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">
                           {c.scheduled_date || '-'}
@@ -617,7 +617,7 @@ export default function CounsellingManagement() {
                 <Input
                   value={form.counsellor_name}
                   onChange={e => setForm(f => ({ ...f, counsellor_name: e.target.value }))}
-                  placeholder="TATTI Counsellor"
+                  placeholder="PSY CARE Counsellor"
                   className="mt-1 bg-input border-border text-xs"
                 />
               </div>
@@ -653,7 +653,7 @@ export default function CounsellingManagement() {
                   className="w-full mt-1 bg-input border border-border rounded-lg px-3 py-2 text-xs text-foreground outline-none"
                 >
                   <option value="Online">Online (Google Meet / Zoom)</option>
-                  <option value="In-Person">In-Person (TATTI Campus)</option>
+                  <option value="In-Person">In-Person (PSY CARE Campus)</option>
                   <option value="Telephone">Telephone Guidance</option>
                 </select>
               </div>
@@ -690,7 +690,7 @@ export default function CounsellingManagement() {
               <div className="p-3 bg-muted/40 rounded-xl border border-border space-y-1">
                 <p className="text-[11px] font-bold text-foreground">Dispatched Student Notification Preview:</p>
                 <p className="text-[11px] text-muted-foreground italic">
-                  &quot;Your TATTI counselling session is scheduled for {form.scheduled_date || 'date'} at {form.scheduled_time || 'time'} with {form.counsellor_name}.&quot;
+                  &quot;Your PSY CARE counselling session is scheduled for {form.scheduled_date || 'date'} at {form.scheduled_time || 'time'} with {form.counsellor_name}.&quot;
                 </p>
               </div>
 

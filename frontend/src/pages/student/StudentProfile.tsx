@@ -92,7 +92,7 @@ export default function StudentProfile() {
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            This is your permanent Student ID. Use it to sign in to the TATTI Portal.
+            This is your permanent Student ID. Use it to sign in to the PSY CARE Portal.
           </p>
         </div>
 

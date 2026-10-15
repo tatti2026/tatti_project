@@ -66,7 +66,7 @@ export async function unlockStudentApplication(studentId: string, adminName?: st
   const res = await fetch(`${API_BASE}/students/${studentId}/application-access`, {
     method: 'PATCH',
     headers: getHeaders(),
-    body: JSON.stringify({ unlocked: true, adminName: adminName || 'TATTI Head Administrator' }),
+    body: JSON.stringify({ unlocked: true, adminName: adminName || 'PSY CARE Head Administrator' }),
   });
   return res.json();
 }
@@ -75,7 +75,7 @@ export async function lockStudentApplication(studentId: string, adminName?: stri
   const res = await fetch(`${API_BASE}/students/${studentId}/application-access`, {
     method: 'PATCH',
     headers: getHeaders(),
-    body: JSON.stringify({ unlocked: false, adminName: adminName || 'TATTI Head Administrator' }),
+    body: JSON.stringify({ unlocked: false, adminName: adminName || 'PSY CARE Head Administrator' }),
   });
   return res.json();
 }
@@ -195,7 +195,7 @@ export async function exportReportExcel(filters: {
     fromDate: filters.fromDate,
     toDate: filters.toDate,
   });
-  await triggerDownload(`${API_BASE}/admin/reports/export/excel${query ? `?${query}` : ''}`, 'TATTI_Student_Report.xlsx');
+  await triggerDownload(`${API_BASE}/admin/reports/export/excel${query ? `?${query}` : ''}`, 'PSY_CARE_Student_Report.xlsx');
 }
 
 export async function exportReportPDF(filters: {
@@ -214,7 +214,7 @@ export async function exportReportPDF(filters: {
     fromDate: filters.fromDate,
     toDate: filters.toDate,
   });
-  await triggerDownload(`${API_BASE}/admin/reports/export/pdf${query ? `?${query}` : ''}`, 'TATTI_Student_Report.pdf');
+  await triggerDownload(`${API_BASE}/admin/reports/export/pdf${query ? `?${query}` : ''}`, 'PSY_CARE_Student_Report.pdf');
 }
 
 export async function exportStudentExcel(filters: {
@@ -233,7 +233,7 @@ export async function exportStudentExcel(filters: {
     fromDate: filters.fromDate,
     toDate: filters.toDate,
   });
-  await triggerDownload(`${API_BASE}/admin/students/export/excel${query ? `?${query}` : ''}`, 'TATTI_Student_Details.xlsx');
+  await triggerDownload(`${API_BASE}/admin/students/export/excel${query ? `?${query}` : ''}`, 'PSY_CARE_Student_Details.xlsx');
 }
 
 export async function exportStudentPDF(filters: {
@@ -252,7 +252,7 @@ export async function exportStudentPDF(filters: {
     fromDate: filters.fromDate,
     toDate: filters.toDate,
   });
-  await triggerDownload(`${API_BASE}/admin/students/export/pdf${query ? `?${query}` : ''}`, 'TATTI_Student_Details.pdf');
+  await triggerDownload(`${API_BASE}/admin/students/export/pdf${query ? `?${query}` : ''}`, 'PSY_CARE_Student_Details.pdf');
 }
 
 export interface GetStudentsOptions {

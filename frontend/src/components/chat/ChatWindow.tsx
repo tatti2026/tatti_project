@@ -75,7 +75,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             <p className="text-xs font-medium text-foreground">{emptyPlaceholder}</p>
             <p className="text-[11px] text-muted-foreground max-w-xs">
               Send a message or upload documents directly to communicate with{' '}
-              {currentUserType === 'admin' ? 'the student' : 'TATTI College Connect team'}.
+              {currentUserType === 'admin' ? 'the student' : 'PSY CARE College Connect team'}.
             </p>
           </div>
         ) : (

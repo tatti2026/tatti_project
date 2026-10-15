@@ -96,10 +96,10 @@ export default function FollowUpManagement() {
     setActionLoading(true);
     try {
       if (confirmDialog.action === 'unlock') {
-        await unlockStudentApplication(confirmDialog.student.id, 'TATTI Head Administrator');
+        await unlockStudentApplication(confirmDialog.student.id, 'PSY CARE Head Administrator');
         toast.success(`Application unlocked for ${confirmDialog.student.full_name || 'student'}`);
       } else {
-        await lockStudentApplication(confirmDialog.student.id, 'TATTI Head Administrator');
+        await lockStudentApplication(confirmDialog.student.id, 'PSY CARE Head Administrator');
         toast.success(`Application locked for ${confirmDialog.student.full_name || 'student'}`);
       }
       await fetchData();

@@ -55,7 +55,7 @@ export async function upsertApplication(req: Request, res: Response) {
 
     if (studentId && !isStudentApplicationUnlocked(studentId)) {
       return res.status(403).json({
-        error: 'Application process is locked by TATTI Admin. Application cannot be modified or submitted.',
+        error: 'Application process is locked by PSY CARE Admin. Application cannot be modified or submitted.',
         code: 'APPLICATION_LOCKED'
       });
     }
@@ -166,7 +166,7 @@ export async function submitApplication(req: Request, res: Response) {
 
   if (!isStudentApplicationUnlocked(studentId)) {
     return res.status(403).json({
-      error: 'Application process is locked by TATTI Admin. Wait for admin unlock before submitting application.',
+      error: 'Application process is locked by PSY CARE Admin. Wait for admin unlock before submitting application.',
       code: 'APPLICATION_LOCKED',
     });
   }

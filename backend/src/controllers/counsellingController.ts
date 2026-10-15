@@ -211,7 +211,7 @@ export async function upsertCounselling(req: Request, res: Response) {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         RETURNING *;
       `, [
-        c.student_id, c.counsellor_name || 'TATTI Counsellor', c.scheduled_date || null,
+        c.student_id, c.counsellor_name || 'PSY CARE Counsellor', c.scheduled_date || null,
         c.scheduled_time || '10:30 AM', c.mode || 'Online', c.venue_or_link || '',
         c.instructions || '', c.notes || '', c.status || 'scheduled',
         reminderOpt, reminderDatetime, reminderSent, notifStatus
@@ -238,7 +238,7 @@ export async function upsertCounselling(req: Request, res: Response) {
       if (student && student.profile_id) {
         const cleanDate = formatCounsellingDate(counsellingRow.scheduled_date || c.scheduled_date);
         const cleanTime = formatCounsellingTime(counsellingRow.scheduled_time || c.scheduled_time);
-        const counsellor = counsellingRow.counsellor_name || 'TATTI Counsellor';
+        const counsellor = counsellingRow.counsellor_name || 'PSY CARE Counsellor';
         const type = counsellingRow.mode || 'In-Person';
         const status = counsellingRow.status || 'scheduled';
 

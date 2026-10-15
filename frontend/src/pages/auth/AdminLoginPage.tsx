@@ -79,7 +79,7 @@ export default function AdminLoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#0B1F3A] mb-4 shadow-md">
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-[#172554] mb-1 tracking-tight">TATTI Admin Portal</h1>
+          <h1 className="text-2xl font-bold text-[#172554] mb-1 tracking-tight">PSY CARE Admin Portal</h1>
           <p className="text-[#64748B] text-sm">Administrative Management & Student Operations</p>
         </div>
 

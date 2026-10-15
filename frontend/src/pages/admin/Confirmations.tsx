@@ -199,7 +199,7 @@ export default function Confirmations() {
   const downloadReceipt = (s: Student) => {
     const pay = getStudentPayment(s.id);
     const content = [
-      'TATTI - Payment Receipt',
+      'PSY CARE - Payment Receipt',
       '=======================',
       `Student Name: ${s.full_name || 'N/A'}`,
       `Email: ${s.email || 'N/A'}`,
@@ -253,7 +253,7 @@ export default function Confirmations() {
     try {
       const doc = new jsPDF();
       doc.setFontSize(16);
-      doc.text('Tamil Nadu Advanced Technical Training Institute (TATTI)', 14, 18);
+      doc.text('PSY CARE', 14, 18);
       doc.setFontSize(12);
       doc.text(`Payment Confirmations Report - ${format(new Date(), 'dd MMM yyyy')}`, 14, 26);
       doc.setFontSize(9);
@@ -1005,7 +1005,7 @@ export default function Confirmations() {
                     </div>
                     <div>
                       <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">Approved By</p>
-                      <p className="text-xs font-medium text-foreground mt-0.5">{paymentDetails.approved_by || 'TATTI Admin'}</p>
+                      <p className="text-xs font-medium text-foreground mt-0.5">{paymentDetails.approved_by || 'PSY CARE Admin'}</p>
                     </div>
                   </div>
                 ) : (
@@ -1026,7 +1026,7 @@ export default function Confirmations() {
                       </div>
                       <div>
                         <p className="text-[11px] text-destructive font-semibold">Rejected By</p>
-                        <p className="text-xs font-medium text-foreground mt-0.5">{paymentDetails.rejected_by || 'TATTI Admin'}</p>
+                        <p className="text-xs font-medium text-foreground mt-0.5">{paymentDetails.rejected_by || 'PSY CARE Admin'}</p>
                       </div>
                     </div>
                     {paymentDetails.rejection_reason && (

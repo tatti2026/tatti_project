@@ -19,7 +19,7 @@ export function RouteGuard({ children, requireAuth = true, requireRole }: RouteG
           <div className="w-10 h-10 rounded-full gradient-bg flex items-center justify-center animate-pulse">
             <span className="text-white font-bold text-sm">T</span>
           </div>
-          <p className="text-sm text-muted-foreground">Loading TATTI Portal...</p>
+          <p className="text-sm text-muted-foreground">Loading PSY CARE Portal...</p>
         </div>
       </div>
     );

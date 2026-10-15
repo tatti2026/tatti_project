@@ -168,7 +168,7 @@ export async function signup(req: Request, res: Response) {
       );
       const counter = counterRes.rows[0].counter;
       const paddedCounter = String(counter).padStart(3, '0');
-      const generatedStudentId = `${currentYear}-TATTI-${paddedCounter}`;
+      const generatedStudentId = `${currentYear}-PSY CARE-${paddedCounter}`;
 
       // 4. Insert student record
       await query(

@@ -129,14 +129,14 @@ function getExportDateStamp(date = new Date()) {
 async function exportStudentsAsExcel(req: Request, res: Response) {
   const students = await getFilteredStudentsForExport(req.query as Record<string, any>);
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'TATTI Admin Portal';
+  workbook.creator = 'PSY CARE Admin Portal';
   workbook.created = new Date();
   const sheet = workbook.addWorksheet('Student Report');
 
   // Title Block (Row 1)
   sheet.mergeCells('A1:N1');
   const titleCell = sheet.getCell('A1');
-  titleCell.value = 'TAMILNADU ADVANCED TECHNICAL TRAINING INSTITUTE (TATTI)';
+  titleCell.value = 'PSY CARE';
   titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
   titleCell.fill = {
     type: 'pattern',
@@ -258,7 +258,7 @@ async function exportStudentsAsExcel(req: Request, res: Response) {
 
   const buffer = await workbook.xlsx.writeBuffer();
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', 'attachment; filename="TATTI_Student_Report.xlsx"');
+  res.setHeader('Content-Disposition', 'attachment; filename="PSY_CARE_Student_Report.xlsx"');
   return res.send(Buffer.from(buffer));
 }
 
@@ -291,7 +291,7 @@ async function exportStudentsAsPdf(req: Request, res: Response) {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
-    doc.text('TAMILNADU ADVANCED TECHNICAL TRAINING INSTITUTE (TATTI)', margin, 26);
+    doc.text('PSY CARE', margin, 26);
 
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
@@ -386,12 +386,12 @@ async function exportStudentsAsPdf(req: Request, res: Response) {
     doc.setTextColor(148, 163, 184);
     doc.setFontSize(7.5);
     doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin - 50, pageHeight - 15);
-    doc.text('TATTI Portal • Confidential • Generated for Official Administrative Use', margin, pageHeight - 15);
+    doc.text('PSY CARE Portal • Confidential • Generated for Official Administrative Use', margin, pageHeight - 15);
   }
 
   const buffer = doc.output('arraybuffer');
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', 'attachment; filename="TATTI_Student_Report.pdf"');
+  res.setHeader('Content-Disposition', 'attachment; filename="PSY_CARE_Student_Report.pdf"');
   return res.send(Buffer.from(buffer));
 }
 
@@ -439,7 +439,7 @@ export async function updateStudentApplicationAccess(req: Request, res: Response
     const { unlocked, adminName } = req.body;
     const isUnlocked = !!unlocked;
     const status = isUnlocked ? 'unlocked' : 'locked';
-    const adminDisplayName = adminName || 'TATTI Head Administrator';
+    const adminDisplayName = adminName || 'PSY CARE Head Administrator';
 
     // Verify student exists
     const checkRes = await query('SELECT id, full_name, email FROM students WHERE id = $1', [targetStudentId]);
@@ -487,7 +487,7 @@ export async function updateStudentApplicationAccess(req: Request, res: Response
       createSystemNotification(
         targetStudentId,
         '🎉 Application Process Unlocked',
-        'Congratulations! TATTI Admin has unlocked your application process. You can now start your application.',
+        'Congratulations! PSY CARE Admin has unlocked your application process. You can now start your application.',
         'application'
       );
     }
@@ -980,7 +980,7 @@ export async function getPaymentDetailsById(req: Request, res: Response) {
 
 export async function approvePayment(req: Request, res: Response) {
   const { id } = req.params;
-  const adminName = (req as any).user?.full_name || (req as any).body?.adminName || 'TATTI Head Administrator';
+  const adminName = (req as any).user?.full_name || (req as any).body?.adminName || 'PSY CARE Head Administrator';
 
   const client = await pool.connect();
   try {
@@ -1084,7 +1084,7 @@ export async function rejectPayment(req: Request, res: Response) {
     return res.status(400).json({ error: 'Rejection reason is required.' });
   }
 
-  const adminName = (req as any).user?.full_name || bodyAdminName || 'TATTI Head Administrator';
+  const adminName = (req as any).user?.full_name || bodyAdminName || 'PSY CARE Head Administrator';
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -1132,7 +1132,7 @@ export async function rejectPayment(req: Request, res: Response) {
     const studRes = await client.query('SELECT profile_id FROM students WHERE id = $1', [payment.student_id]);
     const profileId = studRes.rows[0]?.profile_id || null;
 
-    const notifMessage = `Your payment could not be verified. Please check the payment details and contact TATTI support. Reason: ${reason.trim()}`;
+    const notifMessage = `Your payment could not be verified. Please check the payment details and contact PSY CARE support. Reason: ${reason.trim()}`;
 
     await client.query(`
       INSERT INTO notifications (student_id, profile_id, title, message, type, is_read, created_at)

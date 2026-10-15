@@ -67,12 +67,12 @@ function generateReceiptPDF(opts: ReceiptOpts) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(24);
   doc.setTextColor(255, 255, 255);
-  doc.text('TATTI', W / 2, 18, { align: 'center' });
+  doc.text('PSY CARE', W / 2, 18, { align: 'center' });
 
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(180, 185, 210);
-  doc.text('Tamil Nadu Advanced Technical Training Institute', W / 2, 26, { align: 'center' });
+  doc.text('PSY CARE', W / 2, 26, { align: 'center' });
   doc.text('Chennai, Tamil Nadu  |  www.tatti.edu.in  |  info@tatti.edu.in', W / 2, 32, { align: 'center' });
   doc.text('+91-44-1234-5678', W / 2, 38, { align: 'center' });
 
@@ -191,7 +191,7 @@ function generateReceiptPDF(opts: ReceiptOpts) {
   doc.setTextColor(130, 140, 160);
   doc.text('This is a computer-generated receipt and does not require a physical signature.', W / 2, y + 9, { align: 'center' });
   doc.text('For any queries, contact: info@tatti.edu.in  |  +91-44-1234-5678', W / 2, y + 16, { align: 'center' });
-  doc.text('TATTI - Tamil Nadu Advanced Technical Training Institute, Chennai, Tamil Nadu', W / 2, y + 23, { align: 'center' });
+  doc.text('PSY CARE - PSY CARE, Chennai, Tamil Nadu', W / 2, y + 23, { align: 'center' });
 
   return doc;
 }
@@ -231,7 +231,7 @@ function PaymentSuccessView({ form, application, payment, selectedCourse, onNavi
 
   const handleDownload = () => {
     const doc = generateReceiptPDF(receiptOpts);
-    doc.save(`TATTI_Receipt_${application?.application_number || receiptNumber}.pdf`);
+    doc.save(`PSY_CARE_Receipt_${application?.application_number || receiptNumber}.pdf`);
     toast.success('Receipt downloaded!');
   };
 
@@ -639,7 +639,7 @@ export default function ApplicationProcess() {
       await updateStudent(student.id, { payment_status: 'Pending Verification', application_status: 'submitted' });
       setPayment(pay);
       setStep(4);
-      toast.success('Payment proof submitted successfully! The TATTI administration team will verify your payment.');
+      toast.success('Payment proof submitted successfully! The PSY CARE administration team will verify your payment.');
     } catch (err: any) {
       toast.error(err.message || 'Failed to submit payment proof');
     } finally {
@@ -690,7 +690,7 @@ export default function ApplicationProcess() {
               Your application process has not been unlocked yet.
             </p>
             <p className="text-muted-foreground text-sm max-w-md mx-auto mb-8 font-medium">
-              Please wait for TATTI Admin to enable your application.
+              Please wait for PSY CARE Admin to enable your application.
             </p>
 
             {/* Access details card */}
@@ -817,7 +817,7 @@ export default function ApplicationProcess() {
                 </div>
               )}
               <p className="text-muted-foreground text-sm max-w-sm mx-auto mt-4 leading-relaxed">
-                Please contact TATTI support or resubmit your payment with the correct UTR and screenshot.
+                Please contact PSY CARE support or resubmit your payment with the correct UTR and screenshot.
               </p>
             </div>
           </div>
@@ -829,7 +829,7 @@ export default function ApplicationProcess() {
               <ul className="text-muted-foreground space-y-1 text-xs list-disc list-inside">
                 <li>Check your UPI app for the correct UTR / transaction reference</li>
                 <li>Ensure the screenshot clearly shows the transaction details</li>
-                <li>Contact TATTI support if you believe this is an error</li>
+                <li>Contact PSY CARE support if you believe this is an error</li>
               </ul>
             </div>
           </div>
@@ -905,7 +905,7 @@ export default function ApplicationProcess() {
                 <span className="text-warning text-xs font-bold tracking-widest">STATUS: PENDING VERIFICATION</span>
               </div>
               <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
-                Your payment proof has been submitted successfully. The TATTI administration team will verify your payment.
+                Your payment proof has been submitted successfully. The PSY CARE administration team will verify your payment.
               </p>
             </div>
           </div>
@@ -980,7 +980,7 @@ export default function ApplicationProcess() {
             <div className="text-sm">
               <p className="font-semibold text-foreground mb-1">What happens next?</p>
               <ul className="text-muted-foreground space-y-1 text-xs list-disc list-inside">
-                <li>The TATTI admin team will verify your UPI payment</li>
+                <li>The PSY CARE admin team will verify your UPI payment</li>
                 <li>You'll receive a notification in your portal once confirmed</li>
                 <li>After approval, your admission will be officially confirmed</li>
                 <li>If there's any issue, you'll be notified with the reason</li>
@@ -1180,7 +1180,7 @@ export default function ApplicationProcess() {
                 <div className="p-4 bg-white rounded-2xl shadow-md border border-slate-200 inline-flex justify-center items-center">
                   <img
                     src="/payment-qr.png"
-                    alt="TATTI Institute Payment QR Code — scan with any UPI app"
+                    alt="PSY CARE Institute Payment QR Code — scan with any UPI app"
                     className="w-48 h-48 sm:w-56 sm:h-56"
                     style={{ objectFit: 'contain', display: 'block' }}
                     draggable={false}
@@ -1293,7 +1293,7 @@ export default function ApplicationProcess() {
             <div className="flex items-center gap-2 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20 mb-5">
               <Shield className="w-4 h-4 text-emerald-500 shrink-0" />
               <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                🔒 100% Encrypted UPI Payment. TATTI administration will verify your UTR & screenshot before confirming admission.
+                🔒 100% Encrypted UPI Payment. PSY CARE administration will verify your UTR & screenshot before confirming admission.
               </p>
             </div>
 

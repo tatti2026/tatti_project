@@ -107,7 +107,7 @@ export async function checkAndDispatchDueReminders(): Promise<number> {
           continue;
         }
 
-        const counsellor = row.counsellor_name || 'TATTI Counsellor';
+        const counsellor = row.counsellor_name || 'PSY CARE Counsellor';
         let dateStr = row.scheduled_date;
         if (dateStr instanceof Date) {
           const y = dateStr.getFullYear();
@@ -127,8 +127,8 @@ export async function checkAndDispatchDueReminders(): Promise<number> {
         const opt = (row.reminder_option || '').toLowerCase();
 
         const reminderMsg = opt.includes('1 day')
-          ? `Reminder: Your TATTI counselling session is tomorrow, ${dateStr} at ${timeStr} with ${counsellor}.`
-          : `Reminder: Your TATTI counselling session is on ${dateStr} at ${timeStr} with ${counsellor}.`;
+          ? `Reminder: Your PSY CARE counselling session is tomorrow, ${dateStr} at ${timeStr} with ${counsellor}.`
+          : `Reminder: Your PSY CARE counselling session is on ${dateStr} at ${timeStr} with ${counsellor}.`;
 
         if (row.profile_id) {
           await query(`

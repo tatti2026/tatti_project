@@ -271,7 +271,7 @@ export default function EntryAssessment() {
         }
         toast.success('Course selected! Proceeding to application process...');
       } else {
-        toast.info('Course selected! Application process is currently locked awaiting TATTI Admin unlock.');
+        toast.info('Course selected! Application process is currently locked awaiting PSY CARE Admin unlock.');
       }
 
       navigate('/student/application');
@@ -512,7 +512,7 @@ export default function EntryAssessment() {
               <span className="w-2 h-2 rounded-full bg-primary" />
               <p className="text-xs uppercase tracking-wider font-bold text-primary">Entrance Assessment</p>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">TATTI Career Fit Assessment</h1>
+            <h1 className="text-2xl font-bold text-foreground">PSY CARE Career Fit Assessment</h1>
             <p className="text-muted-foreground text-xs md:text-sm">
               Read the exam instructions carefully before commencing.
             </p>

@@ -89,7 +89,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
       document.body.removeChild(a);
     } else {
       // Fallback data simulation
-      const blob = new Blob([`Document Content for: ${fileName}\nTATTI College Connect ERP`], {
+      const blob = new Blob([`Document Content for: ${fileName}\nPSY CARE College Connect ERP`], {
         type: 'text/plain;charset=utf-8',
       });
       const url = URL.createObjectURL(blob);

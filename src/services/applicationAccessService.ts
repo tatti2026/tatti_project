@@ -95,7 +95,7 @@ export function setApplicationAccess(
     student_id: studentId,
     student_name: studentName,
     admin_id: adminInfo.adminId || 'ADMIN',
-    admin_name: adminInfo.adminName || 'TATTI Admin',
+    admin_name: adminInfo.adminName || 'PSY CARE Admin',
     action: status === 'unlocked' ? 'UNLOCK' : 'LOCK',
     date: dateStr,
     time: timeStr,

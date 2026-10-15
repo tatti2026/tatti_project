@@ -66,12 +66,12 @@ function generateReceiptPDF(opts: ReceiptOpts) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(24);
   doc.setTextColor(255, 255, 255);
-  doc.text('TATTI', W / 2, 18, { align: 'center' });
+  doc.text('PSY CARE', W / 2, 18, { align: 'center' });
 
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(180, 185, 210);
-  doc.text('Tamil Nadu Advanced Technical Training Institute', W / 2, 26, { align: 'center' });
+  doc.text('PSY CARE', W / 2, 26, { align: 'center' });
   doc.text('Chennai, Tamil Nadu  |  www.tatti.edu.in  |  info@tatti.edu.in', W / 2, 32, { align: 'center' });
   doc.text('+91-44-1234-5678', W / 2, 38, { align: 'center' });
 
@@ -182,7 +182,7 @@ function generateReceiptPDF(opts: ReceiptOpts) {
   doc.setTextColor(130, 140, 160);
   doc.text('This is a computer-generated receipt and does not require a physical signature.', W / 2, y + 9, { align: 'center' });
   doc.text('For any queries, contact: info@tatti.edu.in  |  +91-44-1234-5678', W / 2, y + 16, { align: 'center' });
-  doc.text('TATTI – Tamil Nadu Advanced Technical Training Institute, Chennai, Tamil Nadu', W / 2, y + 23, { align: 'center' });
+  doc.text('PSY CARE – PSY CARE, Chennai, Tamil Nadu', W / 2, y + 23, { align: 'center' });
 
   return doc;
 }
@@ -222,7 +222,7 @@ function PaymentSuccessView({ form, application, payment, selectedCourse, onNavi
 
   const handleDownload = () => {
     const doc = generateReceiptPDF(receiptOpts);
-    doc.save(`TATTI_Receipt_${application?.application_number || receiptNumber}.pdf`);
+    doc.save(`PSY_CARE_Receipt_${application?.application_number || receiptNumber}.pdf`);
     toast.success('Receipt downloaded!');
   };
 
@@ -606,7 +606,7 @@ export default function ApplicationProcess() {
               Your application process has not been unlocked yet.
             </p>
             <p className="text-muted-foreground text-sm max-w-md mx-auto mb-8 font-medium">
-              Please wait for TATTI Admin to enable your application.
+              Please wait for PSY CARE Admin to enable your application.
             </p>
 
             {/* Access details card */}
@@ -926,9 +926,9 @@ export default function ApplicationProcess() {
                       <rect x="84" y="136" width="20" height="8" fill="#1e293b" rx="1" />
                       <rect x="112" y="132" width="8" height="16" fill="#6366f1" rx="1" />
                       <rect x="128" y="136" width="20" height="8" fill="#1e293b" rx="1" />
-                      {/* TATTI Center Stamp */}
+                      {/* PSY CARE Center Stamp */}
                       <circle cx="80" cy="80" r="14" fill="#0f172a" />
-                      <text x="80" y="83" fill="white" fontSize="6.5" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">TATTI</text>
+                      <text x="80" y="83" fill="white" fontSize="6.5" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">PSY CARE</text>
                     </svg>
                   </div>
 

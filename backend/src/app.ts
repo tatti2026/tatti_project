@@ -17,7 +17,7 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Health Check
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'TATTI Portal Backend API', timestamp: new Date() });
+  res.json({ status: 'ok', service: 'PSY CARE Portal Backend API', timestamp: new Date() });
 });
 
 // Mount main API

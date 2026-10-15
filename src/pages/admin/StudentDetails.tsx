@@ -627,7 +627,7 @@ export default function StudentDetails() {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base">Delete Student Record?</AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-muted-foreground">
-              This action cannot be undone. It will permanently remove this student record from the TATTI database.
+              This action cannot be undone. It will permanently remove this student record from the PSY CARE database.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

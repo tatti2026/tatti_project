@@ -71,8 +71,8 @@ export default function ResetPasswordPage() {
               <GraduationCap className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-white font-bold text-xl leading-tight tracking-wide">TATTI</h1>
-              <p className="text-slate-400 text-xs leading-tight">Tamil Nadu Advanced Technical Training Institute</p>
+              <h1 className="text-white font-bold text-xl leading-tight tracking-wide">PSY CARE</h1>
+              <p className="text-slate-400 text-xs leading-tight">PSY CARE</p>
             </div>
           </div>
           <div className="inline-flex items-center gap-2 bg-blue-500/15 border border-blue-400/25 rounded-full px-3.5 py-1 mb-6">
@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="font-bold text-[#172033]">TATTI</p>
+              <p className="font-bold text-[#172033]">PSY CARE</p>
               <p className="text-xs text-[#667085]">Student Portal</p>
             </div>
           </div>

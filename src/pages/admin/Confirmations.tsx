@@ -66,7 +66,7 @@ export default function Confirmations() {
   const downloadReceipt = (s: Student) => {
     const pay = getStudentPayment(s.id);
     const content = [
-      'TATTI - Payment Receipt', '=======================',
+      'PSY CARE - Payment Receipt', '=======================',
       `Student Name: ${s.full_name || 'N/A'}`,
       `Email: ${s.email || 'N/A'}`,
       `Payment ID: ${pay?.payment_id || 'N/A'}`,
@@ -116,7 +116,7 @@ export default function Confirmations() {
     try {
       const doc = new jsPDF();
       doc.setFontSize(16);
-      doc.text('Tamil Nadu Advanced Technical Training Institute (TATTI)', 14, 18);
+      doc.text('PSY CARE', 14, 18);
       doc.setFontSize(12);
       doc.text(`Payment Confirmations Report - ${format(new Date(), 'dd MMM yyyy')}`, 14, 26);
       doc.setFontSize(9);

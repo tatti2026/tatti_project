@@ -39,7 +39,7 @@ export default function StudentSettings() {
               <User className="w-4 h-4 text-primary" />
               <CardTitle className="text-base">Account Information</CardTitle>
             </div>
-            <CardDescription className="text-xs">Your registered account details at TATTI.</CardDescription>
+            <CardDescription className="text-xs">Your registered account details at PSY CARE.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

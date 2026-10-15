@@ -149,7 +149,7 @@ export default function LoginPage() {
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="font-bold text-foreground text-sm">TATTI</p>
+              <p className="font-bold text-foreground text-sm">PSY CARE</p>
               <p className="text-xs text-muted-foreground">Student Portal</p>
             </div>
           </div>
@@ -264,7 +264,7 @@ export default function LoginPage() {
             <div className="animate-fade-in">
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-foreground mb-1.5" style={{ letterSpacing: '-0.02em' }}>Create your account</h2>
-                <p className="text-muted-foreground text-sm">Start your TATTI admission journey today</p>
+                <p className="text-muted-foreground text-sm">Start your PSY CARE admission journey today</p>
               </div>
               <form onSubmit={handleSignUp} className="space-y-5">
                 <div>

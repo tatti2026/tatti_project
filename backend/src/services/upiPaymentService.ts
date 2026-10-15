@@ -22,7 +22,7 @@ export async function initiateUpiPayment(
 
   // Standard Indian NPCI UPI Payment URI specification
   // upi://pay?pa=VPA&pn=NAME&am=AMOUNT&tn=NOTE&tr=REFID&cu=INR
-  const sanitizedNote = encodeURIComponent(`TATTI Admission - ${studentName || studentId}`);
+  const sanitizedNote = encodeURIComponent(`PSY CARE Admission - ${studentName || studentId}`);
   const upiString = `upi://pay?pa=${config.merchantVpa}&pn=${encodeURIComponent(config.merchantName)}&am=${amount.toFixed(2)}&tn=${sanitizedNote}&tr=${transactionId}&cu=INR`;
 
   // Generate QR Code data URL

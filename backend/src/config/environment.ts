@@ -22,5 +22,5 @@ export const config = {
   dbUser: process.env.DB_USER || 'postgres',
   dbPassword: process.env.DB_PASSWORD || 'YOUR_PASSWORD',
   merchantVpa: process.env.TATTI_MERCHANT_VPA || 'tatti.admissions@upi',
-  merchantName: process.env.TATTI_MERCHANT_NAME || 'TATTI Institute',
+  merchantName: process.env.TATTI_MERCHANT_NAME || 'PSY CARE',
 };

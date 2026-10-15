@@ -78,7 +78,7 @@ export default function CounsellorLoginPage() {
           >
             <GraduationCap className="w-9 h-9 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-1">TATTI Counsellor Portal</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-1">PSY CARE Counsellor Portal</h1>
           <p className="text-muted-foreground text-sm">Student counselling and follow-up management</p>
         </div>
 

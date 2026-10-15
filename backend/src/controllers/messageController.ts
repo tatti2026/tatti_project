@@ -68,7 +68,7 @@ export async function sendMessage(req: Request, res: Response) {
     const isStaff = callerRole === 'admin' || callerRole === 'counsellor';
     const senderType = isStaff ? 'admin' : 'student';
     const receiverRole = isStaff ? 'student' : 'admin';
-    const defaultStaffName = callerRole === 'counsellor' ? 'TATTI Counsellor' : 'TATTI Admin';
+    const defaultStaffName = callerRole === 'counsellor' ? 'PSY CARE Counsellor' : 'PSY CARE Admin';
     const resolvedSenderName = senderName || (isStaff ? defaultStaffName : 'Student');
 
     const result = await query(

@@ -22,7 +22,7 @@ export async function requireApplicationUnlocked(
     const status = dbRes.rows[0].application_access_status;
     if (status !== 'unlocked') {
       return res.status(403).json({
-        error: 'Application process is locked by TATTI Admin. Unauthorized attempt to modify or submit application.',
+        error: 'Application process is locked by PSY CARE Admin. Unauthorized attempt to modify or submit application.',
         code: 'APPLICATION_LOCKED',
         status: 'locked',
       });

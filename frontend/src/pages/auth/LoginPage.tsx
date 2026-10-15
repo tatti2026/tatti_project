@@ -254,7 +254,7 @@ export default function LoginPage() {
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="font-bold text-[#172554]">TATTI</p>
+              <p className="font-bold text-[#172554]">PSY CARE</p>
               <p className="text-xs text-[#64748B]">Student Management Portal</p>
             </div>
           </div>
@@ -386,7 +386,7 @@ export default function LoginPage() {
                   <div>
                     <h2 className="text-2xl font-bold text-foreground mb-1">Account Created!</h2>
                     <p className="text-sm text-muted-foreground">
-                      Your official TATTI Student ID has been generated:
+                      Your official PSY CARE Student ID has been generated:
                     </p>
                   </div>
 
@@ -409,7 +409,7 @@ export default function LoginPage() {
                   </div>
 
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Please save this Student ID. <strong>Use this Student ID and your password to sign in</strong> to the TATTI Portal.
+                    Please save this Student ID. <strong>Use this Student ID and your password to sign in</strong> to the PSY CARE Portal.
                   </p>
 
                   <Button
@@ -424,7 +424,7 @@ export default function LoginPage() {
                 /* 7 Fields Sign Up Form */
                 <>
                   <h2 className="text-2xl font-bold text-foreground mb-1">Create Account</h2>
-                  <p className="text-muted-foreground text-sm mb-6">Start your TATTI admission journey</p>
+                  <p className="text-muted-foreground text-sm mb-6">Start your PSY CARE admission journey</p>
                   <form onSubmit={handleSignUp} className="space-y-3.5" autoComplete="off" autoCapitalize="none" spellCheck={false}>
                     {/* Field 1: Username */}
                     <div>

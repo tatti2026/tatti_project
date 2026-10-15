@@ -12,9 +12,9 @@ export async function ensureQuestionsSchema(): Promise<void> {
       ALTER TABLE questions ALTER COLUMN marks DROP NOT NULL;
       ALTER TABLE questions ALTER COLUMN difficulty DROP NOT NULL;
     `);
-    console.log('[TATTI Backend] questions table schema verified (option marks columns ensured).');
+    console.log('[PSY CARE Backend] questions table schema verified (option marks columns ensured).');
   } catch (err: any) {
-    console.error('[TATTI Backend] Note on questions schema migration:', err.message);
+    console.error('[PSY CARE Backend] Note on questions schema migration:', err.message);
   }
 }
 

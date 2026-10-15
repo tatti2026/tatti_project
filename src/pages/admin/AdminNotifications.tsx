@@ -61,7 +61,7 @@ const MOCK_STUDENT_CONVS: StudentConversation[] = [
     unreadCount: 1,
     messages: [
       {
-        id: 'm1', senderId: 'admin', senderName: 'TATTI Admin', senderType: 'admin',
+        id: 'm1', senderId: 'admin', senderName: 'PSY CARE Admin', senderType: 'admin',
         text: 'Your counselling session has been scheduled for 15 September 2026 at 10:30 AM.',
         timestamp: new Date(Date.now() - 1000 * 60 * 60),
         status: 'read',
@@ -82,7 +82,7 @@ const MOCK_STUDENT_CONVS: StudentConversation[] = [
     unreadCount: 0,
     messages: [
       {
-        id: 'm3', senderId: 'admin', senderName: 'TATTI Admin', senderType: 'admin',
+        id: 'm3', senderId: 'admin', senderName: 'PSY CARE Admin', senderType: 'admin',
         text: 'Please complete your application form to proceed with the admission process.',
         timestamp: new Date(Date.now() - 1000 * 60 * 120),
         status: 'read',
@@ -97,7 +97,7 @@ const MOCK_STUDENT_CONVS: StudentConversation[] = [
     unreadCount: 0,
     messages: [
       {
-        id: 'm4', senderId: 'admin', senderName: 'TATTI Admin', senderType: 'admin',
+        id: 'm4', senderId: 'admin', senderName: 'PSY CARE Admin', senderType: 'admin',
         text: 'Congratulations! Your Career Fit Assessment results are ready. Please login to view your score and course recommendations.',
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3),
         status: 'read',
@@ -146,7 +146,7 @@ export default function AdminNotifications() {
         id: 'hist-1',
         recipients: ['TATTI20260001', 'TATTI20260002'],
         recipientNames: ['Arjun Kumar', 'Priya Sharma'],
-        message: 'Welcome to TATTI. Please check your dashboard for upcoming admissions schedules and assessment details.',
+        message: 'Welcome to PSY CARE. Please check your dashboard for upcoming admissions schedules and assessment details.',
         date: format(new Date(Date.now() - 86400000), 'dd MMM yyyy'),
         time: '10:15 AM',
         recipientCount: 2,
@@ -255,7 +255,7 @@ export default function AdminNotifications() {
       sendChatMessage({
         studentId: target.id,
         senderId: 'admin',
-        senderName: 'TATTI Admin',
+        senderName: 'PSY CARE Admin',
         senderType: 'admin',
         text: messageText.trim(),
       });

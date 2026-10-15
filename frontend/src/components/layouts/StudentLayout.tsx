@@ -55,7 +55,7 @@ function SidebarContent({
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-white tracking-wide leading-tight">TATTI</p>
+            <p className="text-sm font-bold text-white tracking-wide leading-tight">PSY CARE</p>
             <p className="text-[11px] text-slate-400 truncate leading-tight font-normal">Student Management Portal</p>
           </div>
         </div>
@@ -252,10 +252,10 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
 
             <div>
               <span className="text-base font-semibold text-[#172554] tracking-tight">
-                TATTI Student Portal
+                PSY CARE Student Portal
               </span>
               <p className="text-[11px] text-[#64748B] hidden sm:block">
-                Tamil Nadu Advanced Technical Training Institute
+                PSY CARE
               </p>
             </div>
           </div>

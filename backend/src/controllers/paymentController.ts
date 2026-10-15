@@ -83,7 +83,7 @@ export async function createPayment(req: Request, res: Response) {
 
     if (studentId && !isStudentApplicationUnlocked(studentId)) {
       return res.status(403).json({
-        error: 'Application process is locked by TATTI Admin. Payment cannot be initiated.',
+        error: 'Application process is locked by PSY CARE Admin. Payment cannot be initiated.',
         code: 'APPLICATION_LOCKED'
       });
     }

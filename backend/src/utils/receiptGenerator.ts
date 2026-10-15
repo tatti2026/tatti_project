@@ -13,7 +13,7 @@ export interface ReceiptData {
 
 export function formatReceiptDetails(data: ReceiptData) {
   return {
-    institution: 'Tamil Nadu Advanced Technical Training Institute (TATTI)',
+    institution: 'PSY CARE',
     address: 'Chennai, Tamil Nadu, India | www.tatti.edu.in',
     receiptNumber: data.receiptNumber,
     paymentMethod: 'UPI',

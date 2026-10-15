@@ -264,7 +264,7 @@ export default function Notifications() {
       list.push({
         id: `msg-${m.id}`,
         type: 'message',
-        title: '💬 Direct Message from TATTI Admin',
+        title: '💬 Direct Message from PSY CARE Admin',
         message: m.text,
         timestamp: new Date(m.timestamp),
         isRead: m.status === 'read',
@@ -337,7 +337,7 @@ export default function Notifications() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <span>💬 TATTI Admin</span>
+                <span>💬 PSY CARE Admin</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
               </p>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
@@ -372,7 +372,7 @@ export default function Notifications() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Stay updated with important updates and messages from TATTI.
+              Stay updated with important updates and messages from PSY CARE.
             </p>
           </div>
 
@@ -469,7 +469,7 @@ export default function Notifications() {
                 <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
                   {searchQuery
                     ? 'No notifications or messages match your search query.'
-                    : "You'll receive important updates and messages from TATTI here."}
+                    : "You'll receive important updates and messages from PSY CARE here."}
                 </p>
               </div>
             ) : (
@@ -587,7 +587,7 @@ export default function Notifications() {
 
         {/* ═════════════════════════════════════════════════════════════ */}
         {/* ── TAB 2: MESSAGES TAB ───────────────────────────────────── */}
-        {/* WhatsApp-Style Chat Experience with TATTI Branding          */}
+        {/* WhatsApp-Style Chat Experience with PSY CARE Branding          */}
         {/* ═════════════════════════════════════════════════════════════ */}
         {activeTab === 'messages' && (
           <div className="glass-card rounded-2xl overflow-hidden border border-border shadow-xl" style={{ height: '72vh' }}>
@@ -605,7 +605,7 @@ export default function Notifications() {
                   </Badge>
                 </div>
 
-                {/* TATTI Admin Conversation Card */}
+                {/* PSY CARE Admin Conversation Card */}
                 <div className="flex-1 overflow-y-auto p-2">
                   <button
                     onClick={() => setShowMobileChat(true)}
@@ -621,7 +621,7 @@ export default function Notifications() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                          TATTI Admin
+                          PSY CARE Admin
                         </span>
                         {lastAdminMessage && (
                           <span className="text-[10px] text-muted-foreground">
@@ -665,7 +665,7 @@ export default function Notifications() {
 
                     <div className="min-w-0">
                       <h2 className="text-xs sm:text-sm font-bold text-foreground truncate flex items-center gap-1.5">
-                        TATTI Admin
+                        PSY CARE Admin
                         <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                       </h2>
                       <p className="text-[10px] text-emerald-400 font-medium">
@@ -694,7 +694,7 @@ export default function Notifications() {
                       <MessageSquare className="w-10 h-10 mb-2 opacity-50 text-primary" />
                       <p className="text-xs font-semibold text-foreground">Start Conversation</p>
                       <p className="text-[11px] max-w-xs mt-1">
-                        Send a message to TATTI Admin regarding your assessment, application, or admissions.
+                        Send a message to PSY CARE Admin regarding your assessment, application, or admissions.
                       </p>
                     </div>
                   ) : (
@@ -772,7 +772,7 @@ export default function Notifications() {
                 <ChatInput
                   onSendMessage={handleSendMessageText}
                   onSendDocument={handleSendDocument}
-                  placeholder="Type a message to TATTI Admin..."
+                  placeholder="Type a message to PSY CARE Admin..."
                 />
               </div>
             </div>

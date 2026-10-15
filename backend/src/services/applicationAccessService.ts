@@ -12,7 +12,7 @@ export async function initAccessCache() {
     for (const r of res.rows) {
       accessCache.set(r.id, {
         status: 'unlocked',
-        unlockedBy: r.application_unlocked_by || 'TATTI Admin',
+        unlockedBy: r.application_unlocked_by || 'PSY CARE Admin',
         unlockedAt: r.application_unlocked_at,
       });
     }
