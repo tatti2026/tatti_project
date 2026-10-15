@@ -3,7 +3,7 @@ import type { Profile, UserRole } from '@/types/index';
 
 const API_BASE = import.meta.env.VITE_API_URL || (
   import.meta.env.PROD
-    ? (typeof window !== 'undefined' ? '/api' : 'https://tattiproject-production-e5af.up.railway.app/api')
+    ? 'https://tattiproject-production-506b.up.railway.app/api'
     : 'http://localhost:5000/api'
 );
 
@@ -113,10 +113,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const signInWithEmail = async (email: string, password: string) => {
     try {
+      const cleanEmail = (email || '').trim();
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: cleanEmail, password }),
       });
 
       let data: any = {};

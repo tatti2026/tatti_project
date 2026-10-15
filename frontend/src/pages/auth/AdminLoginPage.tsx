@@ -26,12 +26,6 @@ export default function AdminLoginPage() {
   const { signInWithEmail, sendPasswordResetEmail, user, role } = useAuth();
   const navigate = useNavigate();
 
-  // Reset fields on initial mount
-  useEffect(() => {
-    setEmail('');
-    setPassword('');
-  }, []);
-
   useEffect(() => {
     if (user && role === 'admin') navigate('/admin/dashboard', { replace: true });
     if (user && role === 'counsellor') navigate('/counsellor/dashboard', { replace: true });
@@ -39,11 +33,12 @@ export default function AdminLoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) { toast.error('Please fill in all fields'); return; }
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) { toast.error('Please fill in all fields'); return; }
     setLoading(true);
-    const { error } = await signInWithEmail(email.trim(), password);
+    const { error } = await signInWithEmail(cleanEmail, password);
     setLoading(false);
-    if (error) toast.error('Invalid admin credentials');
+    if (error) toast.error('Invalid admin credentials. Please check your email and password.');
     else {
       // Role check after login — role updates asynchronously
       setTimeout(() => {

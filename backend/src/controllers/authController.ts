@@ -8,65 +8,99 @@ export async function login(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
 
-    console.log('[auth/login] Received email:', JSON.stringify(email));
+    const rawIdentifier = typeof email === 'string' ? email : '';
+    const cleanIdentifier = rawIdentifier.trim();
+    const hasIdentifierWhitespace = rawIdentifier !== cleanIdentifier;
+    const rawPassword = typeof password === 'string' ? password : '';
+    const hasPasswordWhitespace = rawPassword !== rawPassword.trim();
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required.' });
+    console.log('[auth/login] Login attempt initiated', {
+      identifierLength: cleanIdentifier.length,
+      hasIdentifierWhitespace,
+      passwordLength: rawPassword.length,
+      hasPasswordWhitespace,
+    });
+
+    if (!cleanIdentifier || !rawPassword) {
+      console.log('[auth/login] Failure stage: Missing identifier or password');
+      return res.status(400).json({ error: 'Email/Student ID and password are required.' });
     }
 
-    // Allow login with email OR student_id (student_id stored in students table)
-    let userRow = null;
+    // Allow login with email OR student_id OR username
+    let userRow: any = null;
+    let lookupMethod: string = '';
 
-    const cleanEmail = email.trim();
+    // 1. First try case-insensitive direct email login
+    let emailResult = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanIdentifier]);
 
-    // First try case-insensitive direct email login
-    let emailResult = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
-    
-    // If not found, try fallback for .edu / .edu.in alias
+    // 2. Fallback for .edu / .edu.in alias
     if (emailResult.rows.length === 0) {
-      if (cleanEmail.toLowerCase().endsWith('@tatti.edu')) {
-        emailResult = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail + '.in']);
-      } else if (cleanEmail.toLowerCase().endsWith('@tatti.edu.in')) {
-        emailResult = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail.slice(0, -3)]);
+      if (cleanIdentifier.toLowerCase().endsWith('@tatti.edu')) {
+        emailResult = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanIdentifier + '.in']);
+        if (emailResult.rows.length > 0) lookupMethod = 'email_alias_edu_in';
+      } else if (cleanIdentifier.toLowerCase().endsWith('@tatti.edu.in')) {
+        emailResult = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanIdentifier.slice(0, -3)]);
+        if (emailResult.rows.length > 0) lookupMethod = 'email_alias_edu';
       }
+    } else {
+      lookupMethod = 'direct_email';
     }
+
     if (emailResult.rows.length > 0) {
       userRow = emailResult.rows[0];
-
-      console.log('[auth/login] User found:', {
-        id: userRow.id,
-        email: userRow.email,
-        hasPasswordHash: !!userRow.password_hash,
-        hashLength: userRow.password_hash?.length,
-      });
     } else {
-      // Try student_id lookup
+      // 3. Try student_id or username lookup (case-insensitive and trimmed)
       const sidResult = await query(
         `SELECT u.* FROM users u
          JOIN profiles p ON p.id = u.id
          JOIN students s ON s.profile_id = p.id
-         WHERE s.student_id = $1`,
-        [email]
+         WHERE UPPER(TRIM(s.student_id)) = UPPER($1)
+            OR LOWER(TRIM(COALESCE(s.username, ''))) = LOWER($1)`,
+        [cleanIdentifier]
       );
       if (sidResult.rows.length > 0) {
         userRow = sidResult.rows[0];
-        console.log(`[auth/login] User found by student_id: ${email}`);
+        lookupMethod = 'student_id_or_username';
       }
     }
 
     if (!userRow) {
-      console.log(`[auth/login] No user found for: ${email}`);
+      console.log('[auth/login] Failure stage: User not found in database for identifier', {
+        identifierClean: cleanIdentifier,
+        lookupAttempted: 'direct_email, alias, student_id, username',
+      });
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
     if (!userRow.password_hash) {
-      console.log(`[auth/login] User has no password hash: ${email}`);
+      console.log('[auth/login] Failure stage: Account has no password hash stored', {
+        userId: userRow.id,
+      });
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
-    const passwordMatch = await bcrypt.compare(password, userRow.password_hash);
+    // 4. Compare password with stored hash
+    let passwordMatch = await bcrypt.compare(rawPassword, userRow.password_hash);
+    let matchedAfterTrimming = false;
+
+    // If direct comparison failed but password had accidental leading/trailing whitespace, test trimmed password
+    if (!passwordMatch && hasPasswordWhitespace) {
+      const trimmedMatch = await bcrypt.compare(rawPassword.trim(), userRow.password_hash);
+      if (trimmedMatch) {
+        passwordMatch = true;
+        matchedAfterTrimming = true;
+        console.log('[auth/login] Password matched after trimming unintended whitespace');
+      }
+    }
+
     if (!passwordMatch) {
-      console.log(`[auth/login] Password mismatch for: ${email}`);
+      console.log('[auth/login] Failure stage: Password mismatch', {
+        userId: userRow.id,
+        userEmail: userRow.email,
+        lookupMethod,
+        inputPasswordLength: rawPassword.length,
+
+      });
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
@@ -74,7 +108,13 @@ export async function login(req: Request, res: Response) {
     const profile = profileResult.rows[0];
     const role = profile?.role || 'student';
 
-    console.log(`[auth/login] Login successful for: ${email}, role: ${role}`);
+    console.log('[auth/login] Success: Authentication complete', {
+      userId: userRow.id,
+      email: userRow.email,
+      role,
+      lookupMethod,
+      matchedAfterTrimming,
+    });
 
     const token = generateToken({
       userId: userRow.id,
@@ -90,6 +130,7 @@ export async function login(req: Request, res: Response) {
         email: userRow.email,
         role,
       },
+      profile: profile || null,
     });
   } catch (err) {
     console.error('[auth/login] Login error:', err);

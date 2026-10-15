@@ -9,18 +9,28 @@ const isSupabase =
   config.dbHost.includes('pooler.supabase') ||
   config.nodeEnv === 'production';
 
-export const pool = new Pool({
-  host: config.dbHost,
-  port: config.dbPort,
-  database: config.dbName,
-  user: config.dbUser,
-  password: config.dbPassword,
-  ssl: isSupabase ? { rejectUnauthorized: false } : false,
-  // Keep connections alive in Railway's containerized env
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  max: 10,
-});
+export const pool = new Pool(
+  config.databaseUrl
+    ? {
+        connectionString: config.databaseUrl,
+        ssl: isSupabase ? { rejectUnauthorized: false } : false,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+        max: 10,
+      }
+    : {
+        host: config.dbHost,
+        port: config.dbPort,
+        database: config.dbName,
+        user: config.dbUser,
+        password: config.dbPassword,
+        ssl: isSupabase ? { rejectUnauthorized: false } : false,
+        // Keep connections alive in Railway's containerized env
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+        max: 10,
+      }
+);
 
 pool.on('error', (err) => {
   // Log the error but don't crash — Railway will restart if truly unrecoverable

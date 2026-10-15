@@ -31,12 +31,13 @@ export default function CounsellorLoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) { toast.error('Please fill in all fields'); return; }
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) { toast.error('Please fill in all fields'); return; }
     setLoading(true);
-    const { error } = await signInWithEmail(email, password);
+    const { error } = await signInWithEmail(cleanEmail, password);
     setLoading(false);
     if (error) {
-      toast.error('Invalid counsellor credentials');
+      toast.error('Invalid counsellor credentials. Please check your email and password.');
     } else {
       setTimeout(() => {
         if (role && role !== 'counsellor' && role !== 'admin') {
@@ -97,6 +98,9 @@ export default function CounsellorLoginPage() {
               <Input
                 id="counsellor-email"
                 type="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 placeholder="counsellor@tatti.edu.in"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -109,7 +113,9 @@ export default function CounsellorLoginPage() {
                 <Input
                   id="counsellor-pw"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="Enter your password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
