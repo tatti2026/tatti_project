@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
   LayoutDashboard, Users, ClipboardList, BarChart2, Phone,
   PhoneCall, BookOpen, CheckSquare, FileBarChart, MessageSquare,
-  LogOut, Menu, GraduationCap, ChevronRight, UserCheck
+  LogOut, Menu, ChevronRight, UserCheck
 } from 'lucide-react';
 
 const navItems = [
@@ -37,8 +37,8 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
       {/* Brand Header */}
       <div className="px-5 py-5 border-b border-slate-700/60">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#1D4ED8] flex items-center justify-center shrink-0 shadow-sm">
-            <GraduationCap className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-lg bg-white border border-[#FFCC99] flex items-center justify-center shrink-0 shadow-sm overflow-hidden p-1">
+            <img src="/logo/psycare-logo.png" alt="PSYCARE Logo" className="w-full h-full object-contain" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-bold text-white tracking-wide leading-tight">PSY CARE</p>
@@ -50,8 +50,8 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
       {/* Counsellor Profile */}
       <div className="px-5 py-3.5 border-b border-slate-700/60 bg-slate-900/30">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-emerald-600/20 border border-emerald-500/35 flex items-center justify-center shrink-0">
-            <UserCheck className="w-4 h-4 text-emerald-400" />
+          <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shrink-0">
+            <UserCheck className="w-4 h-4 text-amber-300" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-white truncate">{profile?.full_name || 'Counsellor'}</p>
@@ -71,13 +71,13 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
               onClick={onNavClick}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-150 group ${
                 active
-                  ? 'bg-[#FFE0B2] text-[#9A3412] font-semibold shadow-sm'
-                  : 'text-slate-300 hover:bg-orange-500/15 hover:text-orange-300'
+                  ? 'bg-[#FFCC99] text-[#7C2D12] font-semibold shadow-sm'
+                  : 'text-slate-300 hover:bg-[#FFCC99]/15 hover:text-orange-200'
               }`}
             >
-              <Icon className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#C66A16]' : 'text-slate-400 group-hover:text-orange-300'}`} />
+              <Icon className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-[#9A3412]' : 'text-slate-400 group-hover:text-orange-200'}`} />
               <span className="flex-1 min-w-0 truncate">{label}</span>
-              {active && <ChevronRight className="w-3.5 h-3.5 shrink-0 text-[#9A3412]" />}
+              {active && <ChevronRight className="w-3.5 h-3.5 shrink-0 text-[#7C2D12]" />}
             </Link>
           );
         })}
@@ -103,7 +103,7 @@ export default function CounsellorLayout({ children }: { children: React.ReactNo
   const currentPage = navItems.find(n => n.path === location.pathname)?.label || 'Counsellor Portal';
 
   return (
-    <div className="flex min-h-screen w-full bg-[#FFF7ED]">
+    <div className="counsellor-portal flex min-h-screen w-full bg-[#FFF1E5]" data-portal="counsellor">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-[#0B1F3A]">
         <SidebarContent />
@@ -112,7 +112,7 @@ export default function CounsellorLayout({ children }: { children: React.ReactNo
       {/* Main Container */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top Header */}
-        <header className="h-16 border-b border-[#FED7AA] bg-white flex items-center justify-between px-6 gap-4 shrink-0 shadow-[0_1px_2px_rgba(245,158,11,0.04)]">
+        <header className="h-16 border-b border-[#FFCC99] bg-white flex items-center justify-between px-6 gap-4 shrink-0 shadow-[0_1px_2px_rgba(245,158,11,0.04)]">
           <div className="flex items-center gap-3 min-w-0">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
@@ -132,16 +132,16 @@ export default function CounsellorLayout({ children }: { children: React.ReactNo
 
           <div className="flex items-center gap-3 shrink-0">
             <div
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 border border-emerald-200 text-emerald-700"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#FFF1E5] border border-[#FFCC99] text-[#9A3412]"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse" />
               <span>Counsellor Console</span>
             </div>
           </div>
         </header>
 
         {/* Content Area */}
-        <main className="flex-1 min-w-0 overflow-y-auto p-5 md:p-8 bg-[#FFF7ED]">
+        <main className="flex-1 min-w-0 overflow-y-auto p-5 md:p-8 bg-[#FFF1E5]">
           {children}
         </main>
       </div>

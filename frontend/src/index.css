@@ -210,13 +210,13 @@
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
 /* ── Interactive Page Hover: Smooth Orange Transitions ── */
-aside nav a:hover:not([data-active="true"]):not(.bg-\[\#1D4ED8\]):not(.bg-\[\#059669\]),
+aside nav a:hover:not([data-active="true"]):not(.bg-\[\#1D4ED8\]),
 .nav-page-item:hover {
   color: #FB923C !important;
   background-color: rgba(249, 115, 22, 0.16) !important;
 }
 
-aside nav a:hover:not([data-active="true"]):not(.bg-\[\#1D4ED8\]):not(.bg-\[\#059669\]) svg {
+aside nav a:hover:not([data-active="true"]):not(.bg-\[\#1D4ED8\]) svg {
   color: #F97316 !important;
 }
 
@@ -241,4 +241,95 @@ input[name*="tatti_"]:hover:not(:disabled):not(:focus) {
 .glass-card button.text-\[\#1D4ED8\]:hover {
   color: #EA580C !important;
 }
+
+/* ── PSYCARE Counsellor Portal: Light Orange & Soft Peach Theme ── */
+.counsellor-portal,
+[data-portal="counsellor"] {
+  --counsellor-primary-accent: #FFCC99;
+  --counsellor-soft-peach: #FFF1E5;
+  --counsellor-action-orange: #F59E0B;
+  --counsellor-action-hover: #D97706;
+  --counsellor-text-dark: #7C2D12;
+  --counsellor-text-heading: #172554;
+  --counsellor-border: #FFCC99;
+  background-color: #FFF1E5;
+}
+
+/* Light background surfaces inside counsellor portal */
+.counsellor-portal main {
+  background-color: #FFF1E5 !important;
+}
+
+/* Transform all green/emerald badges, buttons, borders, highlights into light-orange theme */
+.counsellor-portal .bg-emerald-50,
+.counsellor-portal .bg-emerald-500\/10,
+.counsellor-portal .bg-emerald-500\/15,
+.counsellor-portal .bg-emerald-500\/20,
+.counsellor-portal .bg-emerald-600\/20,
+.counsellor-portal .bg-green-50,
+.counsellor-portal .bg-green-500\/10 {
+  background-color: #FFF1E5 !important;
+  border-color: #FFCC99 !important;
+}
+
+.counsellor-portal .text-emerald-400,
+.counsellor-portal .text-emerald-500,
+.counsellor-portal .text-emerald-600,
+.counsellor-portal .text-emerald-700,
+.counsellor-portal .text-green-500,
+.counsellor-portal .text-green-600 {
+  color: #9A3412 !important;
+}
+
+.counsellor-portal .border-emerald-200,
+.counsellor-portal .border-emerald-300,
+.counsellor-portal .border-emerald-500\/20,
+.counsellor-portal .border-emerald-500\/30,
+.counsellor-portal .border-emerald-500\/35,
+.counsellor-portal .border-green-200,
+.counsellor-portal .border-green-500\/20 {
+  border-color: #FFCC99 !important;
+}
+
+/* Important action buttons & badges */
+.counsellor-portal .bg-emerald-500,
+.counsellor-portal .bg-emerald-600,
+.counsellor-portal .bg-emerald-700,
+.counsellor-portal .bg-green-600 {
+  background-color: #F59E0B !important;
+  color: #FFFFFF !important;
+}
+
+.counsellor-portal .bg-emerald-600:hover,
+.counsellor-portal .bg-emerald-700:hover,
+.counsellor-portal .hover\:bg-emerald-700:hover,
+.counsellor-portal .hover\:bg-emerald-500\/10:hover,
+.counsellor-portal .hover\:bg-emerald-600:hover {
+  background-color: #D97706 !important;
+  color: #FFFFFF !important;
+}
+
+/* Outline action buttons in counsellor portal */
+.counsellor-portal button.border-emerald-500\/30,
+.counsellor-portal .border-emerald-500\/30 {
+  border-color: #FFCC99 !important;
+  color: #9A3412 !important;
+}
+
+.counsellor-portal button.border-emerald-500\/30:hover {
+  background-color: #FFE0B2 !important;
+  color: #7C2D12 !important;
+  border-color: #F59E0B !important;
+}
+
+/* KPI cards & surfaces in counsellor portal */
+.counsellor-portal .kpi-card {
+  background-color: #FFFFFF;
+  border-color: #FFCC99;
+}
+
+.counsellor-portal .kpi-card:hover {
+  border-color: #F59E0B;
+}
+
 

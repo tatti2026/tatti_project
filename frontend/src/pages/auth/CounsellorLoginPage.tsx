@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Eye, EyeOff, GraduationCap, UserCheck, Loader2, Mail } from 'lucide-react';
+import { Eye, EyeOff, UserCheck, Loader2, Mail } from 'lucide-react';
 
 type ForgotMode = 'form' | 'sent';
 
@@ -63,38 +63,40 @@ export default function CounsellorLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#FFF1E5] p-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
           className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%)' }}
+          style={{ background: 'radial-gradient(circle, rgba(255,204,153,0.35) 0%, transparent 70%)' }}
         />
       </div>
 
       <div className="w-full max-w-md relative">
         <div className="text-center mb-8">
-          <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-            style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)' }}
-          >
-            <GraduationCap className="w-9 h-9 text-white" />
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-white border border-[#FFCC99] p-1.5 shadow-sm flex items-center justify-center">
+              <img
+                src="/logo/psycare-logo.png"
+                alt="PSYCARE Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-1">PSY CARE Counsellor Portal</h1>
-          <p className="text-muted-foreground text-sm">Student counselling and follow-up management</p>
+          <h1 className="text-2xl font-bold text-[#172554] mb-1">PSY CARE Counsellor Portal</h1>
+          <p className="text-[#64748B] text-sm">Student counselling and follow-up management</p>
         </div>
 
-        <div className="glass-card rounded-2xl p-8">
+        <div className="bg-white border border-[#FFCC99] rounded-2xl p-8 shadow-[0_4px_24px_rgba(245,158,11,0.07)]">
           <div
-            className="flex items-center gap-2 mb-6 p-3 rounded-lg border hover:border-orange-400 hover:bg-orange-50 transition-all duration-150 group cursor-pointer"
-            style={{ background: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.25)' }}
+            className="flex items-center gap-2 mb-6 p-3 rounded-lg border border-[#FFCC99] bg-[#FFF1E5] hover:bg-[#FFE0B2] hover:border-[#F59E0B] transition-all duration-150 group cursor-pointer"
           >
-            <UserCheck className="w-4 h-4 shrink-0 group-hover:text-orange-600 transition-colors" style={{ color: '#059669' }} />
-            <span className="text-xs font-medium group-hover:text-orange-600 transition-colors" style={{ color: '#059669' }}>Authorised Counsellors Only</span>
+            <UserCheck className="w-4 h-4 shrink-0 text-[#C66A16] group-hover:text-[#9A3412] transition-colors" />
+            <span className="text-xs font-semibold text-[#9A3412] group-hover:text-[#7C2D12] transition-colors">Authorised Counsellors Only</span>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <Label htmlFor="counsellor-email" className="text-sm font-medium">Counsellor Email</Label>
+              <Label htmlFor="counsellor-email" className="text-sm font-medium text-[#172554]">Counsellor Email</Label>
               <Input
                 id="counsellor-email"
                 type="email"
@@ -104,11 +106,11 @@ export default function CounsellorLoginPage() {
                 placeholder="counsellor@tatti.edu.in"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="mt-1.5 bg-input border-border hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 transition-colors"
+                className="mt-1.5 bg-white border border-[#FFCC99] text-[#172554] hover:border-[#F59E0B] focus:border-[#F59E0B] focus:ring-[#F59E0B] transition-colors"
               />
             </div>
             <div>
-              <Label htmlFor="counsellor-pw" className="text-sm font-medium">Password</Label>
+              <Label htmlFor="counsellor-pw" className="text-sm font-medium text-[#172554]">Password</Label>
               <div className="relative mt-1.5">
                 <Input
                   id="counsellor-pw"
@@ -119,12 +121,12 @@ export default function CounsellorLoginPage() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="bg-input border-border pr-10 hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 transition-colors"
+                  className="bg-white border border-[#FFCC99] text-[#172554] pr-10 hover:border-[#F59E0B] focus:border-[#F59E0B] focus:ring-[#F59E0B] transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-orange-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#F59E0B] transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -134,7 +136,7 @@ export default function CounsellorLoginPage() {
               <button
                 type="button"
                 onClick={handleForgotOpen}
-                className="text-sm hover:underline text-[#059669] hover:text-orange-600 transition-colors"
+                className="text-sm font-medium hover:underline text-[#D97706] hover:text-[#B45309] transition-colors"
               >
                 Forgot Password?
               </button>
@@ -142,10 +144,7 @@ export default function CounsellorLoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full border-0 text-white font-semibold h-11 transition-all duration-150 hover:bg-orange-600 hover:shadow-md"
-              style={{ background: loading ? undefined : 'linear-gradient(135deg, #059669 0%, #047857 100%)' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#EA580C'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)'; }}
+              className="w-full border-0 text-white font-semibold h-11 transition-all duration-150 bg-[#F59E0B] hover:bg-[#D97706] shadow-sm hover:shadow-md cursor-pointer"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <UserCheck className="w-4 h-4 mr-2" />}
               Counsellor Sign In
@@ -153,44 +152,41 @@ export default function CounsellorLoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-6 space-x-2">
-          <span>Admin? <a href="/admin/login" className="hover:underline text-[#059669] hover:text-orange-600 transition-colors">Go to Admin Portal</a></span>
+        <p className="text-center text-xs text-[#64748B] mt-6 space-x-2">
+          <span>Admin? <a href="/admin/login" className="hover:underline text-[#D97706] hover:text-[#B45309] transition-colors">Go to Admin Portal</a></span>
           <span>·</span>
-          <span><a href="/login" className="hover:underline text-[#059669] hover:text-orange-600 transition-colors">Student Portal</a></span>
+          <span><a href="/login" className="hover:underline text-[#D97706] hover:text-[#B45309] transition-colors">Student Portal</a></span>
         </p>
       </div>
 
       <Dialog open={forgotOpen} onOpenChange={open => { setForgotOpen(open); if (!open) setForgotMode('form'); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-white border border-[#FFCC99]">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-[#172554]">
               {forgotMode === 'form' ? 'Reset Counsellor Password' : 'Check Your Email'}
             </DialogTitle>
           </DialogHeader>
 
           {forgotMode === 'form' && (
             <form onSubmit={handleSendReset} className="space-y-4 mt-2">
-              <p className="text-muted-foreground text-sm">
+              <p className="text-[#64748B] text-sm">
                 Enter your counsellor email and we'll send you a secure link to reset your password.
               </p>
               <div>
-                <Label htmlFor="forgot-counsellor-email">Counsellor Email</Label>
+                <Label htmlFor="forgot-counsellor-email" className="text-[#172554]">Counsellor Email</Label>
                 <Input
                   id="forgot-counsellor-email"
                   type="email"
                   placeholder="Enter your email"
                   value={forgotEmail}
                   onChange={e => setForgotEmail(e.target.value)}
-                  className="mt-1.5 bg-input border-border"
+                  className="mt-1.5 bg-white border border-[#FFCC99] focus:border-[#F59E0B]"
                 />
               </div>
               <Button
                 type="submit"
                 disabled={forgotLoading}
-                className="w-full border-0 text-white font-semibold h-10 transition-all duration-150"
-                style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#EA580C'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)'; }}
+                className="w-full border-0 text-white font-semibold h-10 transition-all duration-150 bg-[#F59E0B] hover:bg-[#D97706] shadow-sm"
               >
                 {forgotLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Send Reset Link
@@ -201,20 +197,23 @@ export default function CounsellorLoginPage() {
           {forgotMode === 'sent' && (
             <div className="mt-2 text-center space-y-4">
               <div
-                className="w-14 h-14 rounded-full flex items-center justify-center mx-auto"
-                style={{ background: 'rgba(16,185,129,0.1)' }}
+                className="w-14 h-14 rounded-full flex items-center justify-center mx-auto bg-[#FFF1E5] border border-[#FFCC99]"
               >
-                <Mail className="w-7 h-7" style={{ color: '#059669' }} />
+                <Mail className="w-7 h-7 text-[#F59E0B]" />
               </div>
               <div>
-                <p className="text-muted-foreground text-sm mb-1">
+                <p className="text-[#64748B] text-sm mb-1">
                   If an account exists for{' '}
-                  <span className="text-foreground font-medium">{forgotEmail}</span>,
+                  <span className="text-[#172554] font-medium">{forgotEmail}</span>,
                   a password reset link has been sent.
                 </p>
-                <p className="text-muted-foreground text-xs">Check your spam folder if you don't see it within a few minutes.</p>
+                <p className="text-[#64748B] text-xs">Check your spam folder if you don't see it within a few minutes.</p>
               </div>
-              <Button variant="outline" className="w-full hover:border-orange-500 hover:text-orange-600 hover:bg-orange-50 transition-colors" onClick={() => setForgotOpen(false)}>
+              <Button
+                variant="outline"
+                className="w-full border-[#FFCC99] text-[#9A3412] hover:border-[#F59E0B] hover:text-[#7C2D12] hover:bg-[#FFF1E5] transition-colors"
+                onClick={() => setForgotOpen(false)}
+              >
                 Close
               </Button>
             </div>
