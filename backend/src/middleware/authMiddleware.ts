@@ -31,7 +31,9 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
 export function requireRole(role: 'admin' | 'student' | 'counsellor' | Array<'admin' | 'student' | 'counsellor'>) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const allowedRoles = Array.isArray(role) ? role : [role];
-    if (!req.user || !allowedRoles.includes(req.user.role as any)) {
+    const userRole = req.user?.role.trim().toLowerCase();
+    const normalizedAllowedRoles = allowedRoles.map(allowedRole => allowedRole.toLowerCase());
+    if (!userRole || !normalizedAllowedRoles.includes(userRole)) {
       return res.status(403).json({ error: `Forbidden: Only ${allowedRoles.join(' or ')} accounts have permission.` });
     }
     next();
