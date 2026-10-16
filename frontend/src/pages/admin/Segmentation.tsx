@@ -1,26 +1,74 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { getAllStudents, getAllAssessments, getAllQuestions } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import type { Student, Assessment, Question } from '@/types/index';
 import {
-  calculateSegmentation,
-  SEGMENTATION_THRESHOLDS,
-} from '@/utils/segmentation';
-import {
-  Trophy, Target, AlertCircle, Users, BarChart3,
-  RotateCcw, CheckCircle2, HelpCircle, Eye, X,
-  ChevronRight,
+  RotateCcw, Eye, X, Search, ChevronLeft, ChevronRight,
+  HelpCircle, Award, Users, AlertCircle, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-const SEGMENT_COLORS = {
-  high: '#10B981',
-  medium: '#F59E0B',
-  low: '#EF4444',
-  unassessed: '#94A3B8',
+export type ScoreTier = 'all' | 'high' | 'medium' | 'low' | 'unassessed';
+
+/**
+ * Score calculation thresholds:
+ * High Score: score >= 75 (Light Blue)
+ * Medium Score: score >= 35 && score < 75 (Light Purple)
+ * Low Score: score < 35 (Light Red)
+ * No percentage-range labels are rendered in the UI.
+ */
+export function getScoreCategory(percentage: number | null | undefined): 'high' | 'medium' | 'low' | 'unassessed' {
+  if (percentage === null || percentage === undefined || isNaN(percentage)) {
+    return 'unassessed';
+  }
+  if (percentage >= 75) return 'high';
+  if (percentage >= 35) return 'medium';
+  return 'low';
+}
+
+const CATEGORY_STYLES = {
+  high: {
+    tierName: 'High Score',
+    colorName: 'Light Blue',
+    rowClass: 'bg-[#EFF6FF] hover:bg-[#DBEAFE] border-b border-[#BFDBFE] text-[#0C4A6E]',
+    textColor: 'text-[#0C4A6E]',
+    idColor: 'text-[#1D4ED8]',
+    badgeClass: 'bg-[#DBEAFE] text-[#1E40AF] border border-[#93C5FD] font-bold',
+    btnClass: 'bg-white hover:bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD]',
+    dotBg: 'bg-[#3B82F6]',
+  },
+  medium: {
+    tierName: 'Medium Score',
+    colorName: 'Light Purple',
+    rowClass: 'bg-[#FAF5FF] hover:bg-[#F3E8FF] border-b border-[#E9D5FF] text-[#4C1D95]',
+    textColor: 'text-[#4C1D95]',
+    idColor: 'text-[#7C3AED]',
+    badgeClass: 'bg-[#F3E8FF] text-[#6B21A8] border border-[#D8B4FE] font-bold',
+    btnClass: 'bg-white hover:bg-[#F3E8FF] text-[#7C3AED] border-[#D8B4FE]',
+    dotBg: 'bg-[#A855F7]',
+  },
+  low: {
+    tierName: 'Low Score',
+    colorName: 'Light Red',
+    rowClass: 'bg-[#FFF1F2] hover:bg-[#FFE4E6] border-b border-[#FECDD3] text-[#881337]',
+    textColor: 'text-[#881337]',
+    idColor: 'text-[#E11D48]',
+    badgeClass: 'bg-[#FFE4E6] text-[#9F1239] border border-[#FDA4AF] font-bold',
+    btnClass: 'bg-white hover:bg-[#FFE4E6] text-[#E11D48] border-[#FDA4AF]',
+    dotBg: 'bg-[#F43F5E]',
+  },
+  unassessed: {
+    tierName: 'Unassessed',
+    colorName: 'Neutral',
+    rowClass: 'bg-slate-50/70 hover:bg-slate-100/70 border-b border-slate-200 text-slate-700',
+    textColor: 'text-slate-600',
+    idColor: 'text-slate-500',
+    badgeClass: 'bg-slate-100 text-slate-600 border border-slate-200 font-medium',
+    btnClass: 'bg-white text-slate-400 border-slate-200 cursor-not-allowed opacity-50',
+    dotBg: 'bg-slate-400',
+  },
 };
 
 interface AnswerRow {
@@ -30,13 +78,11 @@ interface AnswerRow {
   optionB: string;
   optionC: string;
   optionD: string;
-  /** Per-option marks from admin config */
   marksA: number;
   marksB: number;
   marksC: number;
   marksD: number;
   selectedAnswer: 'A' | 'B' | 'C' | 'D' | null;
-  /** Marks awarded for the selected option */
   marksAwarded: number;
 }
 
@@ -46,18 +92,20 @@ function AnswersModal({
   open,
   onClose,
   studentName,
+  studentId,
   assessment,
   questions,
 }: {
   open: boolean;
   onClose: () => void;
   studentName: string;
+  studentId: string;
   assessment: Assessment | null;
   questions: Question[];
 }) {
   const rows = useMemo<AnswerRow[]>(() => {
     if (!assessment?.answers || !questions.length) return [];
-    const answers = assessment.answers as Record<string, string>;
+    const answers = (assessment.answers || {}) as Record<string, string>;
     return questions.map((q, idx) => {
       const selected = (answers[q.id] || null) as 'A' | 'B' | 'C' | 'D' | null;
       const mA = Number(q.marks_a) || 1;
@@ -88,38 +136,58 @@ function AnswersModal({
 
   const answeredCount = rows.filter(r => r.selectedAnswer).length;
   const totalAwarded = rows.reduce((sum, r) => sum + r.marksAwarded, 0);
+  const percentage = assessment?.percentage != null ? Number(assessment.percentage) : null;
+  const cat = getScoreCategory(percentage);
+  const catStyle = CATEGORY_STYLES[cat];
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-3xl bg-card border-border max-h-[90dvh] overflow-hidden flex flex-col">
-        <DialogHeader className="shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <Eye className="w-4 h-4 text-primary" />
-            Career Fit Answers — {studentName}
+      <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-3xl bg-white border border-[#FED7AA] max-h-[90dvh] overflow-hidden flex flex-col shadow-xl">
+        <DialogHeader className="shrink-0 pb-3 border-b border-[#FED7AA]/60">
+          <DialogTitle className="flex items-center justify-between gap-3 text-[#172554] text-lg">
+            <span className="flex items-center gap-2">
+              <Eye className="w-5 h-5 text-[#F59E0B]" />
+              <span>Career Fit Assessment Answers</span>
+            </span>
           </DialogTitle>
         </DialogHeader>
 
-        {/* Summary bar */}
-        <div className="flex flex-wrap gap-3 px-1 py-2 border-b border-border/60 shrink-0">
-          <span className="text-xs bg-muted rounded-lg px-3 py-1.5 font-semibold text-foreground">
-            {answeredCount}/{rows.length} Answered
-          </span>
-          {assessment?.percentage !== null && assessment?.percentage !== undefined && (
-            <span className="text-xs bg-primary/10 text-primary rounded-lg px-3 py-1.5 font-semibold border border-primary/20">
-              Score: {Number(assessment.percentage).toFixed(1)}%&nbsp;
-              ({assessment.score ?? 0}/{assessment.total_marks ?? rows.length} marks)
+        {/* Student metadata header banner */}
+        <div className="bg-[#FFF1E5] border border-[#FFCC99] rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 shrink-0 my-1">
+          <div>
+            <p className="text-xs text-[#64748B] font-medium">Student Name</p>
+            <p className="text-base font-bold text-[#172554]">{studentName}</p>
+            <p className="text-xs font-semibold text-[#D97706] tracking-wide mt-0.5">{studentId}</p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {percentage !== null ? (
+              <div className={`px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${catStyle.badgeClass}`}>
+                <span className={`w-2.5 h-2.5 rounded-full ${catStyle.dotBg}`} />
+                <span>Career Fit: {percentage.toFixed(1)}%</span>
+              </div>
+            ) : (
+              <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                Not Assessed
+              </span>
+            )}
+
+            <span className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-[#FFCC99] text-[#7C2D12]">
+              {totalAwarded} / {assessment?.total_marks ?? rows.length} Marks
             </span>
-          )}
-          <span className="text-xs bg-emerald-500/10 text-emerald-600 rounded-lg px-3 py-1.5 font-semibold border border-emerald-500/20">
-            {totalAwarded} marks awarded
-          </span>
+
+            <span className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-[#FFCC99] text-[#7C2D12]">
+              {answeredCount}/{rows.length} Answered
+            </span>
+          </div>
         </div>
 
-        {/* Scrollable answer list */}
-        <div className="overflow-y-auto flex-1 space-y-3 pr-1 mt-1">
+        {/* Scrollable Answer List */}
+        <div className="overflow-y-auto flex-1 space-y-3 pr-1 py-2">
           {rows.length === 0 ? (
-            <div className="py-16 text-center text-muted-foreground text-sm">
-              No answers recorded for this student.
+            <div className="py-16 text-center text-[#64748B] text-sm">
+              <FileText className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+              No submitted answers recorded for this student.
             </div>
           ) : (
             rows.map(row => {
@@ -135,33 +203,35 @@ function AnswersModal({
                 C: row.marksC,
                 D: row.marksD,
               };
+
               return (
                 <div
                   key={row.questionNumber}
-                  className="glass-card rounded-xl p-4 border border-border"
+                  className="bg-white rounded-xl p-4 border border-[#FED7AA]/80 shadow-xs"
                 >
                   {/* Question header */}
                   <div className="flex items-start gap-3 mb-3">
-                    <span className="w-7 h-7 rounded-lg gradient-bg flex items-center justify-center text-white text-[11px] font-bold shrink-0">
+                    <span className="w-7 h-7 rounded-lg bg-[#0B1F3A] flex items-center justify-center text-white text-[11px] font-bold shrink-0">
                       Q{row.questionNumber}
                     </span>
-                    <p className="text-sm font-medium text-foreground leading-snug flex-1">
+                    <p className="text-sm font-semibold text-[#172554] leading-snug flex-1">
                       {row.questionText}
                     </p>
                     {row.selectedAnswer && (
-                      <span className="shrink-0 text-xs font-bold text-primary bg-primary/10 border border-primary/20 rounded-lg px-2 py-1">
+                      <span className="shrink-0 text-xs font-bold text-[#9A3412] bg-[#FFE0B2] border border-[#FFCC99] rounded-lg px-2 py-0.5">
                         +{row.marksAwarded} mk
                       </span>
                     )}
                   </div>
 
                   {/* Options grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {OPTION_LABELS.map(opt => {
                       const isSelected = row.selectedAnswer === opt;
-                      let cls = 'border-border bg-muted/40 text-muted-foreground';
-                      if (isSelected)
-                        cls = 'border-primary/40 bg-primary/10 text-primary';
+                      let cls = 'border-slate-200 bg-slate-50/60 text-slate-600';
+                      if (isSelected) {
+                        cls = 'border-[#F59E0B] bg-[#FFF1E5] text-[#9A3412] font-semibold ring-1 ring-[#F59E0B]';
+                      }
 
                       return (
                         <div
@@ -169,28 +239,28 @@ function AnswersModal({
                           className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-all ${cls}`}
                         >
                           <span className={`w-5 h-5 rounded flex items-center justify-center font-bold text-[10px] shrink-0 ${
-                            isSelected ? 'bg-primary text-white' : 'bg-muted text-foreground'
+                            isSelected ? 'bg-[#F59E0B] text-white' : 'bg-slate-200 text-slate-700'
                           }`}>
                             {opt}
                           </span>
                           <span className="flex-1 font-medium leading-snug">{optionMap[opt]}</span>
                           <span className={`text-[10px] font-semibold shrink-0 ${
-                            isSelected ? 'text-primary' : 'text-muted-foreground/60'
+                            isSelected ? 'text-[#D97706]' : 'text-slate-400'
                           }`}>
                             {marksMap[opt]} mk
                           </span>
                           {isSelected && (
-                            <span className="text-[10px] font-bold shrink-0 ml-1">✓</span>
+                            <span className="text-[11px] font-bold text-[#F59E0B] ml-1">✓ Selected</span>
                           )}
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* Skipped badge */}
+                  {/* Skipped note */}
                   {!row.selectedAnswer && (
-                    <p className="text-[11px] text-muted-foreground italic mt-2">
-                      — Not answered (skipped)
+                    <p className="text-[11px] text-[#64748B] italic mt-2">
+                      — Question was not answered (skipped)
                     </p>
                   )}
                 </div>
@@ -199,8 +269,13 @@ function AnswersModal({
           )}
         </div>
 
-        <div className="shrink-0 pt-3 border-t border-border flex justify-end">
-          <Button variant="outline" size="sm" onClick={onClose}>
+        <div className="shrink-0 pt-3 border-t border-[#FED7AA]/60 flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            className="border-[#FFCC99] text-[#7C2D12] hover:bg-[#FFF1E5] hover:text-[#9A3412]"
+          >
             <X className="w-3.5 h-3.5 mr-1" /> Close
           </Button>
         </div>
@@ -215,13 +290,27 @@ export default function Segmentation() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Search & Filter state
+  const [search, setSearch] = useState('');
+  const [tierFilter, setTierFilter] = useState<ScoreTier>('all');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   // Modal state
-  const [viewingStudent, setViewingStudent] = useState<{ name: string; assessment: Assessment } | null>(null);
+  const [viewingStudent, setViewingStudent] = useState<{
+    name: string;
+    studentId: string;
+    assessment: Assessment;
+  } | null>(null);
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
+    setError(null);
 
     try {
       const [studentsRes, assessmentsRes, questionsRes] = await Promise.all([
@@ -233,8 +322,9 @@ export default function Segmentation() {
       setStudents(studentsRes.data || []);
       setAssessments(assessmentsRes || []);
       setQuestions(Array.isArray(questionsRes) ? questionsRes : []);
-    } catch (err) {
-      console.error('Error fetching segmentation data:', err);
+    } catch (err: unknown) {
+      console.error('Error fetching student assessment records:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load assessment data');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -245,7 +335,7 @@ export default function Segmentation() {
     fetchData();
   }, [fetchData]);
 
-  // Build a quick lookup: student_id → assessment
+  // Map student.id -> latest completed assessment
   const assessmentByStudentId = useMemo(() => {
     const map = new Map<string, Assessment>();
     assessments.forEach(a => {
@@ -256,126 +346,106 @@ export default function Segmentation() {
     return map;
   }, [assessments]);
 
-  const summary = useMemo(() => {
-    return calculateSegmentation(students, assessments);
-  }, [students, assessments]);
+  // Compute table rows with scores & categories
+  const allRows = useMemo(() => {
+    return students.map(student => {
+      const assessment = assessmentByStudentId.get(student.id) || null;
+      const isCompleted = assessment?.status === 'completed' && assessment.percentage != null;
+      const scorePercentage = isCompleted ? Number(assessment!.percentage) : null;
+      const category = getScoreCategory(scorePercentage);
 
-  const pieData = useMemo(() => {
-    if (summary.totalAssessed === 0) {
-      return [
-        {
-          name: 'NO DATA',
-          value: 1,
-          percentage: 0,
-          color: '#334155',
-          desc: 'No completed assessments recorded',
-        },
-      ];
-    }
-    return [
-      {
-        name: 'HIGH',
-        value: summary.highCount,
-        percentage: summary.highPct,
-        color: SEGMENT_COLORS.high,
-        desc: `Score ≥ ${SEGMENTATION_THRESHOLDS.HIGH_INTENT_MIN_SCORE}% — High Intent / Top Performers`,
-      },
-      {
-        name: 'MEDIUM',
-        value: summary.mediumCount,
-        percentage: summary.mediumPct,
-        color: SEGMENT_COLORS.medium,
-        desc: `Score ${SEGMENTATION_THRESHOLDS.MEDIUM_INTENT_MIN_SCORE}%–${SEGMENTATION_THRESHOLDS.HIGH_INTENT_MIN_SCORE - 1}% — Medium Intent / Qualified`,
-      },
-      {
-        name: 'LOW',
-        value: summary.lowCount,
-        percentage: summary.lowPct,
-        color: SEGMENT_COLORS.low,
-        desc: `Score < ${SEGMENTATION_THRESHOLDS.MEDIUM_INTENT_MIN_SCORE}% — Low Intent / Needs Support`,
-      },
-    ];
-  }, [summary]);
+      return {
+        student,
+        assessment,
+        scorePercentage,
+        category,
+      };
+    });
+  }, [students, assessmentByStudentId]);
 
-  const cards = [
-    {
-      tier: 'HIGH',
-      title: 'High Intent & Qualified',
-      subtitle: `Career Fit Score ≥ ${SEGMENTATION_THRESHOLDS.HIGH_INTENT_MIN_SCORE}% (Distinction / Top Performers)`,
-      count: summary.highCount,
-      pct: summary.highPct,
-      icon: Trophy,
-      bgGlow: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-      barColor: 'bg-emerald-500',
-      badgeBg: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
-    },
-    {
-      tier: 'MEDIUM',
-      title: 'Medium Intent (Qualified)',
-      subtitle: `Career Fit Score ${SEGMENTATION_THRESHOLDS.MEDIUM_INTENT_MIN_SCORE}%–${SEGMENTATION_THRESHOLDS.HIGH_INTENT_MIN_SCORE - 1}% (Proficient / Solid Foundation)`,
-      count: summary.mediumCount,
-      pct: summary.mediumPct,
-      icon: Target,
-      bgGlow: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-      barColor: 'bg-amber-500',
-      badgeBg: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
-    },
-    {
-      tier: 'LOW',
-      title: 'Low Intent / At Risk',
-      subtitle: `Career Fit Score < ${SEGMENTATION_THRESHOLDS.MEDIUM_INTENT_MIN_SCORE}% (Developing / Needs Guidance)`,
-      count: summary.lowCount,
-      pct: summary.lowPct,
-      icon: AlertCircle,
-      bgGlow: 'bg-rose-500/10 border-rose-500/30 text-rose-400',
-      barColor: 'bg-rose-500',
-      badgeBg: 'bg-rose-500/15 text-rose-400 border border-rose-500/30',
-    },
-  ];
+  // Statistics for summary badges
+  const stats = useMemo(() => {
+    let high = 0;
+    let medium = 0;
+    let low = 0;
+    let unassessed = 0;
 
-  if (loading) {
-    return (
-      <AdminLayout>
-        <div className="space-y-4 animate-pulse">
-          <div className="h-8 bg-muted rounded w-64" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-40 rounded-xl bg-muted" />
-            ))}
-          </div>
-          <div className="h-80 rounded-xl bg-muted" />
-        </div>
-      </AdminLayout>
-    );
-  }
+    allRows.forEach(r => {
+      if (r.category === 'high') high++;
+      else if (r.category === 'medium') medium++;
+      else if (r.category === 'low') low++;
+      else unassessed++;
+    });
+
+    const totalAssessed = high + medium + low;
+    return {
+      total: allRows.length,
+      totalAssessed,
+      high,
+      medium,
+      low,
+      unassessed,
+    };
+  }, [allRows]);
+
+  // Filtered rows by search and tier
+  const filteredRows = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return allRows.filter(row => {
+      // Tier filter
+      if (tierFilter !== 'all' && row.category !== tierFilter) {
+        return false;
+      }
+
+      // Search filter (Student name or Student ID)
+      if (query) {
+        const name = (row.student.full_name || '').toLowerCase();
+        const studentId = (row.student.student_id || '').toLowerCase();
+        const email = (row.student.email || '').toLowerCase();
+        if (!name.includes(query) && !studentId.includes(query) && !email.includes(query)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [allRows, search, tierFilter]);
+
+  // Pagination calculation
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, currentPage, pageSize]);
+
+  // Reset page when search or tier changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, tierFilter, pageSize]);
 
   return (
     <AdminLayout>
       <div className="space-y-6 animate-fade-in">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 pb-4">
+        {/* Page Title & Subtitle */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#FED7AA]/60 pb-5">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Career Fit Assessment & Segmentation</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Dynamically calculated from each student's actual Career Fit Assessment score and performance
+            <h1 className="text-2xl font-bold text-[#172554] tracking-tight">
+              Career Fit Assessment – Student Results
+            </h1>
+            <p className="text-sm text-[#64748B] mt-1">
+              View student assessment scores and submitted answers.
             </p>
           </div>
+
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border text-xs font-semibold text-foreground">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-              <span>{summary.totalAssessed} Assessed</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card border border-border text-xs font-semibold text-foreground">
-              <Users className="w-3.5 h-3.5 text-primary" />
-              <span>{summary.totalStudents} Total Enrolled</span>
-            </span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => fetchData(true)}
-              disabled={refreshing}
-              className="text-xs h-8 gap-1.5"
-              title="Recalculate and refresh assessment data"
+              disabled={refreshing || loading}
+              className="text-xs h-9 gap-1.5 border-[#FFCC99] text-[#7C2D12] hover:bg-[#FFF1E5] hover:text-[#9A3412]"
+              title="Refresh assessment results"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
@@ -383,284 +453,372 @@ export default function Segmentation() {
           </div>
         </div>
 
-        {/* ── SEGMENT CARDS ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
-          {cards.map(card => {
-            const Icon = card.icon;
-            return (
-              <div
-                key={card.tier}
-                className="glass-card rounded-xl p-5 border border-border flex flex-col justify-between hover:border-primary/40 transition-all shadow-sm h-full"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-black tracking-wider uppercase ${card.badgeBg}`}>
-                      {card.tier}
-                    </span>
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${card.bgGlow}`}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                  </div>
+        {/* Metric Summary Bar - Colors & Categories with Zero Range Labels */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="bg-white border border-[#FED7AA] rounded-xl p-3 shadow-xs">
+            <p className="text-[11px] font-medium text-[#64748B]">Total Students</p>
+            <p className="text-xl font-bold text-[#172554] mt-0.5">{stats.total}</p>
+          </div>
 
-                  <h2 className="text-sm font-bold text-foreground">{card.title}</h2>
-                  <p className="text-[11px] text-muted-foreground mt-1 min-h-[30px] leading-relaxed">
-                    {card.subtitle}
-                  </p>
-                </div>
+          <div className="bg-white border border-[#FED7AA] rounded-xl p-3 shadow-xs">
+            <p className="text-[11px] font-medium text-[#64748B]">Total Assessed</p>
+            <p className="text-xl font-bold text-[#172554] mt-0.5">{stats.totalAssessed}</p>
+          </div>
 
-                <div className="mt-5 pt-3 border-t border-border/50">
-                  <div className="flex items-baseline justify-between mb-2">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-2xl font-black text-foreground">{card.count}</span>
-                      <span className="text-xs text-muted-foreground font-medium">
-                        / {summary.totalAssessed} assessed
-                      </span>
-                    </div>
-                    <span className="text-sm font-bold text-foreground">{card.pct}%</span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${card.barColor}`}
-                      style={{ width: `${card.pct}%` }}
-                    />
-                  </div>
-                </div>
+          <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl p-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]" />
+                <p className="text-[11px] font-bold text-[#0C4A6E]">High Score</p>
               </div>
-            );
-          })}
+              <span className="text-[10px] text-[#0C4A6E]/80 font-medium bg-[#DBEAFE] px-1.5 py-0.5 rounded">Light Blue</span>
+            </div>
+            <p className="text-xl font-black text-[#1D4ED8] mt-1">{stats.high}</p>
+          </div>
+
+          <div className="bg-[#FAF5FF] border border-[#E9D5FF] rounded-xl p-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#A855F7]" />
+                <p className="text-[11px] font-bold text-[#4C1D95]">Medium Score</p>
+              </div>
+              <span className="text-[10px] text-[#4C1D95]/80 font-medium bg-[#F3E8FF] px-1.5 py-0.5 rounded">Light Purple</span>
+            </div>
+            <p className="text-xl font-black text-[#7C3AED] mt-1">{stats.medium}</p>
+          </div>
+
+          <div className="bg-[#FFF1F2] border border-[#FECDD3] rounded-xl p-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#F43F5E]" />
+                <p className="text-[11px] font-bold text-[#881337]">Low Score</p>
+              </div>
+              <span className="text-[10px] text-[#881337]/80 font-medium bg-[#FFE4E6] px-1.5 py-0.5 rounded">Light Red</span>
+            </div>
+            <p className="text-xl font-black text-[#E11D48] mt-1">{stats.low}</p>
+          </div>
         </div>
 
-        {/* ── DISTRIBUTION SECTION ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          {/* Donut Chart */}
-          <div className="lg:col-span-4 glass-card rounded-xl p-5 border border-border flex flex-col justify-between shadow-sm">
-            <div>
-              <div className="flex items-center justify-between pb-3 border-b border-border/60">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-primary" />
-                  <h2 className="text-sm font-bold text-foreground">Distribution Analysis</h2>
-                </div>
-                <span className="text-[11px] font-medium text-muted-foreground">Assessed Cohort</span>
-              </div>
-
-              <div className="relative py-4 flex items-center justify-center">
-                <div className="w-48 h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={54}
-                        outerRadius={78}
-                        paddingAngle={summary.totalAssessed > 0 ? 4 : 0}
-                        dataKey="value"
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const data = payload[0].payload;
-                            if (summary.totalAssessed === 0) {
-                              return (
-                                <div className="p-2.5 bg-card/95 backdrop-blur-md rounded-lg border border-border shadow-lg text-xs">
-                                  <p className="text-muted-foreground">No assessed students yet</p>
-                                </div>
-                              );
-                            }
-                            return (
-                              <div className="p-2.5 bg-card/95 backdrop-blur-md rounded-lg border border-border shadow-lg text-xs">
-                                <p className="font-bold text-foreground flex items-center gap-1.5">
-                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.color }} />
-                                  {data.name} Segment
-                                </p>
-                                <p className="text-muted-foreground mt-0.5">
-                                  {data.value} students ({data.percentage}%)
-                                </p>
-                                <p className="text-[10px] text-muted-foreground/80 mt-0.5">{data.desc}</p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-2xl font-black text-foreground">{summary.totalAssessed}</span>
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                    Assessed
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2.5 pt-3 border-t border-border/60">
-              {[
-                { name: 'HIGH', value: summary.highCount, percentage: summary.highPct, color: SEGMENT_COLORS.high, desc: `Score ≥ ${SEGMENTATION_THRESHOLDS.HIGH_INTENT_MIN_SCORE}%` },
-                { name: 'MEDIUM', value: summary.mediumCount, percentage: summary.mediumPct, color: SEGMENT_COLORS.medium, desc: `Score ${SEGMENTATION_THRESHOLDS.MEDIUM_INTENT_MIN_SCORE}%–${SEGMENTATION_THRESHOLDS.HIGH_INTENT_MIN_SCORE - 1}%` },
-                { name: 'LOW', value: summary.lowCount, percentage: summary.lowPct, color: SEGMENT_COLORS.low, desc: `Score < ${SEGMENTATION_THRESHOLDS.MEDIUM_INTENT_MIN_SCORE}%` },
-              ].map(item => (
-                <div
-                  key={item.name}
-                  className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/40 text-xs hover:bg-muted/60 transition-colors"
+        {/* Main Content Area */}
+        <div className="bg-white border border-[#FED7AA] rounded-2xl p-5 shadow-sm space-y-4">
+          {/* Search & Filter Toolbar */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Input
+                type="text"
+                placeholder="Search by student name or student ID..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9 bg-white border border-[#FED7AA] text-sm text-[#172554] placeholder:text-slate-400 focus:border-[#F59E0B] focus:ring-[#F59E0B] rounded-lg h-10 transition-colors"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: item.color }} />
-                    <div className="min-w-0">
-                      <p className="font-bold text-foreground text-xs leading-none">{item.name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate leading-tight mt-1">{item.desc}</p>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0 pl-2">
-                    <p className="font-extrabold text-foreground text-xs">
-                      {item.value} <span className="font-normal text-[10px] text-muted-foreground">students</span>
-                    </p>
-                    <p className="text-[11px] font-bold text-primary">{item.percentage}%</p>
-                  </div>
-                </div>
-              ))}
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Score Category Filter Pills - Colors & Labels with Zero Range Text */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setTierFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  tierFilter === 'all'
+                    ? 'bg-[#0B1F3A] text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                All ({allRows.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTierFilter('high')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  tierFilter === 'high'
+                    ? 'bg-[#1D4ED8] text-white shadow-xs'
+                    : 'bg-[#EFF6FF] text-[#1E40AF] border border-[#BFDBFE] hover:bg-[#DBEAFE]'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-[#3B82F6]" />
+                <span>Light Blue ({stats.high})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTierFilter('medium')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  tierFilter === 'medium'
+                    ? 'bg-[#7C3AED] text-white shadow-xs'
+                    : 'bg-[#FAF5FF] text-[#6B21A8] border border-[#E9D5FF] hover:bg-[#F3E8FF]'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-[#A855F7]" />
+                <span>Light Purple ({stats.medium})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTierFilter('low')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  tierFilter === 'low'
+                    ? 'bg-[#E11D48] text-white shadow-xs'
+                    : 'bg-[#FFF1F2] text-[#9F1239] border border-[#FECDD3] hover:bg-[#FFE4E6]'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-[#F43F5E]" />
+                <span>Light Red ({stats.low})</span>
+              </button>
+
+              {stats.unassessed > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setTierFilter('unassessed')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    tierFilter === 'unassessed'
+                      ? 'bg-slate-700 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Unassessed ({stats.unassessed})
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Student Details Table */}
-          <div className="lg:col-span-8 glass-card rounded-xl p-5 border border-border flex flex-col justify-between shadow-sm">
-            <Tabs defaultValue="high" className="flex flex-col h-full">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3 mb-4">
-                <TabsList className="bg-muted p-1">
-                  <TabsTrigger value="high" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
-                    HIGH ({summary.highCount})
-                  </TabsTrigger>
-                  <TabsTrigger value="medium" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
-                    MEDIUM ({summary.mediumCount})
-                  </TabsTrigger>
-                  <TabsTrigger value="low" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
-                    LOW ({summary.lowCount})
-                  </TabsTrigger>
-                  {summary.unassessed.length > 0 && (
-                    <TabsTrigger value="unassessed" className="text-xs data-[state=active]:bg-muted-foreground/30">
-                      UNASSESSED ({summary.unassessed.length})
-                    </TabsTrigger>
-                  )}
-                </TabsList>
-                <span className="text-xs text-muted-foreground">Classified by actual assessment score</span>
+
+          {/* Loading State */}
+          {loading && (
+            <div className="py-12 space-y-3">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="h-14 rounded-xl bg-slate-100 animate-pulse" />
+              ))}
+            </div>
+          )}
+
+          {/* Error State */}
+          {!loading && error && (
+            <div className="py-12 text-center space-y-3">
+              <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
+              <p className="text-sm font-semibold text-rose-600">{error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchData()}
+                className="text-xs border-rose-300 text-rose-700 hover:bg-rose-50"
+              >
+                Try Again
+              </Button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && filteredRows.length === 0 && (
+            <div className="py-16 text-center space-y-3">
+              <Users className="w-10 h-10 text-slate-300 mx-auto" />
+              <p className="text-base font-bold text-[#172554]">No Student Records Found</p>
+              <p className="text-xs text-[#64748B] max-w-sm mx-auto">
+                {search
+                  ? `No students matching "${search}" were found in this view.`
+                  : 'There are currently no students in this category.'}
+              </p>
+              {search && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSearch('')}
+                  className="text-xs border-[#FFCC99] text-[#7C2D12] hover:bg-[#FFF1E5]"
+                >
+                  Clear Search
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Student Assessment Table */}
+          {!loading && !error && filteredRows.length > 0 && (
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-[#0B1F3A] text-white text-xs uppercase tracking-wider">
+                    <th className="px-5 py-3.5 text-left font-bold">1. Student Name</th>
+                    <th className="px-5 py-3.5 text-left font-bold">2. Student ID</th>
+                    <th className="px-5 py-3.5 text-left font-bold">3. Career Fit Score (%)</th>
+                    <th className="px-5 py-3.5 text-right font-bold">4. View Answer</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedRows.map(({ student, assessment, scorePercentage, category }) => {
+                    const style = CATEGORY_STYLES[category];
+                    const studentDisplayName = student.full_name || student.email || 'Unnamed Student';
+                    const studentDisplayId = student.student_id || student.id.slice(0, 8);
+                    const isAssessed = scorePercentage !== null;
+
+                    return (
+                      <tr
+                        key={student.id}
+                        className={`transition-colors duration-150 ${style.rowClass}`}
+                      >
+                        {/* 1. Student Name */}
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-[#172554] text-sm">
+                              {studentDisplayName}
+                            </span>
+                            {student.email && (
+                              <span className="text-[11px] text-[#64748B]">
+                                {student.email}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 2. Student ID */}
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <span className={`font-mono font-bold text-xs ${style.idColor}`}>
+                            {studentDisplayId}
+                          </span>
+                        </td>
+
+                        {/* 3. Career Fit Score (%) - Actual Score next to color indicator dot */}
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          {isAssessed ? (
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs shadow-2xs ${style.badgeClass}`}
+                              >
+                                <span className={`w-2 h-2 rounded-full ${style.dotBg}`} />
+                                <span>{scorePercentage.toFixed(1)}%</span>
+                              </span>
+                              <span className="text-xs opacity-75 font-medium">
+                                ({assessment?.score ?? 0}/{assessment?.total_marks ?? questions.length} marks)
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-slate-100 text-slate-500 border border-slate-200">
+                              <HelpCircle className="w-3.5 h-3.5" />
+                              <span>Not Attempted</span>
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 4. View Answer */}
+                        <td className="px-5 py-3.5 whitespace-nowrap text-right">
+                          {isAssessed && assessment ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                setViewingStudent({
+                                  name: studentDisplayName,
+                                  studentId: studentDisplayId,
+                                  assessment,
+                                })
+                              }
+                              className={`h-8 px-3 text-xs font-semibold gap-1.5 transition-all shadow-xs ${style.btnClass}`}
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>View Answer</span>
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled
+                              className="h-8 px-3 text-xs font-medium gap-1.5 bg-white text-slate-400 border-slate-200 cursor-not-allowed opacity-50"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>No Answers</span>
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {!loading && !error && filteredRows.length > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#FED7AA]/60 text-xs text-[#64748B]">
+              <div className="flex items-center gap-2">
+                <span>
+                  Showing{' '}
+                  <strong className="text-[#172554]">
+                    {Math.min((currentPage - 1) * pageSize + 1, filteredRows.length)}
+                  </strong>{' '}
+                  to{' '}
+                  <strong className="text-[#172554]">
+                    {Math.min(currentPage * pageSize, filteredRows.length)}
+                  </strong>{' '}
+                  of <strong className="text-[#172554]">{filteredRows.length}</strong> students
+                </span>
+
+                <span className="text-slate-300">|</span>
+
+                <div className="flex items-center gap-1">
+                  <span>Per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={e => setPageSize(Number(e.target.value))}
+                    className="border border-[#FED7AA] bg-white text-[#172554] rounded-md px-1.5 py-0.5 text-xs focus:ring-[#F59E0B]"
+                  >
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
               </div>
 
-              {[
-                { key: 'high', list: summary.high, label: 'High Intent' },
-                { key: 'medium', list: summary.medium, label: 'Medium Intent' },
-                { key: 'low', list: summary.low, label: 'Low Intent' },
-                ...(summary.unassessed.length > 0
-                  ? [{ key: 'unassessed', list: summary.unassessed, label: 'Unassessed' }]
-                  : []),
-              ].map(({ key, list }) => (
-                <TabsContent key={key} value={key} className="m-0 focus-visible:outline-none flex-1">
-                  {list.length === 0 ? (
-                    <div className="text-center py-16 text-muted-foreground text-xs">
-                      No students currently classified in this segment.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b border-border/80 text-muted-foreground">
-                            <th className="px-3 py-2 text-left font-semibold">Student Name</th>
-                            <th className="px-3 py-2 text-left font-semibold">Email</th>
-                            <th className="px-3 py-2 text-left font-semibold">Career Fit Score</th>
-                            <th className="px-3 py-2 text-left font-semibold">Answers</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {list.slice(0, 15).map(({ student: s, assessment }) => {
-                            const isAssessed = assessment.isCompleted && assessment.percentage != null;
-                            const rawAssessment = assessmentByStudentId.get(s.id);
+              <div className="flex items-center gap-1 self-end sm:self-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="h-8 w-8 p-0 border-[#FED7AA] text-[#172554] hover:bg-[#FFF1E5] disabled:opacity-40"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
 
-                            return (
-                              <tr key={s.id} className="border-b border-border/40 hover:bg-muted/30 transition-colors">
-                                <td className="px-3 py-2.5 whitespace-nowrap font-medium text-foreground">
-                                  <div>
-                                    <p className="font-bold">{s.full_name || '-'}</p>
-                                    <p className="text-[10px] text-muted-foreground">{s.student_id || ''}</p>
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
-                                  {s.email || '-'}
-                                </td>
-                                <td className="px-3 py-2.5 whitespace-nowrap">
-                                  {isAssessed ? (
-                                    <div className="flex items-center gap-2">
-                                      <span
-                                        className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
-                                          assessment.percentage! >= SEGMENTATION_THRESHOLDS.HIGH_INTENT_MIN_SCORE
-                                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                            : assessment.percentage! >= SEGMENTATION_THRESHOLDS.MEDIUM_INTENT_MIN_SCORE
-                                            ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                                            : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                                        }`}
-                                      >
-                                        {assessment.percentage}%
-                                      </span>
-                                      <span className="text-[11px] text-muted-foreground">
-                                        ({assessment.score ?? '-'}/{assessment.totalMarks ?? questions.length} marks)
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                                      <HelpCircle className="w-3.5 h-3.5" />
-                                      <span className="italic">Not Completed</span>
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="px-3 py-2.5 whitespace-nowrap">
-                                  {isAssessed && rawAssessment ? (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-7 px-2.5 text-[11px] gap-1.5 text-primary border-primary/30 hover:bg-primary/10"
-                                      onClick={() =>
-                                        setViewingStudent({
-                                          name: s.full_name || s.email || 'Student',
-                                          assessment: rawAssessment,
-                                        })
-                                      }
-                                    >
-                                      <Eye className="w-3 h-3" />
-                                      View Answers
-                                      <ChevronRight className="w-3 h-3 opacity-60" />
-                                    </Button>
-                                  ) : (
-                                    <span className="text-[11px] text-muted-foreground italic">—</span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                      {list.length > 15 && (
-                        <p className="text-[11px] text-muted-foreground text-center pt-3 italic">
-                          Showing 15 of {list.length} students in this cohort
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </TabsContent>
-              ))}
-            </Tabs>
-          </div>
+                <span className="px-2 font-medium">
+                  Page <strong className="text-[#172554]">{currentPage}</strong> of{' '}
+                  <strong className="text-[#172554]">{totalPages}</strong>
+                </span>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="h-8 w-8 p-0 border-[#FED7AA] text-[#172554] hover:bg-[#FFF1E5] disabled:opacity-40"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Answers Modal */}
+      {/* View Answer Modal */}
       {viewingStudent && (
         <AnswersModal
           open={!!viewingStudent}
           onClose={() => setViewingStudent(null)}
           studentName={viewingStudent.name}
+          studentId={viewingStudent.studentId}
           assessment={viewingStudent.assessment}
           questions={questions}
         />
