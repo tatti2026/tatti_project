@@ -453,52 +453,6 @@ export default function Segmentation() {
           </div>
         </div>
 
-        {/* Metric Summary Bar - Colors & Categories with Zero Range Labels */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <div className="bg-white border border-[#FED7AA] rounded-xl p-3 shadow-xs">
-            <p className="text-[11px] font-medium text-[#64748B]">Total Students</p>
-            <p className="text-xl font-bold text-[#172554] mt-0.5">{stats.total}</p>
-          </div>
-
-          <div className="bg-white border border-[#FED7AA] rounded-xl p-3 shadow-xs">
-            <p className="text-[11px] font-medium text-[#64748B]">Total Assessed</p>
-            <p className="text-xl font-bold text-[#172554] mt-0.5">{stats.totalAssessed}</p>
-          </div>
-
-          <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl p-3 shadow-xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]" />
-                <p className="text-[11px] font-bold text-[#0C4A6E]">High Score</p>
-              </div>
-              <span className="text-[10px] text-[#0C4A6E]/80 font-medium bg-[#DBEAFE] px-1.5 py-0.5 rounded">Light Blue</span>
-            </div>
-            <p className="text-xl font-black text-[#1D4ED8] mt-1">{stats.high}</p>
-          </div>
-
-          <div className="bg-[#FAF5FF] border border-[#E9D5FF] rounded-xl p-3 shadow-xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#A855F7]" />
-                <p className="text-[11px] font-bold text-[#4C1D95]">Medium Score</p>
-              </div>
-              <span className="text-[10px] text-[#4C1D95]/80 font-medium bg-[#F3E8FF] px-1.5 py-0.5 rounded">Light Purple</span>
-            </div>
-            <p className="text-xl font-black text-[#7C3AED] mt-1">{stats.medium}</p>
-          </div>
-
-          <div className="bg-[#FFF1F2] border border-[#FECDD3] rounded-xl p-3 shadow-xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#F43F5E]" />
-                <p className="text-[11px] font-bold text-[#881337]">Low Score</p>
-              </div>
-              <span className="text-[10px] text-[#881337]/80 font-medium bg-[#FFE4E6] px-1.5 py-0.5 rounded">Light Red</span>
-            </div>
-            <p className="text-xl font-black text-[#E11D48] mt-1">{stats.low}</p>
-          </div>
-        </div>
-
         {/* Main Content Area */}
         <div className="bg-white border border-[#FED7AA] rounded-2xl p-5 shadow-sm space-y-4">
           {/* Search & Filter Toolbar */}
