@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { getAllQuestions, upsertQuestion, deleteQuestion } from '@/lib/api';
+import { useEffect, useRef, useState } from 'react';
+import { getAllQuestions, importQuestions, upsertQuestion, deleteQuestion } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import type { Question } from '@/types/index';
-import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Loader2, Search } from 'lucide-react';
+import { readQuestionsFromFile, type ImportedQuestion } from '@/utils/questionDocumentImport';
+import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Loader2, Search, Upload } from 'lucide-react';
 
 const emptyQ = (): Partial<Question> => ({
   question_text: '',
@@ -52,6 +53,12 @@ export default function QuestionManagement() {
   const [formData, setFormData] = useState<Partial<Question>>(emptyQ());
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const [showImport, setShowImport] = useState(false);
+  const [importPreview, setImportPreview] = useState<ImportedQuestion[]>([]);
+  const [importFileName, setImportFileName] = useState('');
+  const [parsingDocument, setParsingDocument] = useState(false);
+  const [importingQuestions, setImportingQuestions] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -191,23 +198,72 @@ export default function QuestionManagement() {
     }
   };
 
+  const handleDocumentSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!/\.(docx|pdf)$/i.test(file.name)) {
+      toast.error('Choose a Word .docx or PDF file.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('The Word document must be 10 MB or smaller.');
+      return;
+    }
+
+    setParsingDocument(true);
+    setImportPreview([]);
+    setImportFileName(file.name);
+    try {
+      const parsed = await readQuestionsFromFile(file);
+      if (parsed.length > 100) throw new Error('Import up to 100 questions per Word document.');
+      setImportPreview(parsed);
+    } catch (err) {
+      console.error('Failed to parse question document:', err);
+      toast.error(err instanceof Error ? err.message : 'Could not read questions from this document.');
+    } finally {
+      setParsingDocument(false);
+    }
+  };
+
+  const handleImportQuestions = async () => {
+    if (!importPreview.length) return;
+    setImportingQuestions(true);
+    try {
+      const imported = await importQuestions(importPreview);
+      toast.success(`${imported.length} question${imported.length === 1 ? '' : 's'} imported.`);
+      setShowImport(false);
+      setImportPreview([]);
+      setImportFileName('');
+      await fetchData();
+    } catch (err) {
+      console.error('Failed to import questions:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to import questions.');
+    } finally {
+      setImportingQuestions(false);
+    }
+  };
+
   const set = (key: keyof Question, val: unknown) => setFormData(p => ({ ...p, [key]: val }));
 
   return (
     <AdminLayout>
       <div className="space-y-4 animate-fade-in">
-        <div className="flex flex-col md:flex-row md:items-center gap-3">
+        <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-3">
           <div className="flex-1">
             <h1 className="text-xl font-bold text-foreground">Career Fit Assessment — Question Management</h1>
             <p className="text-muted-foreground text-sm">{questions.filter(q => q.is_active).length} active / {questions.length} total questions</p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0 md:ml-auto">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input placeholder="Search questions..." value={search}
                 onChange={e => handleSearch(e.target.value)}
                 className="pl-8 w-48 bg-input border-border" />
             </div>
+            <Button variant="outline" onClick={() => { setImportPreview([]); setImportFileName(''); setShowImport(true); }}>
+              <Upload className="w-4 h-4 mr-1.5" /> Import Word
+            </Button>
             <Button onClick={openAdd} className="gradient-bg border-0 text-white">
               <Plus className="w-4 h-4 mr-1.5" /> Add Question
             </Button>
@@ -272,6 +328,68 @@ export default function QuestionManagement() {
           ))}
         </div>
       </div>
+
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".docx,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
+        className="hidden"
+        onChange={handleDocumentSelected}
+      />
+      <Dialog open={showImport} onOpenChange={open => { if (!importingQuestions) setShowImport(open); }}>
+        <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-3xl bg-card border-border max-h-[90dvh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Import Questions from Word</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Upload a .docx or text-based PDF. Number each question and put options A–D on separate lines.
+              Import up to 100 questions at a time. Option marks are optional; omitted marks default to 4, 3, 2, and 1.
+              Scanned PDFs without selectable text are not supported.
+            </p>
+            <pre className="whitespace-pre-wrap rounded-md bg-muted p-3 text-xs text-foreground">{`1. Question text goes here
+A. First answer - 4 marks
+B. Second answer - 3 marks
+C. Third answer (2 marks)
+D. Fourth answer - 1 mark
+
+2. Next question
+A. ...`}</pre>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button type="button" variant="outline" onClick={() => importInputRef.current?.click()} disabled={parsingDocument || importingQuestions}>
+                {parsingDocument ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                Choose .docx or PDF file
+              </Button>
+              {importFileName && <span className="text-sm text-muted-foreground">{importFileName}</span>}
+            </div>
+            {importPreview.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">{importPreview.length} question{importPreview.length === 1 ? '' : 's'} ready to import</p>
+                <div className="max-h-64 space-y-2 overflow-y-auto rounded-md border border-border p-3">
+                  {importPreview.map((question, index) => (
+                    <div key={`${index}-${question.question_text}`} className="rounded bg-muted p-3 text-sm">
+                      <p className="font-medium">{index + 1}. {question.question_text}</p>
+                      <ul className="mt-1 grid gap-x-4 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2">
+                        {([
+                          ['A', question.option_a, question.marks_a],
+                          ['B', question.option_b, question.marks_b],
+                          ['C', question.option_c, question.marks_c],
+                          ['D', question.option_d, question.marks_d],
+                        ] as const).map(([label, option, marks]) => <li key={label}>{label}. {option} ({marks} marks)</li>)}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowImport(false)} disabled={importingQuestions}>Cancel</Button>
+              <Button onClick={handleImportQuestions} disabled={!importPreview.length || parsingDocument || importingQuestions} className="gradient-bg border-0 text-white">
+                {importingQuestions && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Import {importPreview.length || ''} Questions
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Add/Edit Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>

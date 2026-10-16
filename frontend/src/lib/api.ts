@@ -379,6 +379,19 @@ export async function getAllQuestions(): Promise<Question[]> {
   return (Array.isArray(data) ? data : []) as Question[];
 }
 
+export async function importQuestions(questions: Partial<Question>[]): Promise<Question[]> {
+  const res = await fetch(`${API_BASE}/questions/bulk`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ questions }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || errorData.message || `Failed to import questions (${res.status})`);
+  }
+  return (await res.json()) as Question[];
+}
+
 export async function upsertQuestion(q: Partial<Question>): Promise<Question> {
   const url = q.id ? `${API_BASE}/questions/${q.id}` : `${API_BASE}/questions`;
   const method = q.id ? 'PUT' : 'POST';

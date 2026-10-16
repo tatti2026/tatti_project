@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { query } from '../database/pgPool.js';
+import { pool, query } from '../database/pgPool.js';
 
 export async function ensureQuestionsSchema(): Promise<void> {
   try {
@@ -135,6 +135,97 @@ export async function createQuestion(req: Request, res: Response) {
   } catch (err: any) {
     console.error('[questionController/createQuestion] Error creating question:', err.message, err.detail);
     return res.status(500).json({ error: err.message || 'Internal server error while creating question' });
+  }
+}
+
+export async function createQuestionsBulk(req: Request, res: Response) {
+  const questions: unknown = req.body?.questions;
+  if (!Array.isArray(questions) || questions.length === 0 || questions.length > 100) {
+    return res.status(400).json({ error: 'Provide between 1 and 100 questions to import.' });
+  }
+
+  const requiredTextFields = ['question_text', 'option_a', 'option_b', 'option_c', 'option_d'] as const;
+  const markFields = ['marks_a', 'marks_b', 'marks_c', 'marks_d'] as const;
+  const validatedQuestions: Array<Record<string, string | number | boolean>> = [];
+
+  for (const [index, value] of questions.entries()) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return res.status(400).json({ error: `Question ${index + 1} must be an object.` });
+    }
+
+    const question = value as Record<string, unknown>;
+    for (const field of requiredTextFields) {
+      if (typeof question[field] !== 'string' || !question[field].trim()) {
+        return res.status(400).json({ error: `Question ${index + 1} requires ${field.replace('_', ' ')}.` });
+      }
+    }
+    for (const field of markFields) {
+      const mark = question[field];
+      if (typeof mark !== 'number' || !Number.isInteger(mark) || mark < 0) {
+        return res.status(400).json({ error: `Question ${index + 1} requires a non-negative integer for ${field}.` });
+      }
+    }
+
+    validatedQuestions.push({
+      question_text: (question.question_text as string).trim(),
+      option_a: (question.option_a as string).trim(),
+      option_b: (question.option_b as string).trim(),
+      option_c: (question.option_c as string).trim(),
+      option_d: (question.option_d as string).trim(),
+      marks_a: question.marks_a as number,
+      marks_b: question.marks_b as number,
+      marks_c: question.marks_c as number,
+      marks_d: question.marks_d as number,
+      marks: Math.max(...markFields.map(field => question[field] as number)),
+      is_active: question.is_active !== false,
+    });
+  }
+
+  const client = await pool.connect();
+  let transactionStarted = false;
+  try {
+    await client.query('BEGIN');
+    transactionStarted = true;
+
+    const createdQuestions = [];
+    for (const question of validatedQuestions) {
+      const result = await client.query(`
+        INSERT INTO questions (
+          question_text, option_a, option_b, option_c, option_d,
+          marks_a, marks_b, marks_c, marks_d, marks,
+          correct_answer, difficulty, category, is_active
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NULL, 'medium', NULL, $11)
+        RETURNING *;
+      `, [
+        question.question_text,
+        question.option_a,
+        question.option_b,
+        question.option_c,
+        question.option_d,
+        question.marks_a,
+        question.marks_b,
+        question.marks_c,
+        question.marks_d,
+        question.marks,
+        question.is_active,
+      ]);
+      createdQuestions.push(result.rows[0]);
+    }
+
+    await client.query('COMMIT');
+    return res.status(201).json(createdQuestions);
+  } catch (err) {
+    if (transactionStarted) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('[questionController/createQuestionsBulk] Rollback failed:', rollbackError);
+      }
+    }
+    console.error('[questionController/createQuestionsBulk] Import failed:', err);
+    return res.status(500).json({ error: 'Failed to import questions. No questions were saved.' });
+  } finally {
+    client.release();
   }
 }
 
