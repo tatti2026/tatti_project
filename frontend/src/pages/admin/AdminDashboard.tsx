@@ -3,12 +3,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getDashboardStats, DashboardStats } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import {
   Users, ClipboardList,
-  Award, TrendingUp, UserPlus, RefreshCw, AlertCircle
+  TrendingUp, UserPlus, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 
@@ -32,7 +32,6 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [regTrend, setRegTrend] = useState<{ date: string; count: number }[]>([]);
   const [performanceData, setPerformanceData] = useState<{ name: string; value: number }[]>([]);
-  const [paymentData, setPaymentData] = useState<{ name: string; value: number }[]>([]);
 
   const loadStats = useCallback(async () => {
     setLoading(true);
@@ -52,10 +51,6 @@ export default function AdminDashboard() {
       setPerformanceData([
         { name: 'Completed', value: dashboardStats.assessmentCompleted },
         { name: 'Pending', value: dashboardStats.assessmentPending },
-      ]);
-      setPaymentData([
-        { name: 'Paid', value: dashboardStats.paidApplications },
-        { name: 'Unpaid', value: dashboardStats.unpaidApplications },
       ]);
     } catch (err: any) {
       console.error('Failed to load dashboard stats:', err);
@@ -84,7 +79,6 @@ export default function AdminDashboard() {
     { label: 'New Students (7d)', value: stats.newStudents7d, icon: UserPlus, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Career Assessments Done', value: stats.assessmentCompleted, icon: ClipboardList, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Assessments Pending', value: stats.assessmentPending, icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Confirmed Admissions', value: stats.admissionsConfirmed, icon: Award, color: 'text-emerald-600', bg: 'bg-emerald-50' },
   ];
 
   if (loading) return (
@@ -92,7 +86,7 @@ export default function AdminDashboard() {
       <div className="space-y-4">
         <div className="h-12 w-64 bg-slate-200 rounded-lg animate-pulse" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-28 bg-white border border-[#FED7AA] rounded-xl animate-pulse" />)}
+          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-28 bg-white border border-[#FED7AA] rounded-xl animate-pulse" />)}
         </div>
       </div>
     </AdminLayout>
@@ -178,48 +172,6 @@ export default function AdminDashboard() {
                   <Legend layout="horizontal" wrapperStyle={{ paddingTop: 8, fontSize: '12px' }} iconSize={10} iconType="circle" />
                 </PieChart>
               </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Payment Status */}
-          <div className="bg-white border border-[#FED7AA] rounded-xl p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-[#172554] mb-4">Application Payment Overview</h3>
-            <div className="w-full min-w-0 overflow-hidden h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={paymentData}>
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748B' }} />
-                  <Tooltip contentStyle={{ backgroundColor: '#FFFFFF', border: '1px solid #FED7AA', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.06)' }} />
-                  <Bar dataKey="value" fill="#1D4ED8" radius={[4, 4, 0, 0]}>
-                    {paymentData.map((_, i) => <Cell key={i} fill={i === 0 ? '#10B981' : '#F59E0B'} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Summary */}
-          <div className="bg-white border border-[#FED7AA] rounded-xl p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-[#172554] mb-4">Admission Pipeline Funnel</h3>
-            <div className="space-y-3.5">
-              {[
-                { label: 'Registered', value: stats.totalStudents, max: stats.totalStudents, color: 'bg-[#1D4ED8]' },
-                { label: 'Assessed', value: stats.assessmentCompleted, max: stats.totalStudents, color: 'bg-sky-500' },
-                { label: 'Applied', value: stats.applicationsSubmitted, max: stats.totalStudents, color: 'bg-amber-500' },
-                { label: 'Paid', value: stats.paidApplications, max: stats.totalStudents, color: 'bg-emerald-600' },
-                { label: 'Confirmed', value: stats.admissionsConfirmed, max: stats.totalStudents, color: 'bg-emerald-700' },
-              ].map(({ label, value, max, color }) => (
-                <div key={label}>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-[#64748B] font-medium">{label}</span>
-                    <span className="text-[#172554] font-semibold">{value}</span>
-                  </div>
-                  <div className="h-2 bg-[#FFEDD5] rounded-full overflow-hidden">
-                    <div className={`h-full ${color} rounded-full transition-all`}
-                      style={{ width: max > 0 ? `${(value / max) * 100}%` : '0%' }} />
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </div>
