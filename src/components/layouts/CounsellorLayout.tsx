@@ -5,19 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
   LayoutDashboard, Users, ClipboardList, BarChart2, Phone,
-  PhoneCall, BookOpen, CheckSquare, FileBarChart, MessageSquare,
+  PhoneCall, BookOpen, FileBarChart, MessageSquare,
   LogOut, Menu, GraduationCap, ChevronRight, UserCheck
 } from 'lucide-react';
 
 const navItems = [
   { path: '/counsellor/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/counsellor/students', icon: Users, label: 'Student Directory' },
+  { path: '/counsellor/students', icon: Users, label: 'Student Details' },
   { path: '/counsellor/questions', icon: ClipboardList, label: 'Career Assessment' },
   { path: '/counsellor/segmentation', icon: BarChart2, label: 'Student Segmentation' },
   { path: '/counsellor/counselling', icon: Phone, label: 'Counselling' },
-  { path: '/counsellor/followup', icon: PhoneCall, label: 'Follow-up Queue' },
-  { path: '/counsellor/courses', icon: BookOpen, label: 'Course Catalog' },
-  { path: '/counsellor/confirmations', icon: CheckSquare, label: 'Confirmations' },
+  { path: '/counsellor/followup', icon: PhoneCall, label: 'Follow-up' },
+  { path: '/counsellor/courses', icon: BookOpen, label: 'Course Management' },
   { path: '/counsellor/reports', icon: FileBarChart, label: 'Analytics & Reports' },
   { path: '/counsellor/notifications', icon: MessageSquare, label: 'Student Inquiries' },
 ];

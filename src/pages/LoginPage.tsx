@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Eye, EyeOff, GraduationCap, Loader2, Heart, Users, ChartNoAxesColumnIncreasing } from 'lucide-react';
+import { Eye, EyeOff, GraduationCap, Loader2, Users, ChartNoAxesColumnIncreasing } from 'lucide-react';
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset-sent';
 
@@ -81,15 +81,13 @@ export default function LoginPage() {
 
         <div className="relative z-10 px-10 pt-10 pb-8">
           {/* Logo row */}
-          <div className="flex items-center gap-4 mb-12">
-            <div
-              className="relative w-16 h-16 rounded-full flex items-center justify-center"
-              style={{ background: '#F59E0B', boxShadow: '0 0 28px rgba(245,158,11,0.35)' }}
-            >
-              <div className="absolute inset-2 rounded-full border-2 border-white/60" />
-              <Heart className="w-8 h-8 text-white" fill="white" />
-            </div>
-            <div className="flex items-center text-4xl font-black tracking-tight" style={{ letterSpacing: '-0.08em' }}>
+          <div className="flex items-center gap-3 mb-12">
+            <img
+              src="/logo/psycare-logo.png"
+              alt="PSYCARE Official Logo"
+              className="w-16 h-16 object-contain shrink-0 drop-shadow-sm select-none"
+            />
+            <div className="flex items-center text-4xl font-black tracking-tight select-none" style={{ letterSpacing: '-0.08em' }}>
               <span style={{ color: '#EA580C' }}>PSY</span>
               <span style={{ color: '#172554' }}>CARE</span>
             </div>
@@ -145,9 +143,7 @@ export default function LoginPage() {
         <div className="w-full max-w-[400px]">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'hsl(220 72% 20%)' }}>
-              <GraduationCap className="w-6 h-6 text-white" />
-            </div>
+            <img src="/logo/psycare-logo.png" alt="PSYCARE Logo" className="w-10 h-10 object-contain shrink-0" />
             <div>
               <p className="font-bold text-foreground text-sm">PSY CARE</p>
               <p className="text-xs text-muted-foreground">Student Portal</p>
@@ -208,14 +204,13 @@ export default function LoginPage() {
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setMode('forgot')}
+                  <Link
+                    to="/forgot-password?role=student"
                     className="text-sm font-medium hover:underline hover:text-orange-600 transition-colors"
                     style={{ color: 'hsl(213 85% 50%)' }}
                   >
-                    Forgot password?
-                  </button>
+                    Forgot Password?
+                  </Link>
                 </div>
                 <Button
                   type="submit"
@@ -232,20 +227,10 @@ export default function LoginPage() {
                   Create an account
                 </button>
               </p>
-              <div className="mt-5 pt-5 grid grid-cols-2 gap-2" style={{ borderTop: '1px solid hsl(var(--border))' }}>
-                <Link to="/admin/login">
+              <div className="mt-5 pt-5" style={{ borderTop: '1px solid hsl(var(--border))' }}>
+                <Link to="/counsellor/login" className="block">
                   <Button
-                    variant="outline"
-                    className="w-full text-xs h-9 font-medium transition-all duration-150 shadow-sm"
-                    style={{ background: '#FFF7ED', border: '1px solid #FED7AA', color: '#172554' }}
-                    onMouseEnter={e => { const b = e.currentTarget; b.style.background='#FFE0B2'; b.style.border='1px solid #F59E0B'; b.style.color='#9A3412'; }}
-                    onMouseLeave={e => { const b = e.currentTarget; b.style.background='#FFF7ED'; b.style.border='1px solid #FED7AA'; b.style.color='#172554'; }}
-                  >
-                    Admin Portal
-                  </Button>
-                </Link>
-                <Link to="/counsellor/login">
-                  <Button
+                    type="button"
                     variant="outline"
                     className="w-full text-xs h-9 font-medium transition-all duration-150 shadow-sm"
                     style={{ background: '#FFF7ED', border: '1px solid #FED7AA', color: '#172554' }}

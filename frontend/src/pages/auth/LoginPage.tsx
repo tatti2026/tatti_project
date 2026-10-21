@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Eye, EyeOff, GraduationCap, Loader2, CheckCircle2, Copy, Heart, Users, ChartNoAxesColumnIncreasing } from 'lucide-react';
+import { Eye, EyeOff, GraduationCap, Loader2, CheckCircle2, Copy, Users, ChartNoAxesColumnIncreasing } from 'lucide-react';
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset-sent';
 
@@ -63,7 +63,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user && role && !createdStudentId) {
-      if (role === 'admin') navigate('/admin/dashboard', { replace: true });
+      if (role === 'counsellor') navigate('/counsellor/dashboard', { replace: true });
       else navigate('/student/dashboard', { replace: true });
     }
   }, [user, role, navigate, createdStudentId]);
@@ -174,18 +174,15 @@ export default function LoginPage() {
         <div className="relative z-10 w-full max-w-[25rem] mx-auto">
 
           {/* Logo row */}
-          <div className="flex items-center gap-2 mb-8">
-            {/* Heart circle – #F59E0B bg */}
-            <div
-              className="relative w-[4.75rem] h-[4.75rem] rounded-full flex items-center justify-center shrink-0"
-              style={{ background: '#F59E0B', boxShadow: '0 0 28px rgba(245,158,11,0.35)' }}
-            >
-              <div className="absolute inset-2 rounded-full border-2 border-white/60" />
-              <Heart className="w-9 h-9 text-white" fill="white" />
-            </div>
+          <div className="flex items-center gap-3 mb-8">
+            <img
+              src="/logo/psycare-logo.png"
+              alt="PSYCARE Official Logo"
+              className="w-16 h-16 md:w-[4.75rem] md:h-[4.75rem] object-contain shrink-0 drop-shadow-sm select-none"
+            />
             {/* PSY + CARE wordmark */}
             <div
-              className="flex items-center text-[2.8rem] font-black tracking-tight"
+              className="flex items-center text-[2.8rem] font-black tracking-tight select-none"
               style={{ letterSpacing: '-0.07em' }}
             >
               <span style={{ color: '#EA580C' }}>PSY</span>
@@ -250,12 +247,14 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-6 lg:hidden">
-            <div className="w-10 h-10 rounded-xl bg-[#1D4ED8] flex items-center justify-center shadow-sm">
-              <GraduationCap className="w-6 h-6 text-white" />
-            </div>
+            <img
+              src="/logo/psycare-logo.png"
+              alt="PSYCARE Logo"
+              className="w-11 h-11 object-contain shrink-0"
+            />
             <div>
-              <p className="font-bold text-[#172554]">PSY CARE</p>
-              <p className="text-xs text-[#64748B]">Student Management Portal</p>
+              <p className="font-bold text-[#172554] text-base leading-tight">PSY CARE</p>
+              <p className="text-xs text-[#64748B] leading-tight">Student Management Portal</p>
             </div>
           </div>
 
@@ -329,13 +328,12 @@ export default function LoginPage() {
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => changeMode('forgot')}
+                  <Link
+                    to="/forgot-password?role=student"
                     className="text-sm text-primary hover:text-orange-600 hover:underline transition-colors"
                   >
                     Forgot Password?
-                  </button>
+                  </Link>
                 </div>
                 <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-orange-600 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign In'}
@@ -347,30 +345,18 @@ export default function LoginPage() {
               </p>
               <div className="mt-4">
                 <div className="text-center text-xs text-muted-foreground mb-3">— OR —</div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <Link to="/admin/login">
-                    <Button
-                      variant="outline"
-                      className="w-full text-xs font-medium transition-all duration-150 shadow-sm"
-                      style={{ background: '#FFF7ED', border: '1px solid #FED7AA', color: '#172554' }}
-                      onMouseEnter={e => { const b = e.currentTarget; b.style.background='#FFE0B2'; b.style.border='1px solid #F59E0B'; b.style.color='#9A3412'; }}
-                      onMouseLeave={e => { const b = e.currentTarget; b.style.background='#FFF7ED'; b.style.border='1px solid #FED7AA'; b.style.color='#172554'; }}
-                    >
-                      Admin Portal
-                    </Button>
-                  </Link>
-                  <Link to="/counsellor/login">
-                    <Button
-                      variant="outline"
-                      className="w-full text-xs font-medium transition-all duration-150 shadow-sm"
-                      style={{ background: '#FFF7ED', border: '1px solid #FED7AA', color: '#172554' }}
-                      onMouseEnter={e => { const b = e.currentTarget; b.style.background='#FFE0B2'; b.style.border='1px solid #F59E0B'; b.style.color='#9A3412'; }}
-                      onMouseLeave={e => { const b = e.currentTarget; b.style.background='#FFF7ED'; b.style.border='1px solid #FED7AA'; b.style.color='#172554'; }}
-                    >
-                      Counsellor Portal
-                    </Button>
-                  </Link>
-                </div>
+                <Link to="/counsellor/login" className="block">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full text-xs font-medium transition-all duration-150 shadow-sm"
+                    style={{ background: '#FFF7ED', border: '1px solid #FED7AA', color: '#172554' }}
+                    onMouseEnter={e => { const b = e.currentTarget; b.style.background='#FFE0B2'; b.style.border='1px solid #F59E0B'; b.style.color='#9A3412'; }}
+                    onMouseLeave={e => { const b = e.currentTarget; b.style.background='#FFF7ED'; b.style.border='1px solid #FED7AA'; b.style.color='#172554'; }}
+                  >
+                    Counsellor Portal
+                  </Button>
+                </Link>
               </div>
             </div>
           )}

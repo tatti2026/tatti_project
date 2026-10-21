@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,11 +72,14 @@ export default function CounsellorLoginPage() {
 
       <div className="w-full max-w-md relative">
         <div className="text-center mb-8">
-          <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-            style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)' }}
-          >
-            <GraduationCap className="w-9 h-9 text-white" />
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-white border border-[#FFCC99] p-1.5 shadow-sm flex items-center justify-center">
+              <img
+                src="/logo/psycare-logo.png"
+                alt="PSYCARE Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-1">PSY CARE Counsellor Portal</h1>
           <p className="text-muted-foreground text-sm">Student counselling and follow-up management</p>
@@ -125,14 +128,13 @@ export default function CounsellorLoginPage() {
               </div>
             </div>
             <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={handleForgotOpen}
+              <Link
+                to="/forgot-password?role=counsellor"
                 className="text-sm hover:underline"
                 style={{ color: '#059669' }}
               >
                 Forgot Password?
-              </button>
+              </Link>
             </div>
             <Button
               type="submit"
@@ -147,9 +149,6 @@ export default function CounsellorLoginPage() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Admin?{' '}
-          <a href="/admin/login" className="hover:underline" style={{ color: '#059669' }}>Go to Admin Portal</a>
-          {' · '}
           <a href="/login" className="hover:underline" style={{ color: '#059669' }}>Student Portal</a>
         </p>
       </div>

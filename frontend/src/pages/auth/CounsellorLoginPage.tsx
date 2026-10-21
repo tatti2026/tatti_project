@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -133,13 +133,12 @@ export default function CounsellorLoginPage() {
               </div>
             </div>
             <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={handleForgotOpen}
+              <Link
+                to="/forgot-password?role=counsellor"
                 className="text-sm font-medium hover:underline text-[#D97706] hover:text-[#B45309] transition-colors"
               >
                 Forgot Password?
-              </button>
+              </Link>
             </div>
             <Button
               type="submit"
@@ -152,10 +151,8 @@ export default function CounsellorLoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-[#64748B] mt-6 space-x-2">
-          <span>Admin? <a href="/admin/login" className="hover:underline text-[#D97706] hover:text-[#B45309] transition-colors">Go to Admin Portal</a></span>
-          <span>·</span>
-          <span><a href="/login" className="hover:underline text-[#D97706] hover:text-[#B45309] transition-colors">Student Portal</a></span>
+        <p className="text-center text-xs text-[#64748B] mt-6">
+          <a href="/login" className="hover:underline text-[#D97706] hover:text-[#B45309] transition-colors">Student Portal</a>
         </p>
       </div>
 

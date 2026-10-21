@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,8 +75,14 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md relative">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-bg mb-4">
-            <GraduationCap className="w-9 h-9 text-white" />
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-white border border-[#FED7AA] p-1.5 shadow-sm flex items-center justify-center">
+              <img
+                src="/logo/psycare-logo.png"
+                alt="PSYCARE Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-1">PSY CARE Admin Portal</h1>
           <p className="text-muted-foreground text-sm">Secure administration and student management</p>
@@ -109,13 +115,12 @@ export default function AdminLoginPage() {
               </div>
             </div>
             <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={handleForgotOpen}
+              <Link
+                to="/forgot-password?role=admin"
                 className="text-sm text-primary hover:underline"
               >
                 Forgot Password?
-              </button>
+              </Link>
             </div>
             <Button type="submit" disabled={loading} className="w-full gradient-bg border-0 text-white font-semibold h-11">
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Shield className="w-4 h-4 mr-2" />}

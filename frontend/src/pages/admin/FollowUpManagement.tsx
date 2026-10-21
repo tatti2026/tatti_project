@@ -476,7 +476,7 @@ export default function FollowUpManagement() {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#FED7AA]/60 pb-5">
           <div>
-            <h1 className="text-2xl font-bold text-[#172554] tracking-tight">Follow-up Management</h1>
+            <h1 className="text-2xl font-bold text-[#172554] tracking-tight">Follow-up</h1>
             <p className="text-sm text-[#64748B] mt-1">
               Track student admissions progress, application access, and follow-up status.
             </p>

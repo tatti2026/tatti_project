@@ -49,8 +49,9 @@ interface AuthContextType {
     fullName?: string
   ) => Promise<{ error: Error | null; studentId?: string }>;
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
-  sendPasswordResetEmail: (email: string) => Promise<{ error: Error | null }>;
+  sendPasswordResetEmail: (
+    email: string
+  ) => Promise<{ error: Error | null; message?: string; previewUrl?: string; devResetUrl?: string }>;
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
 }
 
@@ -208,18 +209,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * SECURITY: We never expose whether an account with the given email exists.
    * The caller always receives { error: null }.
    */
-  const sendPasswordResetEmail = async (email: string) => {
+  const sendPasswordResetEmail = async (
+    email: string
+  ): Promise<{ error: Error | null; message?: string; previewUrl?: string; devResetUrl?: string }> => {
     try {
-      await fetch(`${API_BASE}/auth/request-password-reset`, {
+      const cleanEmail = (email || '').trim();
+      if (!cleanEmail) {
+        throw new Error('Please enter your registered email address or Student ID.');
+      }
+
+      const res = await fetch(`${API_BASE}/auth/request-password-reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: cleanEmail }),
       });
-    } catch (err) {
-      console.error('Password reset request error (not exposed to user):', err);
+
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        // fallback
+      }
+
+      if (!res.ok) {
+        throw new Error(data.error || `Password reset request failed (${res.status})`);
+      }
+
+      return {
+        error: null,
+        message: data.message,
+        previewUrl: data.previewUrl,
+        devResetUrl: data.devResetUrl,
+      };
+    } catch (err: any) {
+      console.error('Password reset request error:', err);
+      return { error: err instanceof Error ? err : new Error(String(err)) };
     }
-    // Always return success to avoid leaking account existence
-    return { error: null };
   };
 
   /**

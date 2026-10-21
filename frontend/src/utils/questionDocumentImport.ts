@@ -101,7 +101,9 @@ export function parseQuestionDocument(text: string): ImportedQuestion[] {
 }
 
 export async function readQuestionsFromDocx(file: File): Promise<ImportedQuestion[]> {
-  const mammoth = (await import('mammoth')).default;
+  const mammothPackage = 'mammoth';
+  const mammothModule: any = await import(/* @vite-ignore */ mammothPackage);
+  const mammoth = mammothModule.default || mammothModule;
   const { value } = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
   const document = new DOMParser().parseFromString(value, 'text/html');
   const blocks = Array.from(document.body.querySelectorAll('p, li, h1, h2, h3, h4, tr'));
@@ -116,7 +118,8 @@ export async function readQuestionsFromDocx(file: File): Promise<ImportedQuestio
 }
 
 async function readQuestionsFromPdf(file: File): Promise<ImportedQuestion[]> {
-  const pdfjs = await import('pdfjs-dist');
+  const pdfjsPackage = 'pdfjs-dist';
+  const pdfjs: any = await import(/* @vite-ignore */ pdfjsPackage);
   pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
     import.meta.url,

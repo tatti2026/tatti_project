@@ -52,8 +52,8 @@ function SidebarContent({
       {/* Brand Header */}
       <div className="px-5 py-5 border-b border-slate-700/60">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#1D4ED8] flex items-center justify-center shrink-0 shadow-sm">
-            <GraduationCap className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-lg bg-white border border-[#FED7AA]/40 p-1 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+            <img src="/logo/psycare-logo.png" alt="PSYCARE Logo" className="w-full h-full object-contain" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-bold text-white tracking-wide leading-tight">PSY CARE</p>

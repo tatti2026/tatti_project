@@ -97,7 +97,7 @@ export default function CoursesManagement() {
       <div className="space-y-4 animate-fade-in">
         <div className="flex flex-col md:flex-row md:items-center gap-3">
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">Courses Management</h1>
+            <h1 className="text-xl font-bold text-foreground">Course Management</h1>
             <p className="text-muted-foreground text-sm">{courses.filter(c => c.status === 'available').length} available / {courses.length} total courses</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">

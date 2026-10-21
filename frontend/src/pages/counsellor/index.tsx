@@ -10,7 +10,6 @@ import Segmentation from '@/pages/admin/Segmentation';
 import CounsellingManagement from '@/pages/admin/CounsellingManagement';
 import FollowUpManagement from '@/pages/admin/FollowUpManagement';
 import CoursesManagement from '@/pages/admin/CoursesManagement';
-import Confirmations from '@/pages/admin/Confirmations';
 import Reports from '@/pages/admin/Reports';
 import AdminNotifications from '@/pages/admin/AdminNotifications';
 
@@ -31,6 +30,5 @@ export const CounsellorSegmentation = wrap(Segmentation);
 export const CounsellorCounsellingManagement = wrap(CounsellingManagement);
 export const CounsellorFollowUpManagement = wrap(FollowUpManagement);
 export const CounsellorCoursesManagement = wrap(CoursesManagement);
-export const CounsellorConfirmations = wrap(Confirmations);
 export const CounsellorReports = wrap(Reports);
 export const CounsellorNotifications = wrap(AdminNotifications);

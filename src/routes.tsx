@@ -4,34 +4,19 @@ import { RouteGuard } from '@/components/common/RouteGuard';
 
 // Auth pages
 import LoginPage from '@/pages/LoginPage';
-import AdminLoginPage from '@/pages/AdminLoginPage';
 import CounsellorLoginPage from '@/pages/CounsellorLoginPage';
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 
 // Student pages
 import StudentDashboard from '@/pages/student/StudentDashboard';
 import EntryAssessment from '@/pages/student/EntryAssessment';
 import ApplicationProcess from '@/pages/student/ApplicationProcess';
-import CounsellingPage from '@/pages/student/CounsellingPage';
-// AdmissionStatus removed from student portal (admin portal still manages admissions)
 import Notifications from '@/pages/student/Notifications';
 import StudentProfile from '@/pages/student/StudentProfile';
 import StudentSettings from '@/pages/student/StudentSettings';
 
-// Admin pages
-import AdminDashboard from '@/pages/admin/AdminDashboard';
-import StudentDetails from '@/pages/admin/StudentDetails';
-import QuestionManagement from '@/pages/admin/QuestionManagement';
-import Segmentation from '@/pages/admin/Segmentation';
-import CounsellingManagement from '@/pages/admin/CounsellingManagement';
-import FollowUpManagement from '@/pages/admin/FollowUpManagement';
-import CoursesManagement from '@/pages/admin/CoursesManagement';
-import Confirmations from '@/pages/admin/Confirmations';
-import Reports from '@/pages/admin/Reports';
-import AdminNotifications from '@/pages/admin/AdminNotifications';
-import AdminSettings from '@/pages/admin/AdminSettings';
-
-// Counsellor pages (admin page components wrapped in counsellor portal context)
+// Counsellor pages (page components wrapped in counsellor portal context)
 import {
   CounsellorDashboard,
   CounsellorStudentDetails,
@@ -40,7 +25,6 @@ import {
   CounsellorCounsellingManagement,
   CounsellorFollowUpManagement,
   CounsellorCoursesManagement,
-  CounsellorConfirmations,
   CounsellorReports,
   CounsellorNotifications,
 } from '@/pages/counsellor';
@@ -56,10 +40,6 @@ const studentGuard = (el: ReactNode) => (
   <RouteGuard requireAuth requireRole="student">{el}</RouteGuard>
 );
 
-const adminGuard = (el: ReactNode) => (
-  <RouteGuard requireAuth requireRole="admin">{el}</RouteGuard>
-);
-
 const counsellorGuard = (el: ReactNode) => (
   <RouteGuard requireAuth requireRole="counsellor">{el}</RouteGuard>
 );
@@ -70,8 +50,8 @@ export const routes: RouteConfig[] = [
 
   // Auth
   { name: 'Student Login', path: '/login', element: <LoginPage />, public: true },
-  { name: 'Admin Login', path: '/admin/login', element: <AdminLoginPage />, public: true },
   { name: 'Counsellor Login', path: '/counsellor/login', element: <CounsellorLoginPage />, public: true },
+  { name: 'Forgot Password', path: '/forgot-password', element: <ForgotPasswordPage />, public: true },
   { name: 'Reset Password', path: '/reset-password', element: <ResetPasswordPage />, public: true },
 
   // Student Portal
@@ -80,35 +60,36 @@ export const routes: RouteConfig[] = [
   { name: 'Application Process', path: '/student/application', element: studentGuard(<ApplicationProcess />) },
   // Counselling removed from student portal — redirect to dashboard
   { name: 'Counselling Redirect', path: '/student/counselling', element: <Navigate to="/student/dashboard" replace /> },
-  // Admission Status removed from student portal — redirect to dashboard. Admin portal manages admissions.
+  // Admission Status removed from student portal — redirect to dashboard
   { name: 'Admission Status Redirect', path: '/student/admission', element: <Navigate to="/student/dashboard" replace /> },
   { name: 'Notifications', path: '/student/notifications', element: studentGuard(<Notifications />) },
   { name: 'Profile', path: '/student/profile', element: studentGuard(<StudentProfile />) },
   { name: 'Settings', path: '/student/settings', element: studentGuard(<StudentSettings />) },
 
-  // Admin Portal
-  { name: 'Admin Dashboard', path: '/admin/dashboard', element: adminGuard(<AdminDashboard />) },
-  { name: 'Student Details', path: '/admin/students', element: adminGuard(<StudentDetails />) },
-  { name: 'Career Fit Assessment', path: '/admin/questions', element: adminGuard(<QuestionManagement />) },
-  { name: 'Assessment & Segmentation', path: '/admin/segmentation', element: adminGuard(<Segmentation />) },
-  { name: 'Counselling Management', path: '/admin/counselling', element: adminGuard(<CounsellingManagement />) },
-  { name: 'Follow-up Management', path: '/admin/followup', element: adminGuard(<FollowUpManagement />) },
-  { name: 'Courses', path: '/admin/courses', element: adminGuard(<CoursesManagement />) },
-  { name: 'Confirmations', path: '/admin/confirmations', element: adminGuard(<Confirmations />) },
-  { name: 'Reports', path: '/admin/reports', element: adminGuard(<Reports />) },
-  { name: 'Admin Notifications', path: '/admin/notifications', element: adminGuard(<AdminNotifications />) },
-  { name: 'Settings Redirect', path: '/admin/settings', element: <Navigate to="/admin/dashboard" replace /> },
+  // Old Admin Portal routes — redirect to public login page
+  { name: 'Admin Login Redirect', path: '/admin/login', element: <Navigate to="/login" replace />, public: true },
+  { name: 'Admin Dashboard Redirect', path: '/admin/dashboard', element: <Navigate to="/login" replace />, public: true },
+  { name: 'Admin Students Redirect', path: '/admin/students', element: <Navigate to="/login" replace />, public: true },
+  { name: 'Admin Questions Redirect', path: '/admin/questions', element: <Navigate to="/login" replace />, public: true },
+  { name: 'Admin Segmentation Redirect', path: '/admin/segmentation', element: <Navigate to="/login" replace />, public: true },
+  { name: 'Admin Counselling Redirect', path: '/admin/counselling', element: <Navigate to="/login" replace />, public: true },
+  { name: 'Admin Follow-up Redirect', path: '/admin/followup', element: <Navigate to="/login" replace />, public: true },
+  { name: 'Admin Courses Redirect', path: '/admin/courses', element: <Navigate to="/login" replace />, public: true },
+  { name: 'Admin Confirmations Redirect', path: '/admin/confirmations', element: <Navigate to="/login" replace />, public: true },
+  { name: 'Admin Reports Redirect', path: '/admin/reports', element: <Navigate to="/login" replace />, public: true },
+  { name: 'Admin Notifications Redirect', path: '/admin/notifications', element: <Navigate to="/login" replace />, public: true },
+  { name: 'Admin Settings Redirect', path: '/admin/settings', element: <Navigate to="/login" replace />, public: true },
+  { name: 'Admin Wildcard Redirect', path: '/admin/*', element: <Navigate to="/login" replace />, public: true },
 
-  // Counsellor Portal — same pages as admin, rendered with CounsellorLayout (green sidebar)
+  // Counsellor Portal (rendered with CounsellorLayout)
   { name: 'Counsellor Dashboard', path: '/counsellor/dashboard', element: counsellorGuard(<CounsellorDashboard />) },
-  { name: 'Counsellor Students', path: '/counsellor/students', element: counsellorGuard(<CounsellorStudentDetails />) },
+  { name: 'Counsellor Student Details', path: '/counsellor/students', element: counsellorGuard(<CounsellorStudentDetails />) },
   { name: 'Counsellor Career Assessment', path: '/counsellor/questions', element: counsellorGuard(<CounsellorQuestionManagement />) },
   { name: 'Counsellor Segmentation', path: '/counsellor/segmentation', element: counsellorGuard(<CounsellorSegmentation />) },
   { name: 'Counsellor Counselling', path: '/counsellor/counselling', element: counsellorGuard(<CounsellorCounsellingManagement />) },
   { name: 'Counsellor Follow-up', path: '/counsellor/followup', element: counsellorGuard(<CounsellorFollowUpManagement />) },
-  { name: 'Counsellor Courses', path: '/counsellor/courses', element: counsellorGuard(<CounsellorCoursesManagement />) },
-  { name: 'Counsellor Confirmations', path: '/counsellor/confirmations', element: counsellorGuard(<CounsellorConfirmations />) },
+  { name: 'Counsellor Course Management', path: '/counsellor/courses', element: counsellorGuard(<CounsellorCoursesManagement />) },
+  { name: 'Counsellor Confirmations Redirect', path: '/counsellor/confirmations', element: counsellorGuard(<Navigate to="/counsellor/dashboard" replace />) },
   { name: 'Counsellor Reports', path: '/counsellor/reports', element: counsellorGuard(<CounsellorReports />) },
   { name: 'Counsellor Notifications', path: '/counsellor/notifications', element: counsellorGuard(<CounsellorNotifications />) },
 ];
-

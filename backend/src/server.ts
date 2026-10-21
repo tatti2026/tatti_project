@@ -4,6 +4,7 @@ import { startCounsellingReminderWorker } from './services/counsellingReminderSe
 import { ensureFollowUpNotesTable } from './controllers/followUpNotesController.js';
 import { ensureFollowUpTimeColumn } from './controllers/followUpController.js';
 import { ensureQuestionsSchema } from './controllers/questionController.js';
+import { ensurePasswordResetTable } from './controllers/authController.js';
 
 const PORT = process.env.PORT || 5000;
 
@@ -26,5 +27,10 @@ app.listen(PORT, async () => {
     await ensureQuestionsSchema();
   } catch (err) {
     console.error('[PSY CARE Backend] Failed to ensure questions schema:', err);
+  }
+  try {
+    await ensurePasswordResetTable();
+  } catch (err) {
+    console.error('[PSY CARE Backend] Failed to ensure password reset table:', err);
   }
 });
