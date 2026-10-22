@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getAllStudents, getFollowUps, getAllCounselling, getAllAssessments, upsertFollowUp,
-  unlockStudentApplication, lockStudentApplication,
 } from '@/lib/api';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import StatusBadge from '@/components/common/StatusBadge';
@@ -9,15 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel,
-  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
-  AlertDialogHeader, AlertDialogTitle
-} from '@/components/ui/alert-dialog';
+
 import { toast } from 'sonner';
 import type { Student, FollowUp, Counselling, Assessment } from '@/types/index';
 import {
-  Plus, Pencil, Loader2, Eye, Calendar, Lock, Unlock, BellRing, CheckCircle2,
+  Plus, Pencil, Loader2, Eye, Calendar, BellRing, CheckCircle2,
   Clock3, CalendarClock, Search, X, ChevronLeft, ChevronRight, RotateCcw, Users, AlertCircle, Award
 } from 'lucide-react';
 import { format, formatDistanceToNowStrict } from 'date-fns';
@@ -118,13 +113,7 @@ export default function FollowUpManagement() {
   const [editFU, setEditFU] = useState<FollowUp | null>(null);
   const [viewStudent, setViewStudent] = useState<Student | null>(null);
 
-  // Confirmation dialog for application lock/unlock
-  const [confirmDialog, setConfirmDialog] = useState<{
-    open: boolean;
-    student: Student | null;
-    action: 'unlock' | 'lock';
-  }>({ open: false, student: null, action: 'unlock' });
-  const [actionLoading, setActionLoading] = useState(false);
+
 
   // Follow-up form fields
   const [form, setForm] = useState({
@@ -202,27 +191,7 @@ export default function FollowUpManagement() {
     return followUps.find(f => f.student_id === studentId);
   }, [followUps]);
 
-  // Lock / Unlock student application
-  const handleConfirmAction = async () => {
-    if (!confirmDialog.student) return;
-    setActionLoading(true);
-    try {
-      const operatorName = profile?.full_name || profile?.email || 'PSY CARE Staff';
-      if (confirmDialog.action === 'unlock') {
-        await unlockStudentApplication(confirmDialog.student.id, operatorName);
-        toast.success(`Application access unlocked for ${confirmDialog.student.full_name || 'student'}`);
-      } else {
-        await lockStudentApplication(confirmDialog.student.id, operatorName);
-        toast.success(`Application access locked for ${confirmDialog.student.full_name || 'student'}`);
-      }
-      await fetchData();
-    } catch {
-      toast.error(`Failed to ${confirmDialog.action} application access`);
-    } finally {
-      setActionLoading(false);
-      setConfirmDialog({ open: false, student: null, action: 'unlock' });
-    }
-  };
+
 
   // Open Follow-up form
   const openAdd = (defaultIntent = 'medium', studentId?: string) => {
@@ -656,12 +625,11 @@ export default function FollowUpManagement() {
             <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full text-xs border-collapse" style={{ minWidth: '950px' }}>
                 <colgroup>
-                  <col style={{ width: '22%' }} />
+                  <col style={{ width: '25%' }} />
                   <col style={{ width: '15%' }} />
-                  <col style={{ width: '18%' }} />
-                  <col style={{ width: '19%' }} />
+                  <col style={{ width: '22%' }} />
+                  <col style={{ width: '24%' }} />
                   <col style={{ width: '14%' }} />
-                  <col style={{ width: '12%' }} />
                 </colgroup>
                 <thead>
                   <tr className="bg-[#0B1F3A] text-white text-xs uppercase tracking-wider">
@@ -669,7 +637,6 @@ export default function FollowUpManagement() {
                     <th className="px-4 py-3.5 text-left font-bold">Student ID</th>
                     <th className="px-4 py-3.5 text-left font-bold">Career Fit Assessment</th>
                     <th className="px-4 py-3.5 text-left font-bold">Counselling</th>
-                    <th className="px-4 py-3.5 text-left font-bold">Application Access</th>
                     <th className="px-4 py-3.5 text-right font-bold">Update Status</th>
                   </tr>
                 </thead>
@@ -771,46 +738,8 @@ export default function FollowUpManagement() {
                           </div>
                         </td>
 
-                        {/* 5. Application Access */}
-                        <td className="px-4 py-3 align-top">
-                          <div className="flex flex-col gap-1.5 items-start">
-                            {s.application_access_status === 'unlocked' ? (
-                              <>
-                                <div className="flex items-center gap-1 text-[#0369A1] bg-[#E0F2FE] border border-[#BAE6FD] px-2 py-0.5 rounded-full font-semibold text-[11px] w-fit">
-                                  <Unlock className="w-3 h-3 text-[#0284C7]" />
-                                  <span>Unlocked</span>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-6 px-2 text-[10px] text-rose-600 border-rose-300 hover:bg-rose-50 w-fit"
-                                  title="Lock student application access"
-                                  onClick={() => setConfirmDialog({ open: true, student: s, action: 'lock' })}
-                                >
-                                  <Lock className="w-2.5 h-2.5 mr-1" /> Lock
-                                </Button>
-                              </>
-                            ) : (
-                              <>
-                                <div className="flex items-center gap-1 text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full font-semibold text-[11px] w-fit">
-                                  <Lock className="w-3 h-3 text-rose-500" />
-                                  <span>Locked</span>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-6 px-2 text-[10px] text-sky-700 border-sky-300 hover:bg-sky-50 w-fit"
-                                  title="Unlock student application access"
-                                  onClick={() => setConfirmDialog({ open: true, student: s, action: 'unlock' })}
-                                >
-                                  <Unlock className="w-2.5 h-2.5 mr-1" /> Unlock
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </td>
 
-                        {/* 6. Update Status Action */}
+                        {/* 5. Update Status Action */}
                         <td className="px-4 py-3 text-right align-top">
                           <Button
                             size="sm"
@@ -1146,55 +1075,7 @@ export default function FollowUpManagement() {
           </DialogContent>
         </Dialog>
 
-        {/* ── LOCK / UNLOCK APPLICATION CONFIRMATION DIALOG ── */}
-        <AlertDialog open={confirmDialog.open} onOpenChange={open => !actionLoading && setConfirmDialog(d => ({ ...d, open }))}>
-          <AlertDialogContent className="bg-white border border-[#FED7AA] max-w-md">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2 text-[#172554]">
-                {confirmDialog.action === 'unlock' ? (
-                  <>
-                    <Unlock className="w-5 h-5 text-[#0284C7]" />
-                    Unlock Application Process?
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-5 h-5 text-rose-500" />
-                    Lock Application Process?
-                  </>
-                )}
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-[#64748B] text-sm pt-1">
-                {confirmDialog.action === 'unlock'
-                  ? `Are you sure you want to allow ${confirmDialog.student?.full_name || 'this student'} to start the application process? They will be permitted to fill out personal details, select courses, and proceed to payment.`
-                  : `Are you sure you want to prevent ${confirmDialog.student?.full_name || 'this student'} from accessing the application process? Their application form, submissions, and payments will be strictly locked.`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="mt-4">
-              <AlertDialogCancel disabled={actionLoading} className="border-[#FED7AA]">Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={e => {
-                  e.preventDefault();
-                  handleConfirmAction();
-                }}
-                disabled={actionLoading}
-                className={
-                  confirmDialog.action === 'unlock'
-                    ? 'bg-[#0284C7] hover:bg-[#0369A1] text-white font-semibold'
-                    : 'bg-rose-600 hover:bg-rose-700 text-white font-semibold'
-                }
-              >
-                {actionLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
-                ) : confirmDialog.action === 'unlock' ? (
-                  <Unlock className="w-4 h-4 mr-1.5" />
-                ) : (
-                  <Lock className="w-4 h-4 mr-1.5" />
-                )}
-                {confirmDialog.action === 'unlock' ? 'Unlock' : 'Lock'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+
       </div>
     </AdminLayout>
   );

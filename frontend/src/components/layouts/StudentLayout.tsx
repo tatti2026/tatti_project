@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
-  LayoutDashboard, ClipboardList, Lock, Unlock,
+  LayoutDashboard, ClipboardList,
   Bell, User, LogOut, Menu, GraduationCap, ChevronRight, Settings
 } from 'lucide-react';
 import { getNotifications, getStudentByProfileId } from '@/lib/api';
@@ -18,11 +18,9 @@ interface StudentLayoutProps {
 function SidebarContent({
   onNavClick,
   unreadCount,
-  isUnlocked,
 }: {
   onNavClick?: () => void;
   unreadCount: number;
-  isUnlocked: boolean;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -36,12 +34,6 @@ function SidebarContent({
   const navItems = [
     { path: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/student/assessment', icon: ClipboardList, label: 'Career Fit Assessment' },
-    {
-      path: '/student/application',
-      icon: isUnlocked ? Unlock : Lock,
-      label: 'Application Process',
-      isAppProcess: true,
-    },
     { path: '/student/notifications', icon: Bell, label: 'Inquiries & Messages', isNotifications: true },
     { path: '/student/profile', icon: User, label: 'Profile' },
     { path: '/student/settings', icon: Settings, label: 'Account Settings' },
@@ -79,7 +71,7 @@ function SidebarContent({
 
       {/* Nav items */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map(({ path, icon: Icon, label, isAppProcess, isNotifications }) => {
+        {navItems.map(({ path, icon: Icon, label, isNotifications }) => {
           const active = location.pathname === path;
           return (
             <Link
@@ -95,31 +87,14 @@ function SidebarContent({
               <div className="relative shrink-0">
                 <Icon
                   className={`w-4 h-4 transition-colors ${
-                    isAppProcess
-                      ? isUnlocked
-                        ? 'text-emerald-400'
-                        : 'text-amber-400'
-                      : active
-                        ? 'text-[#C66A16]'
-                        : 'text-slate-400 group-hover:text-orange-300'
+                    active
+                      ? 'text-[#C66A16]'
+                      : 'text-slate-400 group-hover:text-orange-300'
                   }`}
                 />
               </div>
 
               <span className="flex-1 min-w-0 truncate">{label}</span>
-
-              {/* Lock / Unlock badge indicator on sidebar */}
-              {isAppProcess && (
-                <span
-                  className={`ml-auto text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold flex items-center gap-1 ${
-                    isUnlocked
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                  }`}
-                >
-                  {isUnlocked ? 'Unlocked' : 'Locked'}
-                </span>
-              )}
 
               {/* Unread notification badge */}
               {isNotifications && unreadCount > 0 && (
@@ -128,7 +103,7 @@ function SidebarContent({
                 </span>
               )}
 
-              {active && !isAppProcess && !isNotifications && (
+              {active && !isNotifications && (
                 <ChevronRight className="w-3.5 h-3.5 shrink-0 text-[#9A3412]" />
               )}
             </Link>
@@ -153,12 +128,11 @@ function SidebarContent({
 export default function StudentLayout({ children }: StudentLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isUnlocked, setIsUnlocked] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
   const location = useLocation();
   const { profile } = useAuth();
 
-  // Load student & application access status
+  // Load student data & notifications
   useEffect(() => {
     if (!profile) return;
     let mounted = true;
@@ -168,7 +142,6 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
         const student = await getStudentByProfileId(profile.id);
         if (student && mounted) {
           setStudentId(student.id);
-          setIsUnlocked(student.application_access_status === 'unlocked');
 
           const [notifs] = await Promise.all([getNotifications(profile.id)]);
           const sysUnread = notifs.filter(n => !n.is_read).length;
@@ -182,12 +155,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
 
     loadStudentData();
 
-    const handleAccessChange = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (!studentId || detail?.studentId === studentId) {
-        setIsUnlocked(detail?.status === 'unlocked');
-      }
-    };
+
 
     const handleNewMessage = () => {
       if (studentId) {
@@ -206,7 +174,6 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
       }
     };
 
-    window.addEventListener('tatti_application_access_changed', handleAccessChange);
     window.addEventListener('tatti_new_message', handleNewMessage);
     window.addEventListener('tatti_messages_read', handleNewMessage);
     window.addEventListener('storage', handleStorage);
@@ -215,7 +182,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
 
     return () => {
       mounted = false;
-      window.removeEventListener('tatti_application_access_changed', handleAccessChange);
+
       window.removeEventListener('tatti_new_message', handleNewMessage);
       window.removeEventListener('tatti_messages_read', handleNewMessage);
       window.removeEventListener('storage', handleStorage);
@@ -227,7 +194,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
     <div className="flex min-h-screen w-full bg-[#FFF7ED]">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-[#0B1F3A]">
-        <SidebarContent unreadCount={unreadCount} isUnlocked={isUnlocked} />
+        <SidebarContent unreadCount={unreadCount} />
       </aside>
 
       {/* Main content container */}
@@ -245,7 +212,6 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
               <SheetContent side="left" className="p-0 w-60 bg-[#0B1F3A] border-r border-[#0B1F3A]">
                 <SidebarContent
                   unreadCount={unreadCount}
-                  isUnlocked={isUnlocked}
                   onNavClick={() => setMobileOpen(false)}
                 />
               </SheetContent>
