@@ -143,30 +143,30 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFF7ED]">
+    <div className="min-h-screen flex flex-col bg-[#FFF0E8]">
       {/* Main content row */}
       <div className="flex flex-1 min-h-0">
         {/* ── Left branding panel – light orange theme ── */}
         <div
           className="hidden md:flex flex-col justify-between w-[54%] relative overflow-hidden px-8 xl:px-16 py-8"
-          style={{ background: '#FFE0B2' }}
+          style={{ background: 'linear-gradient(145deg, #FFF0E8 0%, #FFE0CC 60%, #FFD9C8 100%)' }}
         >
           {/* Soft dotted pattern + soft warm blobs */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              backgroundImage: 'radial-gradient(circle at 1px 1px, #FED7AA 1px, transparent 0)',
+              backgroundImage: 'radial-gradient(circle at 1px 1px, #F0D6C8 1px, transparent 0)',
               backgroundSize: '32px 32px',
             }}
           />
           {/* Decorative circles – soft orange */}
           <div
             className="absolute -left-20 bottom-12 w-64 h-64 rounded-full border-[24px] pointer-events-none"
-            style={{ borderColor: '#FED7AA' }}
+            style={{ borderColor: '#F0D6C8' }}
           />
           <div
             className="absolute -left-10 bottom-20 w-44 h-44 rounded-full border-[14px] pointer-events-none"
-            style={{ borderColor: '#FED7AA' }}
+            style={{ borderColor: '#F0D6C8' }}
           />
 
           {/* Top content block */}
@@ -182,23 +182,23 @@ export default function ForgotPasswordPage() {
                 className="flex items-center text-[2.8rem] font-black tracking-tight select-none"
                 style={{ letterSpacing: '-0.07em' }}
               >
-                <span style={{ color: '#EA580C' }}>PSY</span>
-                <span style={{ color: '#172554' }}>CARE</span>
+                <span style={{ color: '#2878C8' }}>PSY</span>
+                <span style={{ color: '#25364B' }}>CARE</span>
               </div>
             </div>
 
             {/* Main heading */}
             <h1
               className="text-4xl leading-[1.08] font-bold mb-4"
-              style={{ letterSpacing: '-0.035em', color: '#172554' }}
+              style={{ letterSpacing: '-0.035em', color: '#25364B' }}
             >
               Your Mental Well-being<br />Our Priority
             </h1>
             {/* Orange underline */}
-            <div className="w-14 h-1 rounded-full mb-4" style={{ background: '#F59E0B' }} />
+            <div className="w-14 h-1 rounded-full mb-4" style={{ background: '#2878C8' }} />
 
             {/* Description */}
-            <p className="text-base leading-relaxed max-w-[22rem]" style={{ color: '#172554' }}>
+            <p className="text-base leading-relaxed max-w-[22rem]" style={{ color: '#25364B' }}>
               PSYCARE is a digital platform designed to support students in understanding their potential,
               making informed career choices and building a brighter future through personalized career guidance and counselling.
             </p>
@@ -212,11 +212,11 @@ export default function ForgotPasswordPage() {
                 <div key={text} className="flex flex-col items-center text-center gap-2 flex-1">
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm"
-                    style={{ background: '#F59E0B' }}
+                    style={{ background: '#2878C8' }}
                   >
-                    <Icon className="w-5 h-5" style={{ color: '#172554' }} />
+                    <Icon className="w-5 h-5" style={{ color: '#25364B' }} />
                   </div>
-                  <span className="text-xs xl:text-sm font-medium leading-snug" style={{ color: '#9A3412' }}>
+                  <span className="text-xs xl:text-sm font-medium leading-snug" style={{ color: '#1D6AB8' }}>
                     {text}
                   </span>
                 </div>
@@ -228,19 +228,19 @@ export default function ForgotPasswordPage() {
           <div className="relative z-10 flex justify-center pb-1">
             <div
               className="relative text-[1.7rem] font-semibold italic tracking-tight"
-              style={{ letterSpacing: '-0.035em', color: '#172554' }}
+              style={{ letterSpacing: '-0.035em', color: '#25364B' }}
             >
               Better Minds&nbsp; Brighter Futures
               <span
                 className="absolute -bottom-2 left-[29%] w-[55%] h-[2px] rounded-full -rotate-[5deg]"
-                style={{ background: '#F59E0B' }}
+                style={{ background: '#2878C8' }}
               />
             </div>
           </div>
         </div>
 
         {/* ── Right interactive panel ── */}
-        <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[#FFF7ED]">
+        <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[#FFF0E8]">
           <div className="w-full max-w-md">
             {/* Mobile logo */}
             <div className="flex items-center gap-3 mb-6 md:hidden">
@@ -250,22 +250,22 @@ export default function ForgotPasswordPage() {
                 className="w-11 h-11 object-contain shrink-0"
               />
               <div>
-                <p className="font-bold text-[#172554] text-base leading-tight">PSY CARE</p>
+                <p className="font-bold text-[#25364B] text-base leading-tight">PSY CARE</p>
                 <p className="text-xs text-[#64748B] leading-tight">Mental Well-being & Career Portal</p>
               </div>
             </div>
 
             {/* Form Card */}
-            <div className="bg-white border border-[#FED7AA] rounded-2xl p-6 md:p-8 shadow-[0_4px_24px_rgba(245,158,11,0.06)] animate-fade-in">
+            <div className="bg-white border border-[#F0D6C8] rounded-2xl p-6 md:p-8 shadow-[0_4px_24px_rgba(245,158,11,0.06)] animate-fade-in">
               {!submitted ? (
                 <>
                   {/* Badge */}
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#FFE0B2]/60 text-[#9A3412] border border-[#FED7AA] mb-4">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#FFD9C8]/60 text-[#1D6AB8] border border-[#F0D6C8] mb-4">
                     <PortalIcon className="w-3.5 h-3.5" />
                     <span>{portal.badgeText}</span>
                   </div>
 
-                  <h2 className="text-2xl font-bold text-[#172554] mb-1">{portal.title}</h2>
+                  <h2 className="text-2xl font-bold text-[#25364B] mb-1">{portal.title}</h2>
                   <p className="text-[#64748B] text-sm mb-6 leading-relaxed">
                     {portal.subtitle}
                   </p>
@@ -280,7 +280,7 @@ export default function ForgotPasswordPage() {
 
                   <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
                     <div>
-                      <Label htmlFor="forgot-email" className="text-sm font-medium text-[#172554]">
+                      <Label htmlFor="forgot-email" className="text-sm font-medium text-[#25364B]">
                         {portal.inputLabel}
                       </Label>
                       <Input
@@ -295,13 +295,13 @@ export default function ForgotPasswordPage() {
                         placeholder={portal.placeholder}
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        className="mt-1.5 bg-white border-[#FED7AA] text-[#172554] hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 h-11 transition-colors"
+                        className="mt-1.5 bg-white border-[#F0D6C8] text-[#25364B] hover:border-[#2878C8] focus:border-[#2878C8] focus:ring-[#2878C8] h-11 transition-colors"
                         onFocus={e => {
-                          e.currentTarget.style.border = '1px solid #F59E0B';
+                          e.currentTarget.style.border = '1px solid #2878C8';
                           e.currentTarget.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.2)';
                         }}
                         onBlur={e => {
-                          e.currentTarget.style.border = '1px solid #FED7AA';
+                          e.currentTarget.style.border = '1px solid #F0D6C8';
                           e.currentTarget.style.boxShadow = 'none';
                         }}
                       />
@@ -313,7 +313,7 @@ export default function ForgotPasswordPage() {
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-[#1D4ED8] hover:bg-orange-600 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150 mt-2"
+                      className="w-full bg-[#2878C8] hover:bg-[#1D6AB8] text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150 mt-2"
                     >
                       {loading ? (
                         <span className="flex items-center gap-2">
@@ -326,10 +326,10 @@ export default function ForgotPasswordPage() {
                     </Button>
                   </form>
 
-                  <div className="mt-6 pt-5 border-t border-[#FED7AA]/60 text-center">
+                  <div className="mt-6 pt-5 border-t border-[#F0D6C8]/60 text-center">
                     <Link
                       to={portal.loginPath}
-                      className="inline-flex items-center gap-1.5 text-sm font-medium text-[#1D4ED8] hover:text-orange-600 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-[#2878C8] hover:text-[#1D6AB8] transition-colors"
                     >
                       <ArrowLeft className="w-4 h-4" />
                       {portal.loginLabel}
@@ -339,15 +339,15 @@ export default function ForgotPasswordPage() {
               ) : (
                 /* ── Check Your Email View ── */
                 <div className="py-2 space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto text-emerald-600 shadow-sm">
+                  <div className="w-16 h-16 rounded-full bg-[#E8F1FB] border border-[#BFDBFE] flex items-center justify-center mx-auto text-[#2878C8] shadow-sm">
                     <Mail className="w-8 h-8" />
                   </div>
 
                   <div className="text-center">
-                    <h2 className="text-2xl font-bold text-[#172554] mb-2">Check Your Email</h2>
+                    <h2 className="text-2xl font-bold text-[#25364B] mb-2">Check Your Email</h2>
                     <p className="text-sm text-[#475569] leading-relaxed">
                       If an account is associated with{' '}
-                      <span className="font-semibold text-[#172554] font-mono break-all">
+                      <span className="font-semibold text-[#25364B] font-mono break-all">
                         {lastSubmittedEmail}
                       </span>
                       , a password reset link has been dispatched.
@@ -356,8 +356,8 @@ export default function ForgotPasswordPage() {
 
                   {/* Resend success notice */}
                   {resendSuccessMessage && (
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                    <div className="p-3 bg-[#E8F1FB] border border-[#BFDBFE] rounded-xl text-[#2878C8] text-xs flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-[#2878C8]" />
                       <span>{resendSuccessMessage}</span>
                     </div>
                   )}
@@ -372,18 +372,18 @@ export default function ForgotPasswordPage() {
 
                   {/* Development / Test helper if no live SMTP */}
                   {devResetUrl && (
-                    <div className="p-4 bg-amber-50/90 border border-amber-300 rounded-xl text-left text-xs text-amber-900 leading-relaxed shadow-sm">
-                      <div className="flex items-center gap-1.5 font-bold text-amber-950 mb-1">
-                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <div className="p-4 bg-[#FFF0E8] border border-[#F0D6C8] rounded-xl text-left text-xs text-[#25364B] leading-relaxed shadow-sm">
+                      <div className="flex items-center gap-1.5 font-bold text-[#25364B] mb-1">
+                        <span className="w-2 h-2 rounded-full bg-[#2878C8] animate-pulse"></span>
                         Development Test Mode Active
                       </div>
-                      <p className="text-[11px] text-amber-800 mb-3">
-                        Live SMTP credentials are not set in <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">.env</code>. Your reset link was generated and captured locally for instant testing:
+                      <p className="text-[11px] text-[#667085] mb-3">
+                        Live SMTP credentials are not set in <code className="bg-[#FFD9C8]/50 px-1 py-0.5 rounded font-mono">.env</code>. Your reset link was generated and captured locally for instant testing:
                       </p>
                       <div className="flex flex-col sm:flex-row gap-2">
                         <a
                           href={devResetUrl}
-                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-orange-600 hover:bg-orange-700 text-white shadow-sm transition"
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-[#2878C8] hover:bg-[#1D6AB8] text-white shadow-sm transition"
                         >
                           <span>Reset Password Now</span>
                           <ArrowRight className="w-3.5 h-3.5" />
@@ -393,7 +393,7 @@ export default function ForgotPasswordPage() {
                             href={previewUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-amber-300 text-amber-900 bg-white hover:bg-amber-100 transition"
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-[#BFDBFE] text-[#2878C8] bg-white hover:bg-[#E8F1FB] transition"
                           >
                             <span>Preview Test Email</span>
                             <ExternalLink className="w-3.5 h-3.5" />
@@ -403,9 +403,9 @@ export default function ForgotPasswordPage() {
                     </div>
                   )}
 
-                  <div className="p-3.5 bg-[#FFF1E5] border border-[#FFCC99] rounded-xl text-left text-xs text-[#9A3412] leading-relaxed">
+                  <div className="p-3.5 bg-[#FFF0E8] border border-[#F0D6C8] rounded-xl text-left text-xs text-[#1D6AB8] leading-relaxed">
                     <p className="font-semibold mb-1">What to do next:</p>
-                    <ul className="list-disc list-inside space-y-1 text-[#7C2D12]">
+                    <ul className="list-disc list-inside space-y-1 text-[#667085]">
                       <li>Open your email and click the <strong>Reset Password</strong> button.</li>
                       <li>The link will expire in <strong>1 hour</strong> and can only be used once.</li>
                       <li>Check your spam or junk folder if the message does not appear in a few minutes.</li>
@@ -419,11 +419,11 @@ export default function ForgotPasswordPage() {
                       variant="outline"
                       onClick={handleResend}
                       disabled={resending || cooldown > 0}
-                      className="w-full h-11 border-[#FED7AA] hover:border-orange-500 hover:bg-orange-50 text-[#172554] font-semibold transition-all duration-150"
+                      className="w-full h-11 border-[#F0D6C8] hover:border-[#2878C8] hover:bg-[#E8F1FB] text-[#25364B] font-semibold transition-all duration-150"
                     >
                       {resending ? (
                         <span className="flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin text-orange-600" />
+                          <Loader2 className="w-4 h-4 animate-spin text-[#2878C8]" />
                           Sending New Reset Link…
                         </span>
                       ) : cooldown > 0 ? (
@@ -433,7 +433,7 @@ export default function ForgotPasswordPage() {
                         </span>
                       ) : (
                         <span className="flex items-center gap-1.5">
-                          <RefreshCw className="w-3.5 h-3.5 text-orange-600" />
+                          <RefreshCw className="w-3.5 h-3.5 text-[#2878C8]" />
                           Resend Reset Email
                         </span>
                       )}
@@ -444,7 +444,7 @@ export default function ForgotPasswordPage() {
                       type="button"
                       variant="ghost"
                       onClick={handleTryAnotherEmail}
-                      className="w-full text-xs text-[#64748B] hover:text-orange-600 hover:bg-orange-50 transition-colors"
+                      className="w-full text-xs text-[#64748B] hover:text-[#1D6AB8] hover:bg-[#E8F1FB] transition-colors"
                     >
                       <ArrowLeft className="w-3.5 h-3.5 mr-1" />
                       Try another email address
@@ -453,7 +453,7 @@ export default function ForgotPasswordPage() {
                     {/* Tertiary action: Return to sign in */}
                     <Button
                       asChild
-                      className="w-full bg-[#1D4ED8] hover:bg-orange-600 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150"
+                      className="w-full bg-[#2878C8] hover:bg-[#1D6AB8] text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150"
                     >
                       <Link to={portal.loginPath}>
                         Return to Sign In
@@ -466,11 +466,11 @@ export default function ForgotPasswordPage() {
 
             {/* Portal Switcher Navigation */}
             <div className="mt-6 text-center text-xs text-[#64748B] space-x-2">
-              <Link to="/login" className="hover:text-orange-600 hover:underline transition-colors">
+              <Link to="/login" className="hover:text-[#1D6AB8] hover:underline transition-colors">
                 Student Portal
               </Link>
               <span>·</span>
-              <Link to="/counsellor/login" className="hover:text-orange-600 hover:underline transition-colors">
+              <Link to="/counsellor/login" className="hover:text-[#1D6AB8] hover:underline transition-colors">
                 Counsellor Portal
               </Link>
             </div>
@@ -480,3 +480,5 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
+
+

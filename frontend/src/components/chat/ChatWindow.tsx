@@ -55,7 +55,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               {recipientName}
             </h3>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-[#2878C8] animate-pulse" />
               <p className="text-[11px] text-muted-foreground">{recipientSubtitle}</p>
             </div>
           </div>
@@ -164,3 +164,4 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 };
 
 export default ChatWindow;
+

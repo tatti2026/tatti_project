@@ -250,7 +250,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
                         </>
                       ) : (
                         <>
-                          <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                          <CheckCircle2 className="w-3 h-3 text-[#2878C8]" />
                           Ready!
                         </>
                       )}
@@ -312,3 +312,4 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 };
 
 export default DocumentUploadModal;
+

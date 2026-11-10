@@ -5,6 +5,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import apiRouter from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { pool } from './database/pgPool.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,9 +16,24 @@ app.use(cors({ origin: true, credentials: true, exposedHeaders: ['Content-Dispos
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-// Health Check
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'PSY CARE Portal Backend API', timestamp: new Date() });
+// Health Check with read-only database connectivity test
+app.get('/health', async (_req, res) => {
+  let isDbConnected = false;
+  try {
+    await pool.query('SELECT 1');
+    isDbConnected = true;
+  } catch (err: any) {
+    // Log real failure reason to server logs only; do not expose internal details to client
+    console.error('[HealthCheck] Database connection check failed:', err.message);
+  }
+
+  const statusCode = isDbConnected ? 200 : 503;
+  return res.status(statusCode).json({
+    status: isDbConnected ? 'ok' : 'error',
+    service: 'PSY CARE Portal Backend API',
+    database: isDbConnected ? 'connected' : 'disconnected',
+    timestamp: new Date(),
+  });
 });
 
 // Mount main API

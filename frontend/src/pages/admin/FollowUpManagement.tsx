@@ -80,7 +80,7 @@ const INTENT_COLOR_MAP = {
   },
   none: {
     colorName: 'No Follow-up',
-    rowClass: 'bg-white hover:bg-slate-50/80 border-b border-slate-200 text-[#172554]',
+    rowClass: 'bg-white hover:bg-slate-50/80 border-b border-slate-200 text-[#25364B]',
     textColor: 'text-slate-600',
     badgeClass: 'bg-slate-100 text-slate-500 border border-slate-200 font-medium',
     dotBg: 'bg-slate-400',
@@ -443,10 +443,10 @@ export default function FollowUpManagement() {
     <AdminLayout>
       <div className="space-y-6 animate-fade-in">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#FED7AA]/60 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#F0D6C8]/60 pb-5">
           <div>
-            <h1 className="text-2xl font-bold text-[#172554] tracking-tight">Follow-up</h1>
-            <p className="text-sm text-[#64748B] mt-1">
+            <h1 className="text-2xl font-bold text-[#25364B] tracking-tight">Follow-up</h1>
+            <p className="text-sm text-[#667085] mt-1">
               Track student admissions progress, application access, and follow-up status.
             </p>
           </div>
@@ -457,7 +457,7 @@ export default function FollowUpManagement() {
               size="sm"
               onClick={() => fetchData(true)}
               disabled={refreshing || loading}
-              className="text-xs h-9 gap-1.5 border-[#FFCC99] text-[#7C2D12] hover:bg-[#FFF1E5] hover:text-[#9A3412]"
+              className="text-xs h-9 gap-1.5 border-[#BFDBFE] text-[#1D6AB8] hover:bg-[#E8F1FB] hover:text-[#1D6AB8]"
               title="Refresh data"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
@@ -466,7 +466,7 @@ export default function FollowUpManagement() {
 
             <Button
               onClick={() => openAdd('medium')}
-              className="text-xs h-9 bg-[#F59E0B] hover:bg-[#D97706] text-white font-semibold shadow-xs gap-1.5"
+              className="text-xs h-9 bg-[#2878C8] hover:bg-[#1D6AB8] text-white font-semibold shadow-xs gap-1.5"
             >
               <Plus className="w-4 h-4" />
               <span>Record Follow-up</span>
@@ -476,18 +476,18 @@ export default function FollowUpManagement() {
 
         {/* Summary Metric Cards (Pure student management metrics, no intent segmentation) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-          <div className="bg-white border border-[#FED7AA] rounded-xl p-4 shadow-xs">
-            <p className="text-xs font-medium text-[#64748B]">Total Students</p>
-            <p className="text-2xl font-bold text-[#172554] mt-1">{counts.total}</p>
+          <div className="bg-white border border-[#F0D6C8] rounded-xl p-4 shadow-xs">
+            <p className="text-xs font-medium text-[#667085]">Total Students</p>
+            <p className="text-2xl font-bold text-[#25364B] mt-1">{counts.total}</p>
           </div>
 
-          <div className="bg-white border border-[#FED7AA] rounded-xl p-4 shadow-xs">
-            <p className="text-xs font-medium text-[#64748B]">Active Follow-ups</p>
-            <p className="text-2xl font-bold text-[#172554] mt-1">{counts.withFollowUp}</p>
+          <div className="bg-white border border-[#F0D6C8] rounded-xl p-4 shadow-xs">
+            <p className="text-xs font-medium text-[#667085]">Active Follow-ups</p>
+            <p className="text-2xl font-bold text-[#25364B] mt-1">{counts.withFollowUp}</p>
           </div>
 
-          <div className="bg-white border border-[#FED7AA] rounded-xl p-4 shadow-xs">
-            <p className="text-xs font-medium text-[#64748B]">Applications Unlocked</p>
+          <div className="bg-white border border-[#F0D6C8] rounded-xl p-4 shadow-xs">
+            <p className="text-xs font-medium text-[#667085]">Applications Unlocked</p>
             <p className="text-2xl font-bold text-[#0284C7] mt-1">
               {students.filter(s => s.application_access_status === 'unlocked').length}
             </p>
@@ -495,9 +495,9 @@ export default function FollowUpManagement() {
         </div>
 
         {/* Consolidated Student Results Table Container */}
-        <div className="bg-white border border-[#FED7AA] rounded-2xl p-5 shadow-sm space-y-4">
-          {/* Search & Color-Based Filter Toolbar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="bg-white border border-[#F0D6C8] rounded-2xl p-5 shadow-sm space-y-4">
+          {/* Search & Color-Based Filter Toolbar - Light Orange Section (#FFE0CC) */}
+          <div className="bg-[#FFE0CC] border border-[#F0D6C8] rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
             {/* Search Input */}
             <div className="relative flex-1 max-w-md">
               <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -506,7 +506,7 @@ export default function FollowUpManagement() {
                 placeholder="Search by student name or student ID..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9 bg-white border border-[#FED7AA] text-sm text-[#172554] placeholder:text-slate-400 focus:border-[#F59E0B] focus:ring-[#F59E0B] rounded-lg h-10 transition-colors"
+                className="pl-9 bg-white border border-[#F0D6C8] text-sm text-[#25364B] placeholder:text-slate-400 focus:border-[#2878C8] focus:ring-[#2878C8] rounded-lg h-10 transition-colors"
               />
               {search && (
                 <button
@@ -601,8 +601,8 @@ export default function FollowUpManagement() {
           {!loading && filteredRows.length === 0 && (
             <div className="py-16 text-center space-y-3">
               <Users className="w-10 h-10 text-slate-300 mx-auto" />
-              <p className="text-base font-bold text-[#172554]">No Student Records Found</p>
-              <p className="text-xs text-[#64748B] max-w-sm mx-auto">
+              <p className="text-base font-bold text-[#25364B]">No Student Records Found</p>
+              <p className="text-xs text-[#667085] max-w-sm mx-auto">
                 {search
                   ? `No students matching "${search}" were found.`
                   : 'There are currently no student records in this follow-up category.'}
@@ -612,7 +612,7 @@ export default function FollowUpManagement() {
                   variant="outline"
                   size="sm"
                   onClick={() => setSearch('')}
-                  className="text-xs border-[#FFCC99] text-[#7C2D12] hover:bg-[#FFF1E5]"
+                  className="text-xs border-[#BFDBFE] text-[#1D6AB8] hover:bg-[#E8F1FB]"
                 >
                   Clear Search
                 </Button>
@@ -620,9 +620,9 @@ export default function FollowUpManagement() {
             </div>
           )}
 
-          {/* Consolidated Student Results Table */}
+          {/* Consolidated Student Results Table (Desktop) */}
           {!loading && filteredRows.length > 0 && (
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full text-xs border-collapse" style={{ minWidth: '950px' }}>
                 <colgroup>
                   <col style={{ width: '25%' }} />
@@ -663,11 +663,11 @@ export default function FollowUpManagement() {
                               <button
                                 type="button"
                                 onClick={() => setViewStudent(s)}
-                                className="font-bold text-[#172554] text-xs hover:text-[#F59E0B] transition-colors flex items-center gap-1 text-left w-full min-w-0"
+                                className="font-bold text-[#25364B] text-xs hover:text-[#2878C8] transition-colors flex items-center gap-1 text-left w-full min-w-0"
                                 title="View Student Details"
                               >
                                 <span className="truncate block max-w-[150px]">{studentName}</span>
-                                <Eye className="w-3 h-3 text-slate-400 hover:text-[#F59E0B] shrink-0" />
+                                <Eye className="w-3 h-3 text-slate-400 hover:text-[#2878C8] shrink-0" />
                               </button>
                               <p className="text-[11px] opacity-75 truncate max-w-[150px]" title={s.email || '-'}>
                                 {s.email || '-'}
@@ -684,15 +684,15 @@ export default function FollowUpManagement() {
 
                         {/* 2. Student ID */}
                         <td className="px-4 py-3 font-mono font-bold text-xs whitespace-nowrap">
-                          <span className="text-[#172554]">{s.student_id || '-'}</span>
+                          <span className="text-[#25364B]">{s.student_id || '-'}</span>
                         </td>
 
                         {/* 3. Career Fit Assessment (Score or Status) */}
                         <td className="px-4 py-3">
                           {hasAssessmentScore ? (
                             <div className="flex flex-col gap-1 items-start">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#172554] border border-[#FED7AA] shadow-2xs">
-                                <Award className="w-3 h-3 text-[#F59E0B]" />
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-white text-[#25364B] border border-[#F0D6C8] shadow-2xs">
+                                <Award className="w-3 h-3 text-[#2878C8]" />
                                 <span>{Number(assessment.percentage).toFixed(1)}%</span>
                               </span>
                               <span className="text-[10px] opacity-75 font-medium">
@@ -728,7 +728,7 @@ export default function FollowUpManagement() {
                                   <StatusBadge status={fu.followup_status || 'pending'} />
                                   {fuScheduledAt && (
                                     <span className="flex items-center gap-1 text-[10px] font-semibold text-[#B45309]">
-                                      <BellRing className="h-3 w-3 shrink-0 text-[#F59E0B]" />
+                                      <BellRing className="h-3 w-3 shrink-0 text-[#2878C8]" />
                                       <span>{format(fuScheduledAt, 'dd MMM, h:mm a')}</span>
                                     </span>
                                   )}
@@ -744,11 +744,11 @@ export default function FollowUpManagement() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 px-2.5 text-[11px] font-semibold bg-white border-[#FED7AA] text-[#172554] hover:border-[#F59E0B] hover:text-[#D97706] hover:bg-[#FFF7ED] shadow-2xs whitespace-nowrap"
+                            className="h-8 px-2.5 text-[11px] font-semibold bg-white border-[#F0D6C8] text-[#25364B] hover:border-[#2878C8] hover:text-[#1D6AB8] hover:bg-[#E8F1FB] shadow-2xs whitespace-nowrap"
                             title="Update Student Follow-up Status"
                             onClick={() => (fu ? openEdit(fu) : openAdd('medium', s.id))}
                           >
-                            <Pencil className="w-3 h-3 mr-1 text-[#F59E0B]" />
+                            <Pencil className="w-3 h-3 mr-1 text-[#2878C8]" />
                             <span>Update Status</span>
                           </Button>
                         </td>
@@ -760,20 +760,98 @@ export default function FollowUpManagement() {
             </div>
           )}
 
+          {/* Consolidated Student Results (Mobile Cards) */}
+          {!loading && filteredRows.length > 0 && (
+            <div className="md:hidden space-y-2.5">
+              {paginatedRows.map(({ student: s, followUp: fu, intentKey, assessment, counselling: c }) => {
+                const style = INTENT_COLOR_MAP[intentKey];
+                const studentName = s.full_name || s.email || 'Unnamed Student';
+                const formattedDate = formatCounsellingDateTime(c?.scheduled_date, c?.scheduled_time);
+                const isCounsellingScheduled = c && c.status && c.status !== 'not_scheduled' && formattedDate;
+                const hasAssessmentScore = assessment?.status === 'completed' && assessment.percentage != null;
+
+                return (
+                  <div key={s.id} className="bg-white rounded-xl p-3 border border-[#F0D6C8] shadow-xs space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-full bg-[#2878C8] flex items-center justify-center shrink-0 text-xs font-bold text-white">
+                          {studentName[0].toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => setViewStudent(s)}
+                            className="font-bold text-[#25364B] text-xs hover:text-[#2878C8] transition-colors flex items-center gap-1 text-left truncate"
+                          >
+                            <span className="truncate">{studentName}</span>
+                            <Eye className="w-3 h-3 text-slate-400 shrink-0" />
+                          </button>
+                          <p className="text-[10px] font-mono text-[#667085]">{s.student_id || '-'}</p>
+                        </div>
+                      </div>
+
+                      {intentKey !== 'none' && (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] shrink-0 ${style.badgeClass}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${style.dotBg}`} />
+                          <span>{style.colorName}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px] pt-1.5 border-t border-[#F0D6C8]/40 text-[#667085]">
+                      <div>
+                        <span className="text-[10px] text-[#94A3B8] block">Career Fit</span>
+                        {hasAssessmentScore ? (
+                          <span className="font-semibold text-[#25364B] flex items-center gap-1">
+                            <Award className="w-3 h-3 text-[#2878C8]" />
+                            {Number(assessment.percentage).toFixed(1)}%
+                          </span>
+                        ) : (
+                          <StatusBadge status={s.assessment_status || 'not_started'} />
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[#94A3B8] block">Counselling</span>
+                        {isCounsellingScheduled ? (
+                          <div className="truncate">
+                            <StatusBadge status={c.status || s.counselling_status || 'scheduled'} />
+                            <span className="text-[10px] text-[#667085] block truncate mt-0.5">{formattedDate}</span>
+                          </div>
+                        ) : (
+                          <StatusBadge status={s.counselling_status || 'not_scheduled'} />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-1.5 border-t border-[#F0D6C8]/40">
+                      <Button
+                        size="sm"
+                        onClick={() => openEdit(fu, s, intentKey)}
+                        className="h-7 text-xs bg-[#2878C8] hover:bg-[#1D6AB8] text-white shadow-xs"
+                      >
+                        <Pencil className="w-3 h-3 mr-1" /> Update Status
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Pagination Controls */}
           {!loading && filteredRows.length > 0 && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#FED7AA]/60 text-xs text-[#64748B]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#F0D6C8]/60 text-xs text-[#667085]">
               <div className="flex items-center gap-2">
                 <span>
                   Showing{' '}
-                  <strong className="text-[#172554]">
+                  <strong className="text-[#25364B]">
                     {Math.min((currentPage - 1) * pageSize + 1, filteredRows.length)}
                   </strong>{' '}
                   to{' '}
-                  <strong className="text-[#172554]">
+                  <strong className="text-[#25364B]">
                     {Math.min(currentPage * pageSize, filteredRows.length)}
                   </strong>{' '}
-                  of <strong className="text-[#172554]">{filteredRows.length}</strong> students
+                  of <strong className="text-[#25364B]">{filteredRows.length}</strong> students
                 </span>
 
                 <span className="text-slate-300">|</span>
@@ -783,7 +861,7 @@ export default function FollowUpManagement() {
                   <select
                     value={pageSize}
                     onChange={e => setPageSize(Number(e.target.value))}
-                    className="border border-[#FED7AA] bg-white text-[#172554] rounded-md px-1.5 py-0.5 text-xs focus:ring-[#F59E0B]"
+                    className="border border-[#F0D6C8] bg-white text-[#25364B] rounded-md px-1.5 py-0.5 text-xs focus:ring-[#2878C8]"
                   >
                     <option value={10}>10</option>
                     <option value={15}>15</option>
@@ -799,14 +877,14 @@ export default function FollowUpManagement() {
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="h-8 w-8 p-0 border-[#FED7AA] text-[#172554] hover:bg-[#FFF1E5] disabled:opacity-40"
+                  className="h-8 w-8 p-0 border-[#F0D6C8] text-[#25364B] hover:bg-[#E8F1FB] disabled:opacity-40"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
 
                 <span className="px-2 font-medium">
-                  Page <strong className="text-[#172554]">{currentPage}</strong> of{' '}
-                  <strong className="text-[#172554]">{totalPages}</strong>
+                  Page <strong className="text-[#25364B]">{currentPage}</strong> of{' '}
+                  <strong className="text-[#25364B]">{totalPages}</strong>
                 </span>
 
                 <Button
@@ -814,7 +892,7 @@ export default function FollowUpManagement() {
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="h-8 w-8 p-0 border-[#FED7AA] text-[#172554] hover:bg-[#FFF1E5] disabled:opacity-40"
+                  className="h-8 w-8 p-0 border-[#F0D6C8] text-[#25364B] hover:bg-[#E8F1FB] disabled:opacity-40"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
@@ -837,7 +915,7 @@ export default function FollowUpManagement() {
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2 border-b border-slate-200 pb-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="rounded-lg bg-amber-100 p-2.5 text-amber-700">
+                      <div className="rounded-lg bg-[#E8F1FB] p-2.5 text-[#2878C8]">
                         <BellRing className="h-5 w-5" />
                       </div>
                       <div>
@@ -845,7 +923,7 @@ export default function FollowUpManagement() {
                         <p className="mt-0.5 text-xs text-slate-500">PSY CARE · Scheduled follow-up</p>
                       </div>
                     </div>
-                    <span className="rounded-full bg-orange-100 px-2 py-1 text-[11px] font-semibold text-orange-700">
+                    <span className="rounded-full bg-[#E8F1FB] border border-[#BFDBFE] px-2 py-1 text-[11px] font-semibold text-[#2878C8]">
                       {minutesUntil <= 5 ? 'Due now' : `Due in ${formatDistanceToNowStrict(activeReminder.scheduledAt)}`}
                     </span>
                   </div>
@@ -885,9 +963,9 @@ export default function FollowUpManagement() {
 
         {/* ── FOLLOW-UP / UPDATE STATUS DIALOG ── */}
         <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-md bg-white border border-[#FED7AA]">
+          <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-md bg-white border border-[#F0D6C8]">
             <DialogHeader>
-              <DialogTitle className="text-base font-bold text-[#172554]">
+              <DialogTitle className="text-base font-bold text-[#25364B]">
                 {editFU ? 'Update Follow-up Status' : 'Record Follow-up'}
               </DialogTitle>
             </DialogHeader>
@@ -895,7 +973,7 @@ export default function FollowUpManagement() {
             <div className="space-y-3.5 pt-2">
               {/* 1. Student Field */}
               <div>
-                <Label className="text-xs font-semibold text-[#172554]">Student</Label>
+                <Label className="text-xs font-semibold text-[#25364B]">Student</Label>
                 <select
                   value={form.student_id}
                   onChange={e => {
@@ -912,7 +990,7 @@ export default function FollowUpManagement() {
                       notes: existingFU?.notes || ''
                     }));
                   }}
-                  className="w-full mt-1 bg-white border border-[#FED7AA] rounded-md px-3 py-2 text-xs text-[#172554] outline-none focus:border-[#F59E0B]"
+                  className="w-full mt-1 bg-white border border-[#F0D6C8] rounded-md px-3 py-2 text-xs text-[#25364B] outline-none focus:border-[#2878C8]"
                 >
                   <option value="">Select a student...</option>
                   {students.map(s => (
@@ -926,34 +1004,34 @@ export default function FollowUpManagement() {
               {/* 2 & 3. Follow-up Date and Time */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs font-semibold text-[#172554]">Follow-up Date</Label>
+                  <Label className="text-xs font-semibold text-[#25364B]">Follow-up Date</Label>
                   <Input
                     required
                     type="date"
                     value={form.followup_date}
                     onChange={e => setForm(f => ({ ...f, followup_date: e.target.value }))}
-                    className="mt-1 bg-white border-[#FED7AA] text-xs text-[#172554]"
+                    className="mt-1 bg-white border-[#F0D6C8] text-xs text-[#25364B]"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs font-semibold text-[#172554]">Follow-up Time</Label>
+                  <Label className="text-xs font-semibold text-[#25364B]">Follow-up Time</Label>
                   <Input
                     required
                     type="time"
                     value={form.followup_time}
                     onChange={e => setForm(f => ({ ...f, followup_time: e.target.value }))}
-                    className="mt-1 bg-white border-[#FED7AA] text-xs text-[#172554]"
+                    className="mt-1 bg-white border-[#F0D6C8] text-xs text-[#25364B]"
                   />
                 </div>
               </div>
 
               {/* 4. Status Field */}
               <div>
-                <Label className="text-xs font-semibold text-[#172554]">Status</Label>
+                <Label className="text-xs font-semibold text-[#25364B]">Status</Label>
                 <select
                   value={form.followup_status}
                   onChange={e => setForm(f => ({ ...f, followup_status: e.target.value }))}
-                  className="w-full mt-1 bg-white border border-[#FED7AA] rounded-md px-3 py-2 text-xs text-[#172554] outline-none focus:border-[#F59E0B]"
+                  className="w-full mt-1 bg-white border border-[#F0D6C8] rounded-md px-3 py-2 text-xs text-[#25364B] outline-none focus:border-[#2878C8]"
                 >
                   <option value="pending">Pending</option>
                   <option value="in_progress">In Progress</option>
@@ -964,11 +1042,11 @@ export default function FollowUpManagement() {
 
               {/* 5. Intent Level Dropdown (Saves high/medium/low, maps to colors) */}
               <div>
-                <Label className="text-xs font-semibold text-[#172554]">Intent Level</Label>
+                <Label className="text-xs font-semibold text-[#25364B]">Intent Level</Label>
                 <select
                   value={form.intent_level}
                   onChange={e => setForm(f => ({ ...f, intent_level: e.target.value }))}
-                  className="w-full mt-1 bg-white border border-[#FED7AA] rounded-md px-3 py-2 text-xs text-[#172554] outline-none focus:border-[#F59E0B]"
+                  className="w-full mt-1 bg-white border border-[#F0D6C8] rounded-md px-3 py-2 text-xs text-[#25364B] outline-none focus:border-[#2878C8]"
                 >
                   <option value="high">High Intent (Light Blue)</option>
                   <option value="medium">Medium Intent (Light Purple)</option>
@@ -978,13 +1056,13 @@ export default function FollowUpManagement() {
 
               {!isCounsellor && (
                 <div>
-                  <Label className="text-xs font-semibold text-[#172554]">Follow-up Notes / Remarks</Label>
+                  <Label className="text-xs font-semibold text-[#25364B]">Follow-up Notes / Remarks</Label>
                   <textarea
                     value={form.notes}
                     onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                     rows={3}
                     placeholder="Enter discussion notes or follow-up details..."
-                    className="w-full mt-1 bg-white border border-[#FED7AA] rounded-md px-3 py-2 text-xs text-[#172554] outline-none resize-none focus:border-[#F59E0B]"
+                    className="w-full mt-1 bg-white border border-[#F0D6C8] rounded-md px-3 py-2 text-xs text-[#25364B] outline-none resize-none focus:border-[#2878C8]"
                   />
                 </div>
               )}
@@ -992,13 +1070,13 @@ export default function FollowUpManagement() {
               <div className="flex gap-2 pt-2">
                 <Button
                   variant="outline"
-                  className="flex-1 text-xs border-[#FFCC99] text-[#7C2D12] hover:bg-[#FFF1E5]"
+                  className="flex-1 text-xs border-[#BFDBFE] text-[#1D6AB8] hover:bg-[#E8F1FB]"
                   onClick={() => setShowForm(false)}
                 >
                   Cancel
                 </Button>
                 <Button
-                  className="flex-1 bg-[#F59E0B] hover:bg-[#D97706] text-white text-xs font-semibold"
+                  className="flex-1 bg-[#2878C8] hover:bg-[#1D6AB8] text-white text-xs font-semibold"
                   onClick={handleSave}
                   disabled={saving}
                 >
@@ -1012,50 +1090,50 @@ export default function FollowUpManagement() {
 
         {/* ── VIEW STUDENT DETAILS DIALOG ── */}
         <Dialog open={!!viewStudent} onOpenChange={() => setViewStudent(null)}>
-          <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-md bg-white border border-[#FED7AA]">
+          <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-md bg-white border border-[#F0D6C8]">
             <DialogHeader>
-              <DialogTitle className="text-base font-bold text-[#172554]">
+              <DialogTitle className="text-base font-bold text-[#25364B]">
                 {viewStudent?.full_name || 'Student Details'}
               </DialogTitle>
             </DialogHeader>
             {viewStudent && (
               <div className="space-y-3 pt-2 text-xs">
-                <div className="p-3 bg-[#FFF7ED] rounded-xl border border-[#FED7AA]">
-                  <p className="text-[#64748B]">Student ID: <span className="font-mono font-bold text-[#172554]">{viewStudent.student_id || '-'}</span></p>
-                  <p className="text-[#64748B] mt-1">Email: <span className="font-medium text-[#172554]">{viewStudent.email || '-'}</span></p>
-                  <p className="text-[#64748B] mt-1">Phone: <span className="font-medium text-[#172554]">{viewStudent.phone || '-'}</span></p>
+                <div className="p-3 bg-[#E8F1FB] rounded-xl border border-[#F0D6C8]">
+                  <p className="text-[#667085]">Student ID: <span className="font-mono font-bold text-[#25364B]">{viewStudent.student_id || '-'}</span></p>
+                  <p className="text-[#667085] mt-1">Email: <span className="font-medium text-[#25364B]">{viewStudent.email || '-'}</span></p>
+                  <p className="text-[#667085] mt-1">Phone: <span className="font-medium text-[#25364B]">{viewStudent.phone || '-'}</span></p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-                    <p className="text-[10px] text-[#64748B] uppercase font-semibold">Parent Name</p>
-                    <p className="font-medium text-[#172554] mt-0.5">{viewStudent.parent_name || '-'}</p>
+                    <p className="text-[10px] text-[#667085] uppercase font-semibold">Parent Name</p>
+                    <p className="font-medium text-[#25364B] mt-0.5">{viewStudent.parent_name || '-'}</p>
                   </div>
                   <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-                    <p className="text-[10px] text-[#64748B] uppercase font-semibold">Parent Phone</p>
-                    <p className="font-medium text-[#172554] mt-0.5">{viewStudent.parent_phone || '-'}</p>
+                    <p className="text-[10px] text-[#667085] uppercase font-semibold">Parent Phone</p>
+                    <p className="font-medium text-[#25364B] mt-0.5">{viewStudent.parent_phone || '-'}</p>
                   </div>
                 </div>
 
-                <div className="p-3 bg-white rounded-xl border border-[#FED7AA] space-y-1.5">
+                <div className="p-3 bg-white rounded-xl border border-[#F0D6C8] space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <span className="text-[#64748B]">Course:</span>
-                    <span className="font-semibold text-[#172554]">{viewStudent.selected_course || 'Not Selected'}</span>
+                    <span className="text-[#667085]">Course:</span>
+                    <span className="font-semibold text-[#25364B]">{viewStudent.selected_course || 'Not Selected'}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[#64748B]">Career Fit Assessment:</span>
+                    <span className="text-[#667085]">Career Fit Assessment:</span>
                     <StatusBadge status={viewStudent.assessment_status} />
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[#64748B]">Counselling Status:</span>
+                    <span className="text-[#667085]">Counselling Status:</span>
                     <StatusBadge status={viewStudent.counselling_status} />
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[#64748B]">Payment Status:</span>
+                    <span className="text-[#667085]">Payment Status:</span>
                     <StatusBadge status={viewStudent.payment_status} />
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[#64748B]">Admission Status:</span>
+                    <span className="text-[#667085]">Admission Status:</span>
                     <StatusBadge status={viewStudent.admission_status} />
                   </div>
                 </div>
@@ -1064,7 +1142,7 @@ export default function FollowUpManagement() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-[#FFCC99] text-[#7C2D12] hover:bg-[#FFF1E5]"
+                    className="border-[#BFDBFE] text-[#1D6AB8] hover:bg-[#E8F1FB]"
                     onClick={() => setViewStudent(null)}
                   >
                     Close
@@ -1080,3 +1158,4 @@ export default function FollowUpManagement() {
     </AdminLayout>
   );
 }
+

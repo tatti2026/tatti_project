@@ -113,8 +113,8 @@ export const StudentReportModal: React.FC<StudentReportModalProps> = ({
             <span
               className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                 student.application_access_status === 'unlocked'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                  ? 'bg-[#E8F1FB] text-[#2878C8] border border-[#BFDBFE]'
+                  : 'bg-[#FFF0E8] text-[#25364B] border border-[#F0D6C8]'
               }`}
             >
               {student.application_access_status === 'unlocked' ? '🔓 Unlocked' : '🔒 Locked'}
@@ -133,3 +133,4 @@ export const StudentReportModal: React.FC<StudentReportModalProps> = ({
 };
 
 export default StudentReportModal;
+

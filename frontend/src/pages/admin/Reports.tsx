@@ -213,14 +213,14 @@ export default function Reports() {
                 value={paidCount}
                 subtitle={`${payments.length} Transactions`}
                 icon={CreditCard}
-                color="emerald"
+                color="blue"
               />
               <ReportSummaryCard
                 title="Admitted"
                 value={admittedCount}
                 subtitle="Confirmed Seats"
                 icon={GraduationCap}
-                color="emerald"
+                color="blue"
                 badge="Final"
               />
             </div>
@@ -270,3 +270,4 @@ export default function Reports() {
     </AdminLayout>
   );
 }
+

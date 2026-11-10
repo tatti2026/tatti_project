@@ -123,22 +123,22 @@ export default function CourseRecommendation() {
 
   return (
     <StudentLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-3.5 sm:space-y-4 animate-fade-in">
         <div>
-          <h1 className="text-xl font-bold text-foreground mb-1">Course Recommendations</h1>
-          <p className="text-muted-foreground text-sm">Based on your assessment performance. Select courses you're interested in, then choose one primary course.</p>
+          <h1 className="text-lg sm:text-xl font-bold text-[#25364B] tracking-tight">Course Recommendations</h1>
+          <p className="text-[#667085] text-xs">Based on your assessment performance. Select courses you're interested in, then choose one primary course.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {courses.map(course => {
             const pct = getRecommendationPct(course.id);
             const isInterested = interested.has(course.id);
             const isSelected = selected === course.id;
             return (
-              <div key={course.id} className={`glass-card rounded-xl p-5 flex flex-col transition-all ${isSelected ? 'border-primary ring-1 ring-primary' : ''}`}>
+              <div key={course.id} className={`bg-white border border-[#F0D6C8] rounded-2xl p-4 flex flex-col shadow-xs transition-all ${isSelected ? 'border-[#2878C8] ring-2 ring-[#2878C8]/20' : ''}`}>
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <h3 className="text-sm font-bold text-foreground leading-tight flex-1 min-w-0">{course.course_name}</h3>
-                  <div className={`shrink-0 px-2 py-1 rounded-full text-xs font-bold ${pct >= 70 ? 'bg-success/20 text-success' : pct >= 50 ? 'bg-warning/20 text-warning' : 'bg-muted text-muted-foreground'}`}>
+                  <div className={`shrink-0 px-2 py-1 rounded-full text-xs font-bold ${pct >= 70 ? 'bg-[#E8F1FB] text-[#2878C8] border border-[#BFDBFE]' : pct >= 50 ? 'bg-[#FFF0E8] text-[#25364B] border border-[#F0D6C8]' : 'bg-muted text-muted-foreground'}`}>
                     {pct}% Match
                   </div>
                 </div>
@@ -166,7 +166,7 @@ export default function CourseRecommendation() {
                   <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setDetailCourse(course)}>
                     View Details
                   </Button>
-                  <Button size="sm" className={`flex-1 text-xs ${isInterested ? 'bg-success/20 text-success border border-success/30 hover:bg-success/30' : ''}`}
+                  <Button size="sm" className={`flex-1 text-xs ${isInterested ? 'bg-[#E8F1FB] text-[#2878C8] border border-[#BFDBFE] hover:bg-[#D5E7FA]' : ''}`}
                     variant={isInterested ? 'outline' : 'secondary'}
                     onClick={() => toggleInterest(course.id)}>
                     {isInterested ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <Star className="w-3 h-3 mr-1" />}
@@ -186,13 +186,13 @@ export default function CourseRecommendation() {
         </div>
 
         {selected && (
-          <div className="glass-card rounded-xl p-4 border-primary/40 border flex items-center gap-4">
-            <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+          <div className="bg-[#FFE0CC] rounded-xl p-4 border border-[#F0D6C8] shadow-sm flex items-center gap-4">
+            <CheckCircle2 className="w-5 h-5 text-[#2878C8] shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground">Course Selected</p>
-              <p className="text-xs text-muted-foreground truncate">{courses.find(c => c.id === selected)?.course_name}</p>
+              <p className="text-sm font-semibold text-[#25364B]">Course Selected</p>
+              <p className="text-xs text-[#667085] truncate">{courses.find(c => c.id === selected)?.course_name}</p>
             </div>
-            <Button onClick={handleContinue} disabled={saving} className="gradient-bg border-0 text-white shrink-0">
+            <Button onClick={handleContinue} disabled={saving} className="bg-[#2878C8] hover:bg-[#1D6AB8] border-0 text-white shrink-0">
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ArrowRight className="w-4 h-4 mr-2" />}
               Continue
             </Button>

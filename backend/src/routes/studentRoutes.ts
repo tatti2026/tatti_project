@@ -7,6 +7,8 @@ import {
   deleteStudent,
   getStudentApplicationAccessStatus,
   getStudentReminders,
+  acknowledgeReminder,
+  dismissReminder,
 } from '../controllers/studentController.js';
 import { updateStudentApplicationAccess } from '../controllers/adminController.js';
 import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
@@ -14,6 +16,8 @@ import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
 const router = Router();
 
 router.get('/me/reminders', requireAuth, requireRole('student'), getStudentReminders);
+router.put('/me/reminders/:id/acknowledge', requireAuth, requireRole('student'), acknowledgeReminder);
+router.put('/me/reminders/:id/dismiss', requireAuth, requireRole('student'), dismissReminder);
 router.get('/profile/:profileId', getStudentByProfileId);
 router.get('/:id/application-access', getStudentApplicationAccessStatus);
 router.patch('/:id/application-access', updateStudentApplicationAccess);

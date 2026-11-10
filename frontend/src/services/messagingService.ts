@@ -91,33 +91,77 @@ function saveMessages(msgs: ChatMessage[]) {
 }
 
 /**
- * Subtle pleasant notification chime using Web Audio API
+ * WhatsApp-style incoming message chime using Web Audio API
  */
-export function playNotificationSound() {
+export function playIncomingSound() {
   try {
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const now = ctx.currentTime;
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+    // First tone (E5 ~659Hz)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(659.25, now);
+    gain1.gain.setValueAtTime(0.2, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.15);
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(587.33, ctx.currentTime + 0.12);
-    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.25);
-
-    gain.gain.setValueAtTime(0.25, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
-
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.45);
+    // Second higher chime tone (B5 ~987Hz)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(987.77, now + 0.08);
+    gain2.gain.setValueAtTime(0.25, now + 0.08);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.08);
+    osc2.stop(now + 0.35);
   } catch {
     // Ignore audio permission restrictions
   }
 }
+
+/**
+ * WhatsApp-style outgoing message pop using Web Audio API
+ */
+export function playOutgoingSound() {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(650, now);
+    osc.frequency.exponentialRampToValueAtTime(320, now + 0.06);
+
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.06);
+  } catch {
+    // Ignore audio permission restrictions
+  }
+}
+
+/**
+ * Backward compatibility alias
+ */
+export const playNotificationSound = playIncomingSound;
 
 // ─── API-BACKED ASYNC METHODS ───────────────────────────────────────────────
 
@@ -127,7 +171,7 @@ export function playNotificationSound() {
 export async function fetchMessagesFromAPI(studentId: string): Promise<ChatMessage[]> {
   try {
     const apiMsgs = await apiGetConversation(studentId);
-    if (apiMsgs && apiMsgs.length > 0) {
+    if (Array.isArray(apiMsgs)) {
       const mapped: ChatMessage[] = apiMsgs.map(m => ({
         id: m.id,
         studentId: m.studentId,
@@ -145,8 +189,9 @@ export async function fetchMessagesFromAPI(studentId: string): Promise<ChatMessa
     }
   } catch (err) {
     console.warn('fetchMessagesFromAPI failed, falling back to local storage:', err);
+    return getMessagesForStudent(studentId);
   }
-  return getMessagesForStudent(studentId);
+  return [];
 }
 
 /**

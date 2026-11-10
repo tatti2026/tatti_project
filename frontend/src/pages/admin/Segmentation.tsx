@@ -142,21 +142,21 @@ function AnswersModal({
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-3xl bg-white border border-[#FED7AA] max-h-[90dvh] overflow-hidden flex flex-col shadow-xl">
-        <DialogHeader className="shrink-0 pb-3 border-b border-[#FED7AA]/60">
-          <DialogTitle className="flex items-center justify-between gap-3 text-[#172554] text-lg">
+      <DialogContent className="max-w-[calc(100%-2rem)] md:max-w-3xl bg-white border border-[#F0D6C8] max-h-[90dvh] overflow-hidden flex flex-col shadow-xl">
+        <DialogHeader className="shrink-0 pb-3 border-b border-[#F0D6C8]/60">
+          <DialogTitle className="flex items-center justify-between gap-3 text-[#25364B] text-lg">
             <span className="flex items-center gap-2">
-              <Eye className="w-5 h-5 text-[#F59E0B]" />
+              <Eye className="w-5 h-5 text-[#2878C8]" />
               <span>Career Fit Assessment Answers</span>
             </span>
           </DialogTitle>
         </DialogHeader>
 
         {/* Student metadata header banner */}
-        <div className="bg-[#FFF1E5] border border-[#FFCC99] rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 shrink-0 my-1">
+        <div className="bg-[#FFF0E8] border border-[#BFDBFE] rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 shrink-0 my-1">
           <div>
-            <p className="text-xs text-[#64748B] font-medium">Student Name</p>
-            <p className="text-base font-bold text-[#172554]">{studentName}</p>
+            <p className="text-xs text-[#667085] font-medium">Student Name</p>
+            <p className="text-base font-bold text-[#25364B]">{studentName}</p>
             <p className="text-xs font-semibold text-[#D97706] tracking-wide mt-0.5">{studentId}</p>
           </div>
 
@@ -172,11 +172,11 @@ function AnswersModal({
               </span>
             )}
 
-            <span className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-[#FFCC99] text-[#7C2D12]">
+            <span className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-[#BFDBFE] text-[#1D6AB8]">
               {totalAwarded} / {assessment?.total_marks ?? rows.length} Marks
             </span>
 
-            <span className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-[#FFCC99] text-[#7C2D12]">
+            <span className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-[#BFDBFE] text-[#1D6AB8]">
               {answeredCount}/{rows.length} Answered
             </span>
           </div>
@@ -185,7 +185,7 @@ function AnswersModal({
         {/* Scrollable Answer List */}
         <div className="overflow-y-auto flex-1 space-y-3 pr-1 py-2">
           {rows.length === 0 ? (
-            <div className="py-16 text-center text-[#64748B] text-sm">
+            <div className="py-16 text-center text-[#667085] text-sm">
               <FileText className="w-8 h-8 mx-auto text-slate-300 mb-2" />
               No submitted answers recorded for this student.
             </div>
@@ -207,18 +207,18 @@ function AnswersModal({
               return (
                 <div
                   key={row.questionNumber}
-                  className="bg-white rounded-xl p-4 border border-[#FED7AA]/80 shadow-xs"
+                  className="bg-white rounded-xl p-4 border border-[#F0D6C8]/80 shadow-xs"
                 >
                   {/* Question header */}
                   <div className="flex items-start gap-3 mb-3">
                     <span className="w-7 h-7 rounded-lg bg-[#0B1F3A] flex items-center justify-center text-white text-[11px] font-bold shrink-0">
                       Q{row.questionNumber}
                     </span>
-                    <p className="text-sm font-semibold text-[#172554] leading-snug flex-1">
+                    <p className="text-sm font-semibold text-[#25364B] leading-snug flex-1">
                       {row.questionText}
                     </p>
                     {row.selectedAnswer && (
-                      <span className="shrink-0 text-xs font-bold text-[#9A3412] bg-[#FFE0B2] border border-[#FFCC99] rounded-lg px-2 py-0.5">
+                      <span className="shrink-0 text-xs font-bold text-[#2878C8] bg-[#E8F1FB] border border-[#BFDBFE] rounded-lg px-2 py-0.5">
                         +{row.marksAwarded} mk
                       </span>
                     )}
@@ -230,7 +230,7 @@ function AnswersModal({
                       const isSelected = row.selectedAnswer === opt;
                       let cls = 'border-slate-200 bg-slate-50/60 text-slate-600';
                       if (isSelected) {
-                        cls = 'border-[#F59E0B] bg-[#FFF1E5] text-[#9A3412] font-semibold ring-1 ring-[#F59E0B]';
+                        cls = 'border-[#2878C8] bg-[#FFF0E8] text-[#2878C8] font-semibold ring-1 ring-[#2878C8]';
                       }
 
                       return (
@@ -239,7 +239,7 @@ function AnswersModal({
                           className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-all ${cls}`}
                         >
                           <span className={`w-5 h-5 rounded flex items-center justify-center font-bold text-[10px] shrink-0 ${
-                            isSelected ? 'bg-[#F59E0B] text-white' : 'bg-slate-200 text-slate-700'
+                            isSelected ? 'bg-[#2878C8] text-white' : 'bg-slate-200 text-slate-700'
                           }`}>
                             {opt}
                           </span>
@@ -250,7 +250,7 @@ function AnswersModal({
                             {marksMap[opt]} mk
                           </span>
                           {isSelected && (
-                            <span className="text-[11px] font-bold text-[#F59E0B] ml-1">✓ Selected</span>
+                            <span className="text-[11px] font-bold text-[#2878C8] ml-1">✓ Selected</span>
                           )}
                         </div>
                       );
@@ -259,7 +259,7 @@ function AnswersModal({
 
                   {/* Skipped note */}
                   {!row.selectedAnswer && (
-                    <p className="text-[11px] text-[#64748B] italic mt-2">
+                    <p className="text-[11px] text-[#667085] italic mt-2">
                       — Question was not answered (skipped)
                     </p>
                   )}
@@ -269,12 +269,12 @@ function AnswersModal({
           )}
         </div>
 
-        <div className="shrink-0 pt-3 border-t border-[#FED7AA]/60 flex justify-end">
+        <div className="shrink-0 pt-3 border-t border-[#F0D6C8]/60 flex justify-end">
           <Button
             variant="outline"
             size="sm"
             onClick={onClose}
-            className="border-[#FFCC99] text-[#7C2D12] hover:bg-[#FFF1E5] hover:text-[#9A3412]"
+            className="border-[#BFDBFE] text-[#1D6AB8] hover:bg-[#FFF0E8] hover:text-[#2878C8]"
           >
             <X className="w-3.5 h-3.5 mr-1" /> Close
           </Button>
@@ -428,12 +428,12 @@ export default function Segmentation() {
     <AdminLayout>
       <div className="space-y-6 animate-fade-in">
         {/* Page Title & Subtitle */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#FED7AA]/60 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#F0D6C8]/60 pb-5">
           <div>
-            <h1 className="text-2xl font-bold text-[#172554] tracking-tight">
+            <h1 className="text-2xl font-bold text-[#25364B] tracking-tight">
               Career Fit Assessment – Student Results
             </h1>
-            <p className="text-sm text-[#64748B] mt-1">
+            <p className="text-sm text-[#667085] mt-1">
               View student assessment scores and submitted answers.
             </p>
           </div>
@@ -444,7 +444,7 @@ export default function Segmentation() {
               size="sm"
               onClick={() => fetchData(true)}
               disabled={refreshing || loading}
-              className="text-xs h-9 gap-1.5 border-[#FFCC99] text-[#7C2D12] hover:bg-[#FFF1E5] hover:text-[#9A3412]"
+              className="text-xs h-9 gap-1.5 border-[#BFDBFE] text-[#1D6AB8] hover:bg-[#FFF0E8] hover:text-[#2878C8]"
               title="Refresh assessment results"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
@@ -454,9 +454,9 @@ export default function Segmentation() {
         </div>
 
         {/* Main Content Area */}
-        <div className="bg-white border border-[#FED7AA] rounded-2xl p-5 shadow-sm space-y-4">
-          {/* Search & Filter Toolbar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="bg-white border border-[#F0D6C8] rounded-2xl p-5 shadow-sm space-y-4">
+          {/* Search & Filter Toolbar - Light Orange Section (#FFE0CC) */}
+          <div className="bg-[#FFE0CC] border border-[#F0D6C8] rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
             {/* Search Input */}
             <div className="relative flex-1 max-w-md">
               <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -465,7 +465,7 @@ export default function Segmentation() {
                 placeholder="Search by student name or student ID..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9 bg-white border border-[#FED7AA] text-sm text-[#172554] placeholder:text-slate-400 focus:border-[#F59E0B] focus:ring-[#F59E0B] rounded-lg h-10 transition-colors"
+                className="pl-9 bg-white border border-[#F0D6C8] text-sm text-[#25364B] placeholder:text-slate-400 focus:border-[#2878C8] focus:ring-[#2878C8] rounded-lg h-10 transition-colors"
               />
               {search && (
                 <button
@@ -577,8 +577,8 @@ export default function Segmentation() {
           {!loading && !error && filteredRows.length === 0 && (
             <div className="py-16 text-center space-y-3">
               <Users className="w-10 h-10 text-slate-300 mx-auto" />
-              <p className="text-base font-bold text-[#172554]">No Student Records Found</p>
-              <p className="text-xs text-[#64748B] max-w-sm mx-auto">
+              <p className="text-base font-bold text-[#25364B]">No Student Records Found</p>
+              <p className="text-xs text-[#667085] max-w-sm mx-auto">
                 {search
                   ? `No students matching "${search}" were found in this view.`
                   : 'There are currently no students in this category.'}
@@ -588,7 +588,7 @@ export default function Segmentation() {
                   variant="outline"
                   size="sm"
                   onClick={() => setSearch('')}
-                  className="text-xs border-[#FFCC99] text-[#7C2D12] hover:bg-[#FFF1E5]"
+                  className="text-xs border-[#BFDBFE] text-[#1D6AB8] hover:bg-[#FFF0E8]"
                 >
                   Clear Search
                 </Button>
@@ -623,11 +623,11 @@ export default function Segmentation() {
                         {/* 1. Student Name */}
                         <td className="px-5 py-3.5 whitespace-nowrap">
                           <div className="flex flex-col">
-                            <span className="font-bold text-[#172554] text-sm">
+                            <span className="font-bold text-[#25364B] text-sm">
                               {studentDisplayName}
                             </span>
                             {student.email && (
-                              <span className="text-[11px] text-[#64748B]">
+                              <span className="text-[11px] text-[#667085]">
                                 {student.email}
                               </span>
                             )}
@@ -703,18 +703,18 @@ export default function Segmentation() {
 
           {/* Pagination Controls */}
           {!loading && !error && filteredRows.length > 0 && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#FED7AA]/60 text-xs text-[#64748B]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#F0D6C8]/60 text-xs text-[#667085]">
               <div className="flex items-center gap-2">
                 <span>
                   Showing{' '}
-                  <strong className="text-[#172554]">
+                  <strong className="text-[#25364B]">
                     {Math.min((currentPage - 1) * pageSize + 1, filteredRows.length)}
                   </strong>{' '}
                   to{' '}
-                  <strong className="text-[#172554]">
+                  <strong className="text-[#25364B]">
                     {Math.min(currentPage * pageSize, filteredRows.length)}
                   </strong>{' '}
-                  of <strong className="text-[#172554]">{filteredRows.length}</strong> students
+                  of <strong className="text-[#25364B]">{filteredRows.length}</strong> students
                 </span>
 
                 <span className="text-slate-300">|</span>
@@ -724,7 +724,7 @@ export default function Segmentation() {
                   <select
                     value={pageSize}
                     onChange={e => setPageSize(Number(e.target.value))}
-                    className="border border-[#FED7AA] bg-white text-[#172554] rounded-md px-1.5 py-0.5 text-xs focus:ring-[#F59E0B]"
+                    className="border border-[#F0D6C8] bg-white text-[#25364B] rounded-md px-1.5 py-0.5 text-xs focus:ring-[#2878C8]"
                   >
                     <option value={10}>10</option>
                     <option value={15}>15</option>
@@ -741,14 +741,14 @@ export default function Segmentation() {
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="h-8 w-8 p-0 border-[#FED7AA] text-[#172554] hover:bg-[#FFF1E5] disabled:opacity-40"
+                  className="h-8 w-8 p-0 border-[#F0D6C8] text-[#25364B] hover:bg-[#FFF0E8] disabled:opacity-40"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
 
                 <span className="px-2 font-medium">
-                  Page <strong className="text-[#172554]">{currentPage}</strong> of{' '}
-                  <strong className="text-[#172554]">{totalPages}</strong>
+                  Page <strong className="text-[#25364B]">{currentPage}</strong> of{' '}
+                  <strong className="text-[#25364B]">{totalPages}</strong>
                 </span>
 
                 <Button
@@ -756,7 +756,7 @@ export default function Segmentation() {
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="h-8 w-8 p-0 border-[#FED7AA] text-[#172554] hover:bg-[#FFF1E5] disabled:opacity-40"
+                  className="h-8 w-8 p-0 border-[#F0D6C8] text-[#25364B] hover:bg-[#FFF0E8] disabled:opacity-40"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
@@ -780,3 +780,4 @@ export default function Segmentation() {
     </AdminLayout>
   );
 }
+

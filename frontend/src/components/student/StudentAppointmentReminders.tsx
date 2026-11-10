@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { format, formatDistanceToNowStrict } from 'date-fns';
 import { BellRing, CalendarClock, CheckCircle2, Clock3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getStudentReminders, type StudentReminder } from '@/lib/api';
+import { getStudentReminders, acknowledgeReminder, dismissReminder, type StudentReminder } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 function getScheduledAt(reminder: StudentReminder): Date | null {
@@ -44,7 +44,11 @@ export default function StudentAppointmentReminders() {
 
   const dueReminders = useMemo(() => reminders.flatMap(reminder => {
     const scheduledAt = getScheduledAt(reminder);
-    if (!scheduledAt || scheduledAt.getTime() <= clock) return [];
+    if (!scheduledAt) return [];
+    const diffMs = scheduledAt.getTime() - clock;
+    // Show reminder if appointment is within next 24 hours or occurred in past 2 hours
+    const isDue = diffMs <= 24 * 3600_000 && diffMs >= -2 * 3600_000;
+    if (!isDue) return [];
     return [{
       ...reminder,
       key: `${reminder.kind}-${reminder.id}-${scheduledAt.getTime()}-${reminder.updated_at || reminder.reminder_datetime || ''}`,
@@ -143,15 +147,23 @@ export default function StudentAppointmentReminders() {
   }, []);
 
   useEffect(() => {
-    if (activeReminder && activeSoundKeyRef.current) {
-      void playReminderSound(activeReminder.key, activeSoundKeyRef.current);
-    }
-  }, [activeReminder?.key, todayKey, playReminderSound]);
+    if (!activeReminder) return;
+
+    const playChime = () => {
+      if (activeKeyRef.current) {
+        void playReminderSound(activeKeyRef.current, `${activeKeyRef.current}:${Date.now()}`);
+      }
+    };
+
+    playChime();
+    const interval = setInterval(playChime, 25_000);
+    return () => clearInterval(interval);
+  }, [activeReminder?.key, playReminderSound]);
 
   useEffect(() => {
     const resumeAndRetry = () => {
       if (activeKeyRef.current && activeSoundKeyRef.current) {
-        void playReminderSound(activeKeyRef.current, activeSoundKeyRef.current);
+        void playReminderSound(activeKeyRef.current, `${activeSoundKeyRef.current}:${Date.now()}`);
       }
     };
     window.addEventListener('pointerdown', resumeAndRetry);
@@ -167,8 +179,9 @@ export default function StudentAppointmentReminders() {
 
   if (!activeReminder) return null;
 
-  const acknowledge = () => {
+  const acknowledge = async () => {
     if (!profile?.id) return;
+    const reminderId = activeReminder.id;
     const nextAcknowledgements = { ...acknowledgedDays, [activeReminder.key]: todayKey };
     setAcknowledgedDays(nextAcknowledgements);
     try {
@@ -176,10 +189,32 @@ export default function StudentAppointmentReminders() {
         `psy-care-student-reminder-acks:${profile.id}`,
         JSON.stringify(nextAcknowledgements)
       );
+      if (activeReminder.kind === 'counselling') {
+        await acknowledgeReminder(reminderId);
+      }
     } catch (error) {
       console.error('Could not save student reminder acknowledgement:', error);
     }
   };
+
+  const dismiss = async () => {
+    if (!profile?.id) return;
+    const reminderId = activeReminder.id;
+    const nextAcknowledgements = { ...acknowledgedDays, [activeReminder.key]: todayKey };
+    setAcknowledgedDays(nextAcknowledgements);
+    try {
+      localStorage.setItem(
+        `psy-care-student-reminder-acks:${profile.id}`,
+        JSON.stringify(nextAcknowledgements)
+      );
+      if (activeReminder.kind === 'counselling') {
+        await dismissReminder(reminderId);
+      }
+    } catch (error) {
+      console.error('Could not save student reminder dismissal:', error);
+    }
+  };
+
   const snooze = () => setSnoozedUntil(previous => ({
     ...previous,
     [activeReminder.key]: Date.now() + 5 * 60_000,
@@ -196,7 +231,7 @@ export default function StudentAppointmentReminders() {
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-2 border-b border-slate-200 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-amber-100 p-2.5 text-amber-700">
+            <div className="rounded-lg bg-[#E8F1FB] p-2.5 text-[#2878C8]">
               <BellRing className="h-5 w-5" />
             </div>
             <div>
@@ -204,7 +239,7 @@ export default function StudentAppointmentReminders() {
               <p className="mt-0.5 text-xs text-slate-500">PSY CARE · Appointment reminder</p>
             </div>
           </div>
-          <span className="rounded-full bg-orange-100 px-2 py-1 text-[11px] font-semibold text-orange-700">
+          <span className="rounded-full bg-[#E8F1FB] border border-[#BFDBFE] px-2 py-1 text-[11px] font-semibold text-[#2878C8]">
             In {formatDistanceToNowStrict(activeReminder.scheduledAt)}
           </span>
         </div>
@@ -221,7 +256,7 @@ export default function StudentAppointmentReminders() {
             <p className="text-xs text-slate-600">Type: {activeReminder.mode}</p>
           )}
           {activeReminder.kind === 'counselling' && (
-            <p className="text-xs font-medium text-amber-800">
+            <p className="text-xs font-medium text-[#2878C8]">
               Alarm set for {activeReminder.reminder_option || '1 day before'}
             </p>
           )}
@@ -230,12 +265,17 @@ export default function StudentAppointmentReminders() {
           )}
         </div>
         <div className="space-y-1.5">
-          <Button onClick={acknowledge} className="h-9 w-full rounded-full bg-slate-950 text-sm text-white hover:bg-slate-800">
-            <CheckCircle2 className="mr-2 h-4 w-4" /> Acknowledge
+          <Button onClick={acknowledge} className="h-9 w-full rounded-full bg-[#2878C8] text-sm text-white hover:bg-[#1D6AB8] font-semibold">
+            <CheckCircle2 className="mr-2 h-4 w-4" /> OK / Acknowledge
           </Button>
-          <Button onClick={snooze} variant="outline" className="h-9 w-full rounded-full border-slate-300 text-sm text-slate-600">
-            <Clock3 className="mr-2 h-4 w-4" /> Snooze for 5 minutes
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={snooze} variant="outline" className="h-8 flex-1 rounded-full border-slate-300 text-xs text-slate-600">
+              <Clock3 className="mr-1.5 h-3.5 w-3.5" /> Snooze 5m
+            </Button>
+            <Button onClick={dismiss} variant="ghost" className="h-8 flex-1 rounded-full text-xs text-slate-500 hover:text-slate-800">
+              Dismiss
+            </Button>
+          </div>
         </div>
       </div>
     </section>

@@ -26,10 +26,10 @@ export default function StudentSettings() {
 
   return (
     <StudentLayout>
-      <div className="max-w-3xl space-y-6 animate-fade-in">
+      <div className="max-w-2xl mx-auto space-y-3.5 sm:space-y-4 animate-fade-in">
         <div>
-          <h1 className="text-xl font-bold text-foreground mb-1">Account Settings</h1>
-          <p className="text-muted-foreground text-sm">Manage your preferences, security settings, and communication options.</p>
+          <h1 className="text-lg sm:text-xl font-bold text-[#25364B] tracking-tight">Account Settings</h1>
+          <p className="text-[#667085] text-xs">Manage your preferences, security settings, and communication options.</p>
         </div>
 
         {/* Profile overview card */}
@@ -89,7 +89,7 @@ export default function StudentSettings() {
               <Switch checked={counsellingReminders} onCheckedChange={setCounsellingReminders} />
             </div>
 
-            <Button onClick={handleSaveNotifications} disabled={saving} size="sm" className="gradient-bg border-0 text-white mt-2">
+            <Button onClick={handleSaveNotifications} disabled={saving} size="sm" className="bg-[#2878C8] hover:bg-[#1D6AB8] border-0 text-white mt-2 shadow-sm transition-all">
               <Save className="w-3.5 h-3.5 mr-1.5" /> Save Preferences
             </Button>
           </CardContent>

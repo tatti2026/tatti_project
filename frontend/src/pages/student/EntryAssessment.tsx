@@ -346,9 +346,9 @@ export default function EntryAssessment() {
   const totalMarks = Number(assessment?.total_marks) || 0;
 
   const performanceTier = useMemo(() => {
-    if (pct >= 80) return { title: 'Distinction (Advanced Tier)', color: 'text-emerald-500', badgeClass: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', note: 'Exceptional performance across analytical, technical, and aptitude questions.' };
-    if (pct >= 65) return { title: 'Proficient (First Class Tier)', color: 'text-blue-500', badgeClass: 'bg-blue-500/10 text-blue-500 border-blue-500/20', note: 'Strong foundational grasp with good analytical problem-solving competence.' };
-    if (pct >= 45) return { title: 'Qualified (Second Class Tier)', color: 'text-amber-500', badgeClass: 'bg-amber-500/10 text-amber-500 border-amber-500/20', note: 'Eligible for core technology, management, and certification programs.' };
+    if (pct >= 80) return { title: 'Distinction (Advanced Tier)', color: 'text-[#2878C8]', badgeClass: 'bg-[#E8F1FB] text-[#2878C8] border-[#BFDBFE]', note: 'Exceptional performance across analytical, technical, and aptitude questions.' };
+    if (pct >= 65) return { title: 'Proficient (First Class Tier)', color: 'text-[#2878C8]', badgeClass: 'bg-[#E8F1FB] text-[#2878C8] border-[#BFDBFE]', note: 'Strong foundational grasp with good analytical problem-solving competence.' };
+    if (pct >= 45) return { title: 'Qualified (Second Class Tier)', color: 'text-[#25364B]', badgeClass: 'bg-[#FFF0E8] text-[#25364B] border-[#F0D6C8]', note: 'Eligible for core technology, management, and certification programs.' };
     return { title: 'Foundation (Needs Improvement)', color: 'text-rose-500', badgeClass: 'bg-rose-500/10 text-rose-500 border-rose-500/20', note: 'Eligible for foundational skill enhancement programs with personalized mentoring.' };
   }, [pct]);
 
@@ -524,9 +524,9 @@ export default function EntryAssessment() {
                     onClick={() => setCurrentQ(idx)}
                     className={`w-8 h-8 rounded-lg text-xs font-bold shrink-0 transition-all ${
                       isCurrent
-                        ? 'bg-primary text-white ring-2 ring-primary/40 shadow-sm'
+                        ? 'bg-[#2878C8] text-white ring-2 ring-[#2878C8]/40 shadow-sm'
                         : isAnswered
-                        ? 'bg-emerald-500/20 text-emerald-600 border border-emerald-500/30'
+                        ? 'bg-[#2878C8]/20 text-[#2878C8] border border-[#2878C8]/30'
                         : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     }`}
                   >
@@ -685,8 +685,8 @@ export default function EntryAssessment() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <p className="text-xs uppercase tracking-wider font-bold text-emerald-600">Evaluation Completed</p>
+                <span className="w-2 h-2 rounded-full bg-[#2878C8]" />
+                <p className="text-xs uppercase tracking-wider font-bold text-[#2878C8]">Evaluation Completed</p>
               </div>
               <h1 className="text-2xl font-bold text-foreground">Career Fit Assessment Result</h1>
               <p className="text-muted-foreground text-xs md:text-sm">
@@ -696,22 +696,22 @@ export default function EntryAssessment() {
 
             {/* Clear Success State Badges */}
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs py-1 px-2.5 gap-1.5 font-semibold">
+              <Badge variant="outline" className="bg-[#2878C8]/10 text-[#2878C8] border-[#2878C8]/30 text-xs py-1 px-2.5 gap-1.5 font-semibold">
                 <Check className="w-3.5 h-3.5" /> Assessment Completed
               </Badge>
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs py-1 px-2.5 gap-1.5 font-semibold">
+              <Badge variant="outline" className="bg-[#2878C8]/10 text-[#2878C8] border-[#2878C8]/30 text-xs py-1 px-2.5 gap-1.5 font-semibold">
                 <Check className="w-3.5 h-3.5" /> Score Generated
               </Badge>
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs py-1 px-2.5 gap-1.5 font-semibold">
+              <Badge variant="outline" className="bg-[#2878C8]/10 text-[#2878C8] border-[#2878C8]/30 text-xs py-1 px-2.5 gap-1.5 font-semibold">
                 <Check className="w-3.5 h-3.5" /> Course Recommendations Unlocked
               </Badge>
               {student?.application_access_status === 'unlocked' ? (
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs py-1 px-2.5 gap-1.5 font-semibold">
+                <Badge variant="outline" className="bg-[#2878C8]/10 text-[#2878C8] border-[#2878C8]/30 text-xs py-1 px-2.5 gap-1.5 font-semibold">
                   <Unlock className="w-3.5 h-3.5" /> Application Process Unlocked
                 </Badge>
               ) : (
-                <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30 text-xs py-1 px-2.5 gap-1.5 font-semibold">
-                  <Lock className="w-3.5 h-3.5" /> Application Process 🔒 Locked (Pending Admin Unlock)
+                <Badge variant="outline" className="bg-[#FFF0E8] text-[#25364B] border-[#F0D6C8] text-xs py-1 px-2.5 gap-1.5 font-semibold">
+                  <Lock className="w-3.5 h-3.5 text-[#2878C8]" /> Application Process 🔒 Locked (Pending Admin Unlock)
                 </Badge>
               )}
             </div>
@@ -754,7 +754,7 @@ export default function EntryAssessment() {
               </div>
               <div className="bg-muted/50 rounded-xl p-3 text-center">
                 <p className="text-[11px] text-muted-foreground">Correct Answers</p>
-                <p className="text-lg font-bold text-emerald-500">{score}</p>
+                <p className="text-lg font-bold text-[#2878C8]">{score}</p>
               </div>
               <div className="bg-muted/50 rounded-xl p-3 text-center">
                 <p className="text-[11px] text-muted-foreground">Wrong / Skipped</p>
@@ -764,7 +764,7 @@ export default function EntryAssessment() {
               </div>
               <div className="bg-muted/50 rounded-xl p-3 text-center">
                 <p className="text-[11px] text-muted-foreground">Assessment Status</p>
-                <p className="text-lg font-bold text-emerald-500">Completed</p>
+                <p className="text-lg font-bold text-[#2878C8]">Completed</p>
               </div>
             </div>
           </div>
@@ -829,10 +829,10 @@ export default function EntryAssessment() {
                       </Badge>
                       <div className={`px-2.5 py-1 rounded-full text-xs font-extrabold shrink-0 ${
                         (Number(rec.recommendation_percentage) || 0) >= 80
-                          ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30'
+                          ? 'bg-[#2878C8]/15 text-[#2878C8] border border-[#2878C8]/30'
                           : (Number(rec.recommendation_percentage) || 0) >= 65
-                          ? 'bg-blue-500/15 text-blue-600 border border-blue-500/30'
-                          : 'bg-amber-500/15 text-amber-600 border border-amber-500/30'
+                          ? 'bg-[#2878C8]/10 text-[#1D6AB8] border border-[#2878C8]/20'
+                          : 'bg-[#FFF0E8] text-[#25364B] border border-[#F0D6C8]'
                       }`}>
                         {(Number(rec.recommendation_percentage) || 0).toFixed(0)}% Match
                       </div>
@@ -931,7 +931,7 @@ export default function EntryAssessment() {
                         size="sm"
                         variant={isInterested ? 'outline' : 'secondary'}
                         className={`text-xs ${
-                          isInterested ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : ''
+                          isInterested ? 'bg-[#2878C8]/10 text-[#2878C8] border-[#2878C8]/30' : ''
                         }`}
                         onClick={() => toggleInterest(course.id)}
                       >

@@ -41,28 +41,38 @@ export async function sendMessage(req: Request, res: Response) {
       attachment,
     } = req.body;
 
-    if (!studentId) {
-      return res.status(400).json({ error: 'studentId is required.' });
-    }
+    let targetStudentId = studentId;
+
     if (!text && !attachment) {
       return res.status(400).json({ error: 'Message text or attachment is required.' });
     }
 
-    // Students can only send to their own conversation
+    // Students can only send to their own conversation (auto-resolve from authenticated profile)
     if (callerRole === 'student') {
       const studentCheck = await query(
-        'SELECT id FROM students WHERE profile_id = $1 AND id = $2',
-        [caller.userId, studentId]
+        'SELECT id FROM students WHERE profile_id = $1',
+        [caller.userId]
       );
       if (studentCheck.rows.length === 0) {
-        return res.status(403).json({ error: 'Students can only send messages in their own conversation.' });
+        return res.status(403).json({ error: 'No student record found for this account.' });
       }
-    }
-
-    // Verify student exists
-    const studentRes = await query('SELECT id FROM students WHERE id = $1', [studentId]);
-    if (studentRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Student not found.' });
+      targetStudentId = studentCheck.rows[0].id;
+    } else {
+      if (!targetStudentId) {
+        return res.status(400).json({ error: 'studentId is required.' });
+      }
+      // Allow targetStudentId to be students.id (UUID), students.student_id (code), or profile_id
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetStudentId);
+      let studentRes;
+      if (isUuid) {
+        studentRes = await query('SELECT id FROM students WHERE id = $1 OR profile_id = $1 LIMIT 1', [targetStudentId]);
+      } else {
+        studentRes = await query('SELECT id FROM students WHERE UPPER(TRIM(student_id)) = UPPER(TRIM($1)) LIMIT 1', [targetStudentId]);
+      }
+      if (studentRes.rows.length === 0) {
+        return res.status(404).json({ error: 'Student not found.' });
+      }
+      targetStudentId = studentRes.rows[0].id;
     }
 
     const isStaff = callerRole === 'admin' || callerRole === 'counsellor';
@@ -78,7 +88,7 @@ export async function sendMessage(req: Request, res: Response) {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'sent')
        RETURNING *`,
       [
-        studentId,
+        targetStudentId,
         caller.userId || null,
         resolvedSenderName,
         senderType,
@@ -109,14 +119,27 @@ export async function getConversation(req: Request, res: Response) {
     const { studentId } = req.params;
     const callerRole: string = caller.role || 'student';
 
-    // Students can only read their own conversation
+    let targetStudentId = studentId;
+
+    // Students can only read their own conversation (auto-resolved from profile)
     if (callerRole === 'student') {
       const studentCheck = await query(
-        'SELECT id FROM students WHERE profile_id = $1 AND id = $2',
-        [caller.userId, studentId]
+        'SELECT id FROM students WHERE profile_id = $1',
+        [caller.userId]
       );
       if (studentCheck.rows.length === 0) {
         return res.status(403).json({ error: 'Access denied.' });
+      }
+      targetStudentId = studentCheck.rows[0].id;
+    } else {
+      // For staff, resolve studentId in case student code or profileId was passed
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetStudentId);
+      if (isUuid) {
+        const sRes = await query('SELECT id FROM students WHERE id = $1 OR profile_id = $1 LIMIT 1', [targetStudentId]);
+        if (sRes.rows.length > 0) targetStudentId = sRes.rows[0].id;
+      } else {
+        const sRes = await query('SELECT id FROM students WHERE UPPER(TRIM(student_id)) = UPPER(TRIM($1)) LIMIT 1', [targetStudentId]);
+        if (sRes.rows.length > 0) targetStudentId = sRes.rows[0].id;
       }
     }
 
@@ -125,16 +148,23 @@ export async function getConversation(req: Request, res: Response) {
       `SELECT * FROM direct_messages
        WHERE student_id = $1
        ORDER BY created_at ASC`,
-      [studentId]
+      [targetStudentId]
     );
 
-    // Mark admin messages as delivered when student fetches them
+    // Mark messages as delivered when the counter-party fetches them
     if (callerRole === 'student') {
       await query(
         `UPDATE direct_messages
          SET status = 'delivered', delivered_at = now()
          WHERE student_id = $1 AND sender_type = 'admin' AND status = 'sent'`,
-        [studentId]
+        [targetStudentId]
+      );
+    } else {
+      await query(
+        `UPDATE direct_messages
+         SET status = 'delivered', delivered_at = now()
+         WHERE student_id = $1 AND sender_type = 'student' AND status = 'sent'`,
+        [targetStudentId]
       );
     }
 
@@ -208,6 +238,27 @@ export async function markMessagesRead(req: Request, res: Response) {
     const { studentId } = req.params;
     const callerRole: string = caller.role || 'student';
 
+    let targetStudentId = studentId;
+    if (callerRole === 'student') {
+      const studentCheck = await query(
+        'SELECT id FROM students WHERE profile_id = $1',
+        [caller.userId]
+      );
+      if (studentCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied.' });
+      }
+      targetStudentId = studentCheck.rows[0].id;
+    } else {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetStudentId);
+      if (isUuid) {
+        const sRes = await query('SELECT id FROM students WHERE id = $1 OR profile_id = $1 LIMIT 1', [targetStudentId]);
+        if (sRes.rows.length > 0) targetStudentId = sRes.rows[0].id;
+      } else {
+        const sRes = await query('SELECT id FROM students WHERE UPPER(TRIM(student_id)) = UPPER(TRIM($1)) LIMIT 1', [targetStudentId]);
+        if (sRes.rows.length > 0) targetStudentId = sRes.rows[0].id;
+      }
+    }
+
     // Student reads admin messages; admin/counsellor reads student messages
     const isStaff = callerRole === 'admin' || callerRole === 'counsellor';
     const targetSenderType = isStaff ? 'student' : 'admin';
@@ -216,7 +267,7 @@ export async function markMessagesRead(req: Request, res: Response) {
       `UPDATE direct_messages
        SET status = 'read', read_at = now()
        WHERE student_id = $1 AND sender_type = $2 AND status != 'read'`,
-      [studentId, targetSenderType]
+      [targetStudentId, targetSenderType]
     );
 
     return res.json({ success: true });

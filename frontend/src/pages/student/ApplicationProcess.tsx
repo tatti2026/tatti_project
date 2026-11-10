@@ -268,19 +268,19 @@ function PaymentSuccessView({ form, application, payment, selectedCourse, onNavi
             <div className="w-72 h-72 rounded-full border border-success/8" />
           </div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-52 h-52 rounded-full border border-success/12" />
+            <div className="w-52 h-52 rounded-full border border-primary/20" />
           </div>
         </div>
         <div className="relative z-10">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-success/30 to-emerald-600/20 flex items-center justify-center mx-auto mb-5 ring-4 ring-success/20">
-            <div className="w-16 h-16 rounded-full bg-success/20 flex items-center justify-center">
-              <CheckCircle2 className="w-10 h-10 text-success" strokeWidth={2.5} />
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/25 to-[#2878C8]/15 flex items-center justify-center mx-auto mb-5 ring-4 ring-primary/20">
+            <div className="w-16 h-16 rounded-full bg-[#E8F1FB] flex items-center justify-center">
+              <CheckCircle2 className="w-10 h-10 text-primary" strokeWidth={2.5} />
             </div>
           </div>
           <h1 className="text-3xl font-extrabold text-foreground mb-2">Application Confirmed</h1>
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-success/15 border border-success/30 mb-4">
-            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            <span className="text-success text-xs font-bold tracking-widest">PAYMENT APPROVED • APPLICATION CONFIRMED</span>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E8F1FB] border border-[#BFDBFE] mb-4">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-primary text-xs font-bold tracking-widest">PAYMENT APPROVED • APPLICATION CONFIRMED</span>
           </div>
           <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
             Your UPI payment has been verified and your admission application has been confirmed.
@@ -291,12 +291,12 @@ function PaymentSuccessView({ form, application, payment, selectedCourse, onNavi
       {/* ── Status Badges ── */}
       <div className="grid grid-cols-2 gap-4">
         <div className="glass-card rounded-xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-success/15 flex items-center justify-center shrink-0">
-            <CreditCard className="w-5 h-5 text-success" />
+          <div className="w-10 h-10 rounded-xl bg-[#E8F1FB] flex items-center justify-center shrink-0">
+            <CreditCard className="w-5 h-5 text-primary" />
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Payment Status</p>
-            <p className="text-sm font-bold text-success">Approved</p>
+            <p className="text-sm font-bold text-primary">Approved</p>
           </div>
         </div>
         <div className="glass-card rounded-xl p-4 flex items-center gap-3">
@@ -330,7 +330,7 @@ function PaymentSuccessView({ form, application, payment, selectedCourse, onNavi
                   <span className="text-sm text-muted-foreground">{label}</span>
                 </div>
                 {isStatus ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/15 border border-success/30 text-success text-xs font-bold">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E8F1FB] border border-[#BFDBFE] text-primary text-xs font-bold">
                     <BadgeCheck className="w-3.5 h-3.5" /> {value}
                   </span>
                 ) : (
@@ -358,8 +358,8 @@ function PaymentSuccessView({ form, application, payment, selectedCourse, onNavi
         </div>
         <div className="p-6">
           <div className="flex items-start gap-4 mb-5">
-            <div className="w-12 h-12 rounded-xl bg-success/15 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-7 h-7 text-success" />
+            <div className="w-12 h-12 rounded-xl bg-[#E8F1FB] flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-7 h-7 text-primary" />
             </div>
             <div>
               <p className="font-semibold text-foreground">Receipt Generated</p>
@@ -389,9 +389,9 @@ function PaymentSuccessView({ form, application, payment, selectedCourse, onNavi
 
       {/* ── Actions ── */}
       <div className="glass-card rounded-2xl p-5">
-        <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-success/10 border border-success/20">
-          <Shield className="w-4 h-4 text-success shrink-0" />
-          <p className="text-xs text-success">🔒 Payment verified and secured. Application submitted successfully.</p>
+        <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-[#E8F1FB] border border-[#BFDBFE]">
+          <Shield className="w-4 h-4 text-primary shrink-0" />
+          <p className="text-xs text-primary">🔒 Payment verified and secured. Application submitted successfully.</p>
         </div>
         <div className="flex gap-3">
           <Button
@@ -668,16 +668,16 @@ export default function ApplicationProcess() {
           <div className="glass-card rounded-2xl p-8 md:p-10 text-center relative overflow-hidden border border-border shadow-2xl">
             {/* Ambient subtle glow */}
             <div className="absolute top-0 right-0 w-60 h-60 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-60 h-60 bg-[#FFD9C8]/20 rounded-full blur-3xl pointer-events-none" />
 
             {/* Lock Icon Badge */}
-            <div className="w-20 h-20 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto mb-5 ring-4 ring-amber-500/10">
-              <Lock className="w-10 h-10 text-amber-400" />
+            <div className="w-20 h-20 rounded-2xl bg-[#FFF0E8] border border-[#F0D6C8] flex items-center justify-center mx-auto mb-5 ring-4 ring-[#F0D6C8]/40">
+              <Lock className="w-10 h-10 text-[#2878C8]" />
             </div>
 
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 mb-4">
-              <Lock className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-amber-400 text-xs font-bold tracking-wider uppercase">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FFF0E8] border border-[#F0D6C8] mb-4">
+              <Lock className="w-3.5 h-3.5 text-[#2878C8]" />
+              <span className="text-[#25364B] text-xs font-bold tracking-wider uppercase">
                 Application Process Locked
               </span>
             </div>
@@ -697,8 +697,8 @@ export default function ApplicationProcess() {
             <div className="bg-muted/50 rounded-xl p-5 border border-border text-left mb-8 space-y-3">
               <div className="flex items-center justify-between text-xs py-1.5 border-b border-border/50">
                 <span className="text-muted-foreground font-medium">Application Status:</span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-bold border border-amber-500/30">
-                  <Lock className="w-3 h-3" /> Locked
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#FFF0E8] text-[#25364B] font-bold border border-[#F0D6C8]">
+                  <Lock className="w-3 h-3 text-[#2878C8]" /> Locked
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs py-1.5 border-b border-border/50">
@@ -756,12 +756,12 @@ export default function ApplicationProcess() {
           </div>
 
           {/* Admission Confirmed Banner */}
-          <div className="glass-card rounded-2xl p-5 border border-success/30 bg-success/5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-7 h-7 text-success" />
+          <div className="glass-card rounded-2xl p-5 border border-[#BFDBFE] bg-[#E8F1FB]/40 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-[#E8F1FB] flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-7 h-7 text-primary" />
             </div>
             <div>
-              <p className="font-bold text-success text-base">Admission Confirmed by Admin</p>
+              <p className="font-bold text-primary text-base">Admission Confirmed by Admin</p>
               <p className="text-xs text-muted-foreground mt-0.5">Your UPI payment has been verified and your admission is now officially confirmed.</p>
             </div>
           </div>
@@ -864,18 +864,18 @@ export default function ApplicationProcess() {
     return (
       <StudentLayout>
         <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
-          {/* Stepper (all active) */}
-          <div className="glass-card rounded-xl p-4">
+          {/* Stepper (all active) - Light orange section (#FFE0CC) */}
+          <div className="bg-[#FFE0CC] border border-[#F0D6C8] rounded-xl p-4 shadow-sm">
             <div className="flex items-center justify-between">
               {steps.map(({ n, label }, idx) => (
                 <div key={n} className="flex items-center flex-1">
                   <div className="flex flex-col items-center gap-1">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 ${
-                      n < 4 ? 'bg-primary border-primary' : 'border-warning bg-warning/10'
+                      n < 4 ? 'bg-primary border-primary' : 'border-primary bg-primary/10'
                     }`}>
-                      {n < 4 ? <CheckCircle2 className="w-4 h-4 text-white" /> : <HourglassIcon className="w-4 h-4 text-warning" />}
+                      {n < 4 ? <CheckCircle2 className="w-4 h-4 text-white" /> : <HourglassIcon className="w-4 h-4 text-primary" />}
                     </div>
-                    <span className={`text-[10px] font-medium whitespace-nowrap hidden md:block ${ n < 4 ? 'text-foreground' : 'text-warning'}`}>{label}</span>
+                    <span className={`text-[10px] font-medium whitespace-nowrap hidden md:block ${ n < 4 ? 'text-foreground' : 'text-primary'}`}>{label}</span>
                   </div>
                   {idx < steps.length - 1 && <div className={`flex-1 h-0.5 mx-2 mb-4 ${ n < 4 ? 'bg-primary' : 'bg-border'}`} />}
                 </div>
@@ -887,22 +887,22 @@ export default function ApplicationProcess() {
           <div className="glass-card rounded-2xl p-8 text-center relative overflow-hidden">
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-72 h-72 rounded-full border border-warning/8" />
+                <div className="w-72 h-72 rounded-full border border-primary/10" />
               </div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-52 h-52 rounded-full border border-warning/12" />
+                <div className="w-52 h-52 rounded-full border border-primary/20" />
               </div>
             </div>
             <div className="relative z-10">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-warning/30 to-amber-600/20 flex items-center justify-center mx-auto mb-5 ring-4 ring-warning/20">
-                <div className="w-16 h-16 rounded-full bg-warning/20 flex items-center justify-center">
-                  <HourglassIcon className="w-10 h-10 text-warning" strokeWidth={2} />
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/25 to-[#2878C8]/15 flex items-center justify-center mx-auto mb-5 ring-4 ring-primary/20">
+                <div className="w-16 h-16 rounded-full bg-[#E8F1FB] flex items-center justify-center">
+                  <HourglassIcon className="w-10 h-10 text-primary" strokeWidth={2} />
                 </div>
               </div>
               <h1 className="text-3xl font-extrabold text-foreground mb-2">Payment Proof Submitted</h1>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-warning/15 border border-warning/30 mb-4">
-                <div className="w-2 h-2 rounded-full bg-warning animate-pulse" />
-                <span className="text-warning text-xs font-bold tracking-widest">STATUS: PENDING VERIFICATION</span>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E8F1FB] border border-[#BFDBFE] mb-4">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-primary text-xs font-bold tracking-widest">STATUS: PENDING VERIFICATION</span>
               </div>
               <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
                 Your payment proof has been submitted successfully. The PSY CARE administration team will verify your payment.
@@ -913,8 +913,8 @@ export default function ApplicationProcess() {
           {/* Payment Info Summary */}
           <div className="glass-card rounded-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-border flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-warning/15 flex items-center justify-center">
-                <Receipt className="w-5 h-5 text-warning" />
+              <div className="w-9 h-9 rounded-xl bg-[#E8F1FB] flex items-center justify-center">
+                <Receipt className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <h2 className="text-base font-bold text-foreground">Submission Details</h2>
@@ -937,7 +937,7 @@ export default function ApplicationProcess() {
                       <span className="text-sm text-muted-foreground">{label}</span>
                     </div>
                     {isStatus ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-warning/15 border border-warning/30 text-warning text-xs font-bold">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E8F1FB] border border-[#BFDBFE] text-primary text-xs font-bold">
                         <HourglassIcon className="w-3.5 h-3.5" /> {value}
                       </span>
                     ) : (
@@ -975,11 +975,11 @@ export default function ApplicationProcess() {
           )}
 
           {/* Info note */}
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
-            <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-[#FFE0CC] border border-[#F0D6C8]">
+            <AlertCircle className="w-5 h-5 text-[#2878C8] shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-semibold text-foreground mb-1">What happens next?</p>
-              <ul className="text-muted-foreground space-y-1 text-xs list-disc list-inside">
+              <p className="font-semibold text-[#25364B] mb-1">What happens next?</p>
+              <ul className="text-[#667085] space-y-1 text-xs list-disc list-inside">
                 <li>The PSY CARE admin team will verify your UPI payment</li>
                 <li>You'll receive a notification in your portal once confirmed</li>
                 <li>After approval, your admission will be officially confirmed</li>
@@ -997,7 +997,7 @@ export default function ApplicationProcess() {
             </button>
             <button
               onClick={() => navigate('/student/notifications')}
-              className="flex-1 py-2.5 px-4 rounded-lg gradient-bg text-white text-sm font-semibold border-0 shadow-md"
+              className="flex-1 py-2.5 px-4 rounded-lg bg-[#2878C8] hover:bg-[#1D6AB8] text-white text-sm font-semibold border-0 shadow-md transition-colors"
             >
               View Notifications
             </button>
@@ -1010,8 +1010,8 @@ export default function ApplicationProcess() {
   return (
     <StudentLayout>
       <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
-        {/* Stepper */}
-        <div className="glass-card rounded-xl p-4">
+        {/* Stepper - Light orange section (#FFE0CC) */}
+        <div className="bg-[#FFE0CC] border border-[#F0D6C8] rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
             {steps.map(({ n, label, icon: Icon }, idx) => (
               <div key={n} className="flex items-center flex-1">
@@ -1104,7 +1104,7 @@ export default function ApplicationProcess() {
               <div className="bg-muted rounded-xl p-5 mb-4 border border-border">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <h3 className="text-base font-bold text-foreground">{selectedCourse.course_name}</h3>
-                  <span className="text-xs bg-success/20 text-success px-2.5 py-1 rounded-full shrink-0 font-medium">Selected</span>
+                  <span className="text-xs bg-[#E8F1FB] text-primary px-2.5 py-1 rounded-full shrink-0 font-medium">Selected</span>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">{selectedCourse.description}</p>
                 <div className="grid grid-cols-2 gap-3">
@@ -1207,7 +1207,7 @@ export default function ApplicationProcess() {
                   className="p-1 hover:text-primary transition-colors"
                   title="Copy UPI ID"
                 >
-                  {copiedVpa ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedVpa ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
               </div>
             </div>
@@ -1290,9 +1290,9 @@ export default function ApplicationProcess() {
             </div>
 
             {/* Security Guarantee */}
-            <div className="flex items-center gap-2 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20 mb-5">
-              <Shield className="w-4 h-4 text-emerald-500 shrink-0" />
-              <p className="text-xs text-emerald-600 dark:text-emerald-400">
+            <div className="flex items-center gap-2 p-3 bg-[#E8F1FB] rounded-lg border border-[#BFDBFE] mb-5">
+              <Shield className="w-4 h-4 text-primary shrink-0" />
+              <p className="text-xs text-primary">
                 🔒 100% Encrypted UPI Payment. PSY CARE administration will verify your UTR & screenshot before confirming admission.
               </p>
             </div>
@@ -1321,3 +1321,4 @@ export default function ApplicationProcess() {
     </StudentLayout>
   );
 }
+

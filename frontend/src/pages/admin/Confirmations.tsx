@@ -467,7 +467,7 @@ export default function Confirmations() {
             {
               label: 'NEW PAYMENTS',
               count: pendingPayments.length,
-              color: 'border-amber-500/30 bg-amber-500/10 text-amber-500',
+              color: 'border-[#BFDBFE] bg-[#E8F1FB] text-[#2878C8]',
               badge: pendingPayments.length > 0 ? 'Action Required' : 'Up to date',
             },
             {
@@ -501,7 +501,7 @@ export default function Confirmations() {
             <div className="px-4 pt-4 border-b border-border">
               <TabsList className="bg-muted">
                 <TabsTrigger value="pending" className="text-xs flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-amber-500" />
+                  <Clock className="w-3.5 h-3.5 text-[#2878C8]" />
                   New Payments ({pendingPayments.length})
                 </TabsTrigger>
                 <TabsTrigger value="paid" className="text-xs flex items-center gap-1.5">
@@ -542,7 +542,7 @@ export default function Confirmations() {
                     ) : filterPending(pendingPayments).length === 0 ? (
                       <tr>
                         <td colSpan={8} className="py-12 text-center">
-                          <ShieldCheck className="w-10 h-10 text-emerald-500/50 mx-auto mb-2" />
+                          <ShieldCheck className="w-10 h-10 text-[#2878C8]/50 mx-auto mb-2" />
                           <p className="text-sm font-semibold text-foreground">No New Payments</p>
                           <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
                             All student UPI payment submissions have been reviewed and verified.
@@ -620,7 +620,7 @@ export default function Confirmations() {
 
                             {/* Payment Status badge */}
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FFF0E8] text-[#25364B] border border-[#F0D6C8]">
                                 <Clock className="w-3.5 h-3.5" />
                                 {p.status === 'pending' || p.status === 'pending_verification' ? 'Pending Verification' : p.status}
                               </span>
@@ -647,7 +647,7 @@ export default function Confirmations() {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  className="h-7 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-xs"
+                                  className="h-7 px-2.5 text-xs bg-[#2878C8] hover:bg-[#1D6AB8] text-white font-medium shadow-xs"
                                   onClick={() => setPaymentToApprove(p)}
                                 >
                                   <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Approve
@@ -696,7 +696,7 @@ export default function Confirmations() {
                     ) : filterRejected(rejectedPayments).length === 0 ? (
                       <tr>
                         <td colSpan={9} className="py-12 text-center">
-                          <CheckCircle2 className="w-10 h-10 text-emerald-500/50 mx-auto mb-2" />
+                          <CheckCircle2 className="w-10 h-10 text-[#2878C8]/50 mx-auto mb-2" />
                           <p className="text-sm font-semibold text-foreground">No Failed Payments</p>
                           <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
                             No payment submissions have been failed.
@@ -794,7 +794,7 @@ export default function Confirmations() {
                     ? 'bg-success/15 text-success border border-success/30'
                     : paymentDetails.status === 'Rejected' || paymentDetails.status === 'failed'
                     ? 'bg-destructive/15 text-destructive border border-destructive/30'
-                    : 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                    : 'bg-[#FFF0E8] text-[#25364B] border border-[#F0D6C8]'
                 }`}>
                   {paymentDetails.status === 'Rejected' || paymentDetails.status === 'failed'
                     ? <Ban className="w-3.5 h-3.5" />
@@ -983,20 +983,20 @@ export default function Confirmations() {
                       <XCircle className="w-4 h-4 mr-1.5" /> Reject Payment
                     </Button>
                     <Button
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm"
+                      className="bg-[#2878C8] hover:bg-[#1D6AB8] text-white text-xs font-semibold shadow-sm"
                       onClick={() => setPaymentToApprove(paymentDetails)}
                     >
                       <CheckCircle2 className="w-4 h-4 mr-1.5" /> Approve Payment
                     </Button>
                   </div>
                 ) : paymentDetails.status === 'Approved' || paymentDetails.status === 'paid' ? (
-                  <div className="grid grid-cols-3 gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
+                  <div className="grid grid-cols-3 gap-3 bg-[#E8F1FB] border border-[#BFDBFE] rounded-lg p-3">
                     <div>
-                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">Payment Status</p>
+                      <p className="text-[11px] text-[#2878C8] font-semibold">Payment Status</p>
                       <p className="text-xs font-bold text-foreground mt-0.5">Approved</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">Approved Date</p>
+                      <p className="text-[11px] text-[#2878C8] font-semibold">Approved Date</p>
                       <p className="text-xs font-medium text-foreground mt-0.5">
                         {paymentDetails.approved_at
                           ? format(new Date(paymentDetails.approved_at), 'dd MMM yyyy, hh:mm a')
@@ -1004,7 +1004,7 @@ export default function Confirmations() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">Approved By</p>
+                      <p className="text-[11px] text-[#2878C8] font-semibold">Approved By</p>
                       <p className="text-xs font-medium text-foreground mt-0.5">{paymentDetails.approved_by || 'PSY CARE Admin'}</p>
                     </div>
                   </div>
@@ -1047,7 +1047,7 @@ export default function Confirmations() {
       <Dialog open={!!paymentToApprove} onOpenChange={open => !open && setPaymentToApprove(null)}>
         <DialogContent className="max-w-md bg-card border-border">
           <DialogHeader>
-            <div className="w-12 h-12 rounded-full bg-emerald-500/15 text-emerald-500 flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 rounded-full bg-[#E8F1FB] text-[#2878C8] flex items-center justify-center mx-auto mb-3">
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <DialogTitle className="text-center text-lg font-bold">Approve this payment?</DialogTitle>
@@ -1076,7 +1076,7 @@ export default function Confirmations() {
             <Button
               onClick={handleConfirmApprove}
               disabled={approving}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
+              className="bg-[#2878C8] hover:bg-[#1D6AB8] text-white text-xs font-semibold"
             >
               {approving ? (
                 <>
@@ -1291,3 +1291,5 @@ export default function Confirmations() {
     </AdminLayout>
   );
 }
+
+

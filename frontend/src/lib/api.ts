@@ -806,6 +806,22 @@ export async function getStudentReminders(): Promise<StudentReminder[]> {
   return await res.json();
 }
 
+export async function acknowledgeReminder(id: string): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/students/me/reminders/${id}/acknowledge`, {
+    method: 'PUT',
+    headers: getHeaders(),
+  });
+  return res.ok;
+}
+
+export async function dismissReminder(id: string): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/students/me/reminders/${id}/dismiss`, {
+    method: 'PUT',
+    headers: getHeaders(),
+  });
+  return res.ok;
+}
+
 // ── COUNSELLING ────────────────────────────────────────────
 export async function getStudentCounselling(studentId: string): Promise<Counselling | null> {
   const res = await fetch(`${API_BASE}/counselling/student/${studentId}`, {

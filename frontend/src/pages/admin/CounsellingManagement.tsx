@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   getAllStudents, getAllCounselling, upsertCounselling, updateStudent,
   getPrivateNotesForCounselling, addPrivateNote, updatePrivateNote, deletePrivateNote,
@@ -12,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { TablePagination, getSessionPageSize, setSessionPageSize } from '@/components/common/TablePagination';
 import { toast } from 'sonner';
 import type { Student, Counselling, CounsellorPrivateNote } from '@/types/index';
-import { Plus, Pencil, Loader2, Search, Calendar, Lock, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Loader2, Search, Calendar, Lock, Trash2, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePortal } from '@/contexts/PortalContext';
 
@@ -87,7 +88,7 @@ function PrivateNotesModal({ open, onClose, counselling, students, existingNote,
           <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
             <span
               style={{
-                background: '#FEF3C7',
+                background: '#E8F1FB',
                 borderRadius: '50%',
                 width: 28,
                 height: 28,
@@ -97,7 +98,7 @@ function PrivateNotesModal({ open, onClose, counselling, students, existingNote,
                 flexShrink: 0,
               }}
             >
-              <Lock style={{ width: 14, height: 14, color: '#F59E0B' }} />
+              <Lock style={{ width: 14, height: 14, color: '#2878C8' }} />
             </span>
             {existingNote ? 'Edit Private Note' : 'Add Private Note'}
           </DialogTitle>
@@ -110,31 +111,31 @@ function PrivateNotesModal({ open, onClose, counselling, students, existingNote,
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              background: '#FFF7ED',
-              border: '1px solid #FED7AA',
+              background: '#E8F1FB',
+              border: '1px solid #BFDBFE',
               borderRadius: 8,
               padding: '8px 12px',
             }}
           >
-            <Lock style={{ width: 12, height: 12, color: '#F59E0B', flexShrink: 0 }} />
-            <span style={{ color: '#9A3412', fontStyle: 'italic', fontSize: 11 }}>
+            <Lock style={{ width: 12, height: 12, color: '#2878C8', flexShrink: 0 }} />
+            <span style={{ color: '#1D6AB8', fontStyle: 'italic', fontSize: 11 }}>
               Private – only you can see this
             </span>
           </div>
 
           {/* Student reference */}
           {student && (
-            <div style={{ background: '#FFF7ED', borderRadius: 8, padding: '8px 12px', border: '1px solid #FED7AA' }}>
-              <p style={{ color: '#172554', fontWeight: 600 }}>{student.full_name || student.email}</p>
+            <div style={{ background: '#E8F1FB', borderRadius: 8, padding: '8px 12px', border: '1px solid #BFDBFE' }}>
+              <p style={{ color: '#25364B', fontWeight: 600 }}>{student.full_name || student.email}</p>
               {student.student_id && (
-                <p style={{ color: '#9A3412', fontFamily: 'monospace', fontSize: 11 }}>{student.student_id}</p>
+                <p style={{ color: '#2878C8', fontFamily: 'monospace', fontSize: 11 }}>{student.student_id}</p>
               )}
             </div>
           )}
 
           {/* Textarea */}
           <div>
-            <Label className="text-xs font-semibold" style={{ color: '#172554' }}>
+            <Label className="text-xs font-semibold" style={{ color: '#25364B' }}>
               Private Note
             </Label>
             <textarea
@@ -147,11 +148,11 @@ function PrivateNotesModal({ open, onClose, counselling, students, existingNote,
                 width: '100%',
                 marginTop: 6,
                 background: '#FFFFFF',
-                border: '1px solid #FED7AA',
+                border: '1px solid #F0D6C8',
                 borderRadius: 8,
                 padding: '10px 12px',
                 fontSize: 12,
-                color: '#172554',
+                color: '#25364B',
                 outline: 'none',
                 resize: 'vertical',
                 fontFamily: 'inherit',
@@ -159,11 +160,11 @@ function PrivateNotesModal({ open, onClose, counselling, students, existingNote,
                 transition: 'border-color 0.15s, box-shadow 0.15s',
               }}
               onFocus={e => {
-                e.target.style.borderColor = '#F59E0B';
-                e.target.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.2)';
+                e.target.style.borderColor = '#2878C8';
+                e.target.style.boxShadow = '0 0 0 3px rgba(40,120,200,0.18)';
               }}
               onBlur={e => {
-                e.target.style.borderColor = '#FED7AA';
+                e.target.style.borderColor = '#F0D6C8';
                 e.target.style.boxShadow = 'none';
               }}
             />
@@ -178,7 +179,7 @@ function PrivateNotesModal({ open, onClose, counselling, students, existingNote,
               variant="outline"
               type="button"
               className="text-xs"
-              style={{ borderColor: '#FED7AA', color: '#172554' }}
+              style={{ borderColor: '#F0D6C8', color: '#25364B' }}
               onClick={onClose}
               disabled={saving}
             >
@@ -187,7 +188,7 @@ function PrivateNotesModal({ open, onClose, counselling, students, existingNote,
             <Button
               type="button"
               className="text-xs font-semibold px-5 text-white border-0"
-              style={{ background: '#F59E0B' }}
+              style={{ background: '#2878C8' }}
               onClick={handleSave}
               disabled={saving || text.trim().length === 0}
             >
@@ -205,6 +206,7 @@ function PrivateNotesModal({ open, onClose, counselling, students, existingNote,
 export default function CounsellingManagement() {
   const portal = usePortal();
   const isCounsellor = portal === 'counsellor';
+  const navigate = useNavigate();
 
   const [students, setStudents] = useState<Student[]>([]);
   const [counsellings, setCounsellings] = useState<Counselling[]>([]);
@@ -387,30 +389,30 @@ export default function CounsellingManagement() {
               Assign counsellors, set dates &amp; times, schedule sessions and dispatch student notifications
             </p>
           </div>
-          <Button onClick={() => openSchedule()} className="gradient-bg border-0 text-white shrink-0 text-xs">
+          <Button onClick={() => openSchedule()} className="bg-[#2878C8] hover:bg-[#1D6AB8] border-0 text-white shrink-0 text-xs shadow-sm">
             <Plus className="w-4 h-4 mr-1.5" /> Schedule Counselling
           </Button>
         </div>
 
-        {/* Students needing counselling */}
+        {/* Students needing counselling - Light Orange Section (#FFE0CC) */}
         {studentsNeedingCounselling.length > 0 && (
-          <div className="glass-card rounded-xl p-5 border border-border">
-            <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-warning" /> Pending Counselling Assignment ({studentsNeedingCounselling.length})
+          <div className="bg-[#FFE0CC] rounded-xl p-5 border border-[#F0D6C8] shadow-sm">
+            <h2 className="text-sm font-semibold text-[#25364B] mb-3 flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-[#2878C8]" /> Pending Counselling Assignment ({studentsNeedingCounselling.length})
             </h2>
             <div className="space-y-2">
               {studentsNeedingCounselling.slice(0, 5).map(s => (
-                <div key={s.id} className="flex items-center justify-between gap-3 p-3 bg-warning/10 rounded-lg border border-warning/20">
+                <div key={s.id} className="flex items-center justify-between gap-3 p-3 bg-white/90 rounded-lg border border-[#F0D6C8]">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">
+                    <p className="text-sm font-semibold text-[#25364B] truncate">
                       {s.full_name || s.email}
-                      {s.student_id && <span className="text-xs text-muted-foreground ml-2 font-mono">[{s.student_id}]</span>}
+                      {s.student_id && <span className="text-xs text-[#667085] ml-2 font-mono">[{s.student_id}]</span>}
                     </p>
-                    <p className="text-xs text-muted-foreground">{s.selected_course || 'Not Selected'}</p>
+                    <p className="text-xs text-[#667085]">{s.selected_course || 'Not Selected'}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={s.counselling_status} />
-                    <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => openSchedule(s.id)}>
+                    <Button size="sm" className="text-xs h-8 bg-[#2878C8] hover:bg-[#1D6AB8] text-white border-0" onClick={() => openSchedule(s.id)}>
                       <Calendar className="w-3.5 h-3.5 mr-1" /> Schedule
                     </Button>
                   </div>
@@ -435,7 +437,8 @@ export default function CounsellingManagement() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
@@ -443,7 +446,7 @@ export default function CounsellingManagement() {
                     <th key={h} className="px-3 py-3 text-left font-semibold text-muted-foreground whitespace-nowrap">
                       {h === 'Private Notes' ? (
                         <span className="flex items-center gap-1">
-                          <Lock style={{ width: 12, height: 12, color: '#F59E0B' }} />
+                          <Lock style={{ width: 12, height: 12, color: '#2878C8' }} />
                           Private Notes
                         </span>
                       ) : h}
@@ -501,12 +504,12 @@ export default function CounsellingManagement() {
                         {isCounsellor && (
                           <td className="px-3 py-3" style={{ minWidth: 200, maxWidth: 260 }}>
                             {noteLoading ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                              <Loader2 className="w-4 h-4 animate-spin text-[#2878C8]" />
                             ) : note ? (
                               <div className="space-y-1">
                                 <p
                                   className="text-xs leading-snug"
-                                  style={{ color: '#172554' }}
+                                  style={{ color: '#25364B' }}
                                   title={note.note_text}
                                 >
                                   {note.note_text.length > 60
@@ -544,7 +547,7 @@ export default function CounsellingManagement() {
                                   size="sm"
                                   variant="outline"
                                   className="h-6 px-2 text-[11px]"
-                                  style={{ borderColor: '#FED7AA', color: '#9A3412' }}
+                                  style={{ borderColor: '#BFDBFE', color: '#2878C8' }}
                                   onClick={() => openAddNote(c)}
                                 >
                                   <Plus className="w-3 h-3 mr-0.5" /> Add Note
@@ -555,14 +558,25 @@ export default function CounsellingManagement() {
                         )}
 
                         <td className="px-3 py-3 whitespace-nowrap">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs"
-                            onClick={() => openEdit(c)}
-                          >
-                            <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
-                          </Button>
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs border-[#BFDBFE] text-[#2878C8] hover:bg-[#E8F1FB]"
+                              onClick={() => navigate(isCounsellor ? `/counsellor/notifications?studentId=${c.student_id}` : `/admin/notifications?studentId=${c.student_id}`)}
+                              title="Open private chat with this student"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5 mr-1 text-[#2878C8]" /> Chat
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs"
+                              onClick={() => openEdit(c)}
+                            >
+                              <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -570,6 +584,96 @@ export default function CounsellingManagement() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View (md:hidden) */}
+          <div className="md:hidden p-3 space-y-2.5">
+            {loading ? (
+              <div className="py-8 text-center text-muted-foreground">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#2878C8]" />
+                <p className="mt-2 text-xs">Loading sessions...</p>
+              </div>
+            ) : filteredCounsellings.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">
+                No counselling sessions found.
+              </div>
+            ) : (
+              filteredCounsellings.map(c => {
+                const s = students.find(st => st.id === c.student_id);
+                const note = privateNotes[c.id];
+
+                return (
+                  <div key={c.id} className="bg-white rounded-xl p-3 border border-[#F0D6C8] shadow-xs space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-[#25364B] truncate">{s?.full_name || 'Student'}</p>
+                        <p className="text-[10px] font-mono text-[#667085]">{s?.student_id || '-'}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="px-2 py-0.5 rounded bg-[#E8F2FF] text-[#2878C8] font-medium text-[10px]">
+                          {c.mode || 'Online'}
+                        </span>
+                        <StatusBadge status={c.status} />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px] pt-1.5 border-t border-[#F0D6C8]/40 text-[#667085]">
+                      <div>
+                        <span className="text-[10px] text-[#94A3B8] block">Counsellor</span>
+                        <span className="font-medium text-[#25364B] truncate block">{c.counsellor_name || 'PSY CARE Counsellor'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[#94A3B8] block">Schedule</span>
+                        <span className="font-medium text-[#25364B] block">{c.scheduled_date || '-'} {c.scheduled_time || ''}</span>
+                      </div>
+                    </div>
+
+                    {isCounsellor && (
+                      <div className="pt-2 border-t border-[#F0D6C8]/40">
+                        <div className="flex items-center justify-between text-[11px] mb-1">
+                          <span className="font-semibold text-[#25364B] flex items-center gap-1">
+                            <Lock style={{ width: 11, height: 11, color: '#2878C8' }} /> Private Notes
+                          </span>
+                          {note ? (
+                            <div className="flex items-center gap-1">
+                              <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px] text-[#172554]" onClick={() => openEditNote(c)}>
+                                <Pencil className="w-2.5 h-2.5 mr-0.5" /> Edit
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px] text-[#DC2626]" onClick={() => handleDeleteNote(c.id)}>
+                                <Trash2 className="w-2.5 h-2.5 mr-0.5" /> Delete
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] border-[#BFDBFE] text-[#2878C8]" onClick={() => openAddNote(c)}>
+                              <Plus className="w-2.5 h-2.5 mr-0.5" /> Add Note
+                            </Button>
+                          )}
+                        </div>
+                        {note && (
+                          <p className="text-[11px] text-[#25364B] bg-[#FFF0E8]/50 p-2 rounded-lg border border-[#F0D6C8]/60 leading-tight">
+                            {note.note_text}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex justify-end items-center gap-2 pt-1.5 border-t border-[#F0D6C8]/40">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs border-[#BFDBFE] text-[#2878C8] hover:bg-[#E8F1FB]"
+                        onClick={() => navigate(isCounsellor ? `/counsellor/notifications?studentId=${c.student_id}` : `/admin/notifications?studentId=${c.student_id}`)}
+                      >
+                        <MessageSquare className="w-3 h-3 mr-1 text-[#2878C8]" /> Chat Student
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs border-[#F0D6C8] hover:bg-[#FFF0E8]" onClick={() => openEdit(c)}>
+                        <Pencil className="w-3 h-3 mr-1 text-[#2878C8]" /> Edit Session
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
 
           <TablePagination

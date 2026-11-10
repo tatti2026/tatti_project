@@ -235,8 +235,8 @@ export default function StudentDetails() {
           </div>
         </div>
 
-        {/* Search, Filter and Sort Bar */}
-        <div className="glass-card rounded-xl p-3 border border-border space-y-3">
+        {/* Search, Filter and Sort Bar - Light Orange Section (#FFE0CC) */}
+        <div className="bg-[#FFE0CC] rounded-xl p-3 border border-[#F0D6C8] shadow-sm space-y-3">
           <div className="flex flex-wrap items-center gap-3">
             {/* Search Input */}
             <div className="relative flex-1 min-w-[220px]">
@@ -311,7 +311,8 @@ export default function StudentDetails() {
 
         {/* Students Table */}
         <div className="glass-card rounded-xl overflow-hidden border border-border shadow-sm">
-          <div className="overflow-x-auto">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
@@ -456,6 +457,80 @@ export default function StudentDetails() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View (md:hidden) */}
+          <div className="md:hidden p-3 space-y-2.5">
+            {loading ? (
+              <div className="py-8 text-center text-muted-foreground">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#2878C8]" />
+                <p className="mt-2 text-xs">Loading student records...</p>
+              </div>
+            ) : students.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">
+                No students found matching your search.
+              </div>
+            ) : (
+              students.map(s => (
+                <div key={s.id} className="bg-white rounded-xl p-3 border border-[#F0D6C8] shadow-xs space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-[#25364B] truncate">{s.full_name || 'Student'}</p>
+                      <p className="text-[10px] font-mono text-[#667085]">{s.student_id || '-'}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <StatusBadge status={s.application_status} />
+                      <StatusBadge status={s.payment_status} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1.5 border-t border-[#F0D6C8]/40 text-[#667085]">
+                    <div>
+                      <span className="text-[10px] text-[#94A3B8] block">Course</span>
+                      <span className="font-medium text-[#25364B] truncate block">{s.selected_course || 'Not Selected'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#94A3B8] block">Assessment</span>
+                      <span className="font-medium text-[#25364B] block">
+                        {s.assessment_percentage !== undefined && s.assessment_percentage !== null
+                          ? `${Number(s.assessment_percentage).toFixed(1)}%`
+                          : (s.assessment_status || 'not_started')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1.5 border-t border-[#F0D6C8]/40 text-[10px] text-[#667085]">
+                    <span>{s.created_at ? format(new Date(s.created_at), 'dd MMM yyyy') : '-'}</span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs text-[#2878C8] hover:bg-[#E8F2FF]"
+                        onClick={() => setViewStudent(s)}
+                      >
+                        <Eye className="w-3.5 h-3.5 mr-1" /> View
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs text-[#25364B] hover:bg-[#FFF0E8]"
+                        onClick={() => setEditStudent(s)}
+                      >
+                        <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-1.5 text-xs text-rose-600 hover:bg-rose-50"
+                        onClick={() => setDeleteStudentId(s.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <TablePagination

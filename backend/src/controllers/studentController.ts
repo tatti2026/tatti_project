@@ -10,6 +10,15 @@ export async function getStudentReminders(req: AuthenticatedRequest, res: Respon
     }
 
     const profileId = req.user.userId;
+
+    // Ensure columns exist (idempotent migration)
+    await query(`
+      ALTER TABLE counselling
+        ADD COLUMN IF NOT EXISTS reminder_status TEXT DEFAULT 'pending',
+        ADD COLUMN IF NOT EXISTS acknowledged_at TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS dismissed_at TIMESTAMPTZ
+    `).catch(() => {});
+
     const [counsellingResult, followUpResult] = await Promise.all([
       query(`
         SELECT
@@ -23,6 +32,7 @@ export async function getStudentReminders(req: AuthenticatedRequest, res: Respon
           c.instructions,
           c.reminder_option,
           c.reminder_datetime::text AS reminder_datetime,
+          c.reminder_status,
           c.updated_at::text AS updated_at
         FROM counselling c
         JOIN students s ON s.id = c.student_id
@@ -33,6 +43,7 @@ export async function getStudentReminders(req: AuthenticatedRequest, res: Respon
           AND (c.scheduled_date + COALESCE(c.scheduled_time::time, TIME '10:30'))
               AT TIME ZONE 'Asia/Kolkata' > now()
           AND LOWER(COALESCE(c.status, 'scheduled')) NOT IN ('completed', 'cancelled', 'rejected', 'selected')
+          AND COALESCE(c.reminder_status, 'pending') = 'pending'
         ORDER BY c.scheduled_date, c.scheduled_time
       `, [profileId]),
       query(`
@@ -57,6 +68,92 @@ export async function getStudentReminders(req: AuthenticatedRequest, res: Respon
     return res.json([...counsellingResult.rows, ...followUpResult.rows]);
   } catch (err) {
     console.error('Error fetching student reminders:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// ── PUT /api/students/me/reminders/:id/acknowledge ──────────────────────────
+// Student acknowledges (confirms they saw) a counselling reminder.
+// Adds reminder_status='acknowledged' + acknowledged_at timestamp to counselling row.
+export async function acknowledgeReminder(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (req.user?.role !== 'student') {
+      return res.status(403).json({ error: 'Only student accounts can acknowledge reminders.' });
+    }
+    const profileId = req.user.userId;
+    const { id } = req.params;
+
+    // Verify this reminder belongs to this student
+    const check = await query(
+      `SELECT c.id FROM counselling c
+       JOIN students s ON s.id = c.student_id
+       WHERE c.id = $1 AND s.profile_id = $2`,
+      [id, profileId]
+    );
+    if (check.rows.length === 0) {
+      return res.status(403).json({ error: 'Reminder not found or access denied.' });
+    }
+
+    // Ensure columns exist (idempotent migration)
+    await query(`
+      ALTER TABLE counselling
+        ADD COLUMN IF NOT EXISTS reminder_status TEXT DEFAULT 'pending',
+        ADD COLUMN IF NOT EXISTS acknowledged_at TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS dismissed_at TIMESTAMPTZ
+    `).catch(() => {}); // ignore if already exists
+
+    await query(
+      `UPDATE counselling
+       SET reminder_status = 'acknowledged', acknowledged_at = now()
+       WHERE id = $1`,
+      [id]
+    );
+
+    return res.json({ success: true, status: 'acknowledged' });
+  } catch (err) {
+    console.error('Error acknowledging reminder:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// ── PUT /api/students/me/reminders/:id/dismiss ───────────────────────────────
+// Student dismisses a counselling reminder (seen but not formally acknowledged).
+export async function dismissReminder(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (req.user?.role !== 'student') {
+      return res.status(403).json({ error: 'Only student accounts can dismiss reminders.' });
+    }
+    const profileId = req.user.userId;
+    const { id } = req.params;
+
+    // Verify this reminder belongs to this student
+    const check = await query(
+      `SELECT c.id FROM counselling c
+       JOIN students s ON s.id = c.student_id
+       WHERE c.id = $1 AND s.profile_id = $2`,
+      [id, profileId]
+    );
+    if (check.rows.length === 0) {
+      return res.status(403).json({ error: 'Reminder not found or access denied.' });
+    }
+
+    await query(`
+      ALTER TABLE counselling
+        ADD COLUMN IF NOT EXISTS reminder_status TEXT DEFAULT 'pending',
+        ADD COLUMN IF NOT EXISTS acknowledged_at TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS dismissed_at TIMESTAMPTZ
+    `).catch(() => {});
+
+    await query(
+      `UPDATE counselling
+       SET reminder_status = 'dismissed', dismissed_at = now()
+       WHERE id = $1`,
+      [id]
+    );
+
+    return res.json({ success: true, status: 'dismissed' });
+  } catch (err) {
+    console.error('Error dismissing reminder:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

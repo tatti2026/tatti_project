@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import {
   getMessagesForStudent, getStudentConversation, sendChatMessage,
-  markConversationAsRead, playNotificationSound, type ChatMessage, type ChatConversation,
+  markConversationAsRead, playNotificationSound, playIncomingSound, playOutgoingSound, type ChatMessage, type ChatConversation,
   fetchMessagesFromAPI, sendMessageViaAPI, markMessagesReadViaAPI
 } from '@/services/messagingService';
 import FileAttachment from '@/components/chat/FileAttachment';
@@ -27,13 +27,13 @@ type MainTab = 'all' | 'messages';
 
 // Icons and badges for system notifications
 const systemNotifConfig: Record<string, { icon: string; badgeColor: string; bg: string }> = {
-  general:     { icon: '🔔', badgeColor: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/20' },
-  assessment:  { icon: '📋', badgeColor: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
-  course:      { icon: '🎓', badgeColor: 'text-emerald-400',bg: 'bg-emerald-500/10 border-emerald-500/20' },
-  application: { icon: '📄', badgeColor: 'text-amber-400',  bg: 'bg-amber-500/10 border-amber-500/20' },
-  payment:     { icon: '💳', badgeColor: 'text-emerald-400',bg: 'bg-emerald-500/10 border-emerald-500/20' },
-  counselling: { icon: '📅', badgeColor: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20' },
-  admission:   { icon: '🏛️', badgeColor: 'text-rose-400',   bg: 'bg-rose-500/10 border-rose-500/20' },
+  general:     { icon: '🔔', badgeColor: 'text-[#2878C8]',   bg: 'bg-[#E8F1FB] border-[#BFDBFE]' },
+  assessment:  { icon: '📋', badgeColor: 'text-[#2878C8]',   bg: 'bg-[#E8F1FB] border-[#BFDBFE]' },
+  course:      { icon: '🎓', badgeColor: 'text-[#2878C8]',   bg: 'bg-[#E8F1FB] border-[#BFDBFE]' },
+  application: { icon: '📄', badgeColor: 'text-[#2878C8]',   bg: 'bg-[#E8F1FB] border-[#BFDBFE]' },
+  payment:     { icon: '💳', badgeColor: 'text-[#2878C8]',   bg: 'bg-[#E8F1FB] border-[#BFDBFE]' },
+  counselling: { icon: '📅', badgeColor: 'text-[#2878C8]',   bg: 'bg-[#E8F1FB] border-[#BFDBFE]' },
+  admission:   { icon: '🏛️', badgeColor: 'text-[#2878C8]',   bg: 'bg-[#E8F1FB] border-[#BFDBFE]' },
 };
 
 function formatMsgDate(d: Date) {
@@ -64,6 +64,7 @@ export default function Notifications() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const prevNotifIdsRef = useRef<Set<string>>(new Set());
+  const prevMsgIdsRef = useRef<Set<string>>(new Set());
   const isInitialMountRef = useRef(true);
 
   // Load student, notifications & messages
@@ -82,15 +83,28 @@ export default function Notifications() {
         if (hasNewUnread) {
           playNotificationSound();
         }
-      } else {
-        isInitialMountRef.current = false;
       }
       prevNotifIdsRef.current = new Set(notifs.map(n => n.id));
 
       setNotifications(notifs);
 
       const msgs = await fetchMessagesFromAPI(studentId);
-      setMessages(msgs);
+      if (Array.isArray(msgs)) {
+        if (!isInitialMountRef.current) {
+          const hasNewStaffMsg = msgs.some(
+            m => m.senderType === 'admin' && !prevMsgIdsRef.current.has(m.id)
+          );
+          if (hasNewStaffMsg) {
+            playIncomingSound();
+          }
+        }
+        prevMsgIdsRef.current = new Set(msgs.map(m => m.id));
+        setMessages(msgs);
+      }
+
+      if (isInitialMountRef.current) {
+        isInitialMountRef.current = false;
+      }
     } catch {
       // ignore
     } finally {
@@ -100,7 +114,7 @@ export default function Notifications() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 5000);
+    const interval = setInterval(loadData, 3500);
     return () => clearInterval(interval);
   }, [profile]);
 
@@ -176,13 +190,18 @@ export default function Notifications() {
     const studentId = student?.id || 'default';
     const studentName = student?.full_name || profile?.full_name || 'Student';
 
-    await sendMessageViaAPI({
+    const sent = await sendMessageViaAPI({
       studentId,
       senderId: profile?.id || 'student',
       senderName: studentName,
       senderType: 'student',
       text: text.trim(),
     });
+
+    if (sent) {
+      playOutgoingSound();
+      prevMsgIdsRef.current.add(sent.id);
+    }
 
     const msgs = await fetchMessagesFromAPI(studentId);
     setMessages(msgs);
@@ -192,12 +211,12 @@ export default function Notifications() {
     const studentId = student?.id || 'default';
     const studentName = student?.full_name || profile?.full_name || 'Student';
 
-    await sendMessageViaAPI({
+    const sent = await sendMessageViaAPI({
       studentId,
       senderId: profile?.id || 'student',
       senderName: studentName,
       senderType: 'student',
-      text: `Uploaded document: ${file.name}`,
+      text: file.caption || `Uploaded document: ${file.name}`,
       attachment: {
         name: file.name,
         size: file.size,
@@ -205,6 +224,11 @@ export default function Notifications() {
         url: file.url,
       },
     });
+
+    if (sent) {
+      playOutgoingSound();
+      prevMsgIdsRef.current.add(sent.id);
+    }
 
     const msgs = await fetchMessagesFromAPI(studentId);
     setMessages(msgs);
@@ -338,7 +362,7 @@ export default function Notifications() {
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 <span>💬 PSY CARE Admin</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="w-2 h-2 rounded-full bg-[#2878C8]" />
               </p>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
                 {newMsgPopup.text}
@@ -600,7 +624,7 @@ export default function Notifications() {
                     <h3 className="text-sm font-bold text-foreground">Support Channels</h3>
                     <p className="text-[11px] text-muted-foreground">Direct staff & admin communication</p>
                   </div>
-                  <Badge variant="outline" className="text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-500/10">
+                  <Badge variant="outline" className="text-[10px] text-[#2878C8] border-[#2878C8]/30 bg-[#2878C8]/10">
                     Live
                   </Badge>
                 </div>
@@ -615,7 +639,7 @@ export default function Notifications() {
                       <div className="w-11 h-11 rounded-full gradient-bg flex items-center justify-center text-white text-xs font-bold shadow-sm">
                         TA
                       </div>
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-card rounded-full" />
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#2878C8] border-2 border-card rounded-full" />
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -660,7 +684,7 @@ export default function Notifications() {
                       <div className="w-10 h-10 rounded-full gradient-bg flex items-center justify-center text-white text-xs font-bold shadow-sm">
                         TA
                       </div>
-                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-card rounded-full" />
+                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#2878C8] border-2 border-card rounded-full" />
                     </div>
 
                     <div className="min-w-0">
@@ -668,7 +692,7 @@ export default function Notifications() {
                         PSY CARE Admin
                         <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                       </h2>
-                      <p className="text-[10px] text-emerald-400 font-medium">
+                      <p className="text-[10px] text-[#2878C8] font-medium">
                         Online • Academic & Admissions Desk
                       </p>
                     </div>

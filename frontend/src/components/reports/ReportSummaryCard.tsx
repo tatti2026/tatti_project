@@ -26,15 +26,11 @@ export const ReportSummaryCard: React.FC<ReportSummaryCardProps> = ({
 
   if (color === 'emerald') {
     colorStyles = {
-      bg: 'bg-emerald-500/10',
-      text: 'text-emerald-400',
-      border: 'border-emerald-500/20',
+      bg: 'bg-[#E8F1FB]', text: 'text-[#2878C8]', border: 'border-[#BFDBFE]',
     };
   } else if (color === 'amber') {
     colorStyles = {
-      bg: 'bg-amber-500/10',
-      text: 'text-amber-400',
-      border: 'border-amber-500/20',
+      bg: 'bg-[#FFF0E8]', text: 'text-[#25364B]', border: 'border-[#F0D6C8]',
     };
   } else if (color === 'blue') {
     colorStyles = {
@@ -81,3 +77,4 @@ export const ReportSummaryCard: React.FC<ReportSummaryCardProps> = ({
 };
 
 export default ReportSummaryCard;
+

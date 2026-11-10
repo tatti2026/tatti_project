@@ -40,16 +40,16 @@ export function getFileTypeInfo(fileName: string) {
     return {
       ext: 'XLS',
       icon: FileSpreadsheet,
-      badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-      iconBg: 'bg-emerald-500/20 text-emerald-400',
+      badgeColor: 'bg-[#E8F1FB] text-[#2878C8] border-[#BFDBFE]',
+      iconBg: 'bg-[#E8F1FB] text-[#2878C8]',
     };
   }
   if (['ppt', 'pptx'].includes(ext)) {
     return {
       ext: 'PPT',
       icon: Presentation,
-      badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-      iconBg: 'bg-amber-500/20 text-amber-400',
+      badgeColor: 'bg-[#FFF0E8] text-[#2878C8] border-[#F0D6C8]',
+      iconBg: 'bg-[#E8F1FB] text-[#2878C8]',
     };
   }
   if (['txt', 'rtf'].includes(ext)) {
@@ -148,3 +148,4 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
 };
 
 export default FileAttachment;
+

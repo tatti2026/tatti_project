@@ -3,7 +3,9 @@ import { query } from '../database/pgPool.js';
 
 export async function getNotifications(req: Request, res: Response) {
   try {
-    const profileId = req.params.profileId || (req.query.profileId as string) || (req as any).user?.userId;
+    const user = (req as any).user;
+    const isStaff = user?.role === 'admin' || user?.role === 'counsellor';
+    const profileId = req.params.profileId || (req.query.profileId as string) || (!isStaff ? user?.userId : undefined);
     const studentId = req.query.studentId as string;
 
     let result;

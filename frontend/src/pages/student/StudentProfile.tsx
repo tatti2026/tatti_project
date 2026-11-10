@@ -60,38 +60,38 @@ export default function StudentProfile() {
 
   return (
     <StudentLayout>
-      <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+      <div className="max-w-2xl mx-auto space-y-3.5 sm:space-y-4 animate-fade-in">
         <div>
-          <h1 className="text-xl font-bold text-foreground mb-1">My Profile</h1>
-          <p className="text-muted-foreground text-sm">Manage your personal information</p>
+          <h1 className="text-lg sm:text-xl font-bold text-[#25364B] tracking-tight">My Profile</h1>
+          <p className="text-[#667085] text-xs">Manage your personal information</p>
         </div>
 
         {/* Avatar + Student ID card */}
-        <div className="glass-card rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="w-16 h-16 rounded-full gradient-bg flex items-center justify-center shrink-0">
-            <span className="text-2xl font-bold text-white">{(form.full_name || profile?.email || 'S')[0].toUpperCase()}</span>
+        <div className="bg-white border border-[#F0D6C8] rounded-2xl p-4 sm:p-5 flex items-center gap-3.5 shadow-xs">
+          <div className="w-12 h-12 rounded-full bg-[#2878C8] flex items-center justify-center shrink-0 shadow-xs">
+            <span className="text-xl font-bold text-white">{(form.full_name || profile?.email || 'S')[0].toUpperCase()}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-lg font-bold text-foreground">{form.full_name || 'Student'}</p>
-            <p className="text-sm text-muted-foreground">{profile?.email}</p>
+            <p className="text-base font-bold text-[#25364B] truncate">{form.full_name || 'Student'}</p>
+            <p className="text-xs text-[#667085] truncate">{profile?.email}</p>
           </div>
         </div>
 
-        {/* Student ID — Prominent Read-Only Card */}
-        <div className="glass-card rounded-xl p-5 border-2 border-primary/20 bg-primary/5">
-          <div className="flex items-center gap-2 mb-3">
-            <BadgeCheck className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold text-foreground">Student ID</span>
-            <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-              <Lock className="w-2.5 h-2.5" /> Read-only
+        {/* Student ID — Prominent Light Orange Section Card (#FFE0CC) */}
+        <div className="bg-[#FFE0CC] border border-[#F0D6C8] rounded-2xl p-4 shadow-xs">
+          <div className="flex items-center gap-2 mb-2">
+            <BadgeCheck className="w-4 h-4 text-[#2878C8]" />
+            <span className="text-xs font-semibold text-[#25364B]">Student ID</span>
+            <span className="ml-auto flex items-center gap-1 text-[10px] text-[#25364B] bg-white/80 border border-[#F0D6C8] px-2 py-0.5 rounded-full font-medium">
+              <Lock className="w-2.5 h-2.5 text-[#2878C8]" /> Read-only
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="font-mono text-2xl font-bold text-foreground tracking-wider">
+            <span className="font-mono text-2xl font-bold text-[#25364B] tracking-wider">
               {student?.student_id || '—'}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-xs text-[#667085] mt-2">
             This is your permanent Student ID. Use it to sign in to the PSY CARE Portal.
           </p>
         </div>
@@ -140,8 +140,8 @@ export default function StudentProfile() {
 
         {/* Profile Form */}
         <div className="glass-card rounded-xl p-6">
-          <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-            <User className="w-4 h-4 text-primary" /> Personal Information
+          <h2 className="text-sm font-semibold text-[#25364B] mb-4 flex items-center gap-2">
+            <User className="w-4 h-4 text-[#2878C8]" /> Personal Information
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -185,7 +185,7 @@ export default function StudentProfile() {
             </div>
           </div>
           <div className="flex justify-end mt-6">
-            <Button onClick={handleSave} disabled={saving} className="gradient-bg border-0 text-white">
+            <Button onClick={handleSave} disabled={saving} className="bg-[#2878C8] hover:bg-[#1D6AB8] border-0 text-white shadow-sm transition-all">
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
               Save Changes
             </Button>

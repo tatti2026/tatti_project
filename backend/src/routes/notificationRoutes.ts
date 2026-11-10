@@ -7,8 +7,12 @@ import {
   sendMessage,
   markMessagesRead,
 } from '../controllers/notificationController.js';
+import { requireAuth } from '../middleware/authMiddleware.js';
 
 const router = Router();
+
+// Require authentication for all notification routes
+router.use(requireAuth);
 
 router.get('/', getNotifications);
 router.get('/profile/:profileId', getNotifications);

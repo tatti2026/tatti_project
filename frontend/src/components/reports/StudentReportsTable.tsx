@@ -17,17 +17,17 @@ export const StudentReportsTable: React.FC<StudentReportsTableProps> = ({
   const getBadge = (type: 'assessment' | 'application' | 'payment' | 'access', val: string) => {
     if (type === 'assessment') {
       if (val === 'completed') {
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Completed</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#E8F1FB] text-[#2878C8] border border-[#BFDBFE]">Completed</span>;
       }
       if (val === 'in_progress') {
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">In Progress</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FFF0E8] text-[#25364B] border border-[#F0D6C8]">In Progress</span>;
       }
       return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground border border-border">Not Started</span>;
     }
 
     if (type === 'application') {
       if (val === 'submitted') {
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Submitted</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#E8F1FB] text-[#2878C8] border border-[#BFDBFE]">Submitted</span>;
       }
       if (val === 'in_progress') {
         return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">In Progress</span>;
@@ -37,19 +37,19 @@ export const StudentReportsTable: React.FC<StudentReportsTableProps> = ({
 
     if (type === 'payment') {
       if (val === 'paid') {
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Paid</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#E8F1FB] text-[#2878C8] border border-[#BFDBFE]">Paid</span>;
       }
       if (val === 'pending') {
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">Pending</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FFF0E8] text-[#25364B] border border-[#F0D6C8]">Pending</span>;
       }
       return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">Failed</span>;
     }
 
     if (type === 'access') {
       if (val === 'unlocked') {
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">🔓 Unlocked</span>;
+        return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#E8F1FB] text-[#2878C8] border border-[#BFDBFE]">🔓 Unlocked</span>;
       }
-      return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">🔒 Locked</span>;
+      return <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FFF0E8] text-[#25364B] border border-[#F0D6C8]">🔒 Locked</span>;
     }
 
     return null;
@@ -128,3 +128,4 @@ export const StudentReportsTable: React.FC<StudentReportsTableProps> = ({
 };
 
 export default StudentReportsTable;
+

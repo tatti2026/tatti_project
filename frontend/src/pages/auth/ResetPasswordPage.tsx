@@ -129,7 +129,7 @@ export default function ResetPasswordPage() {
   const loginPath = getLoginPath(userRole);
 
   return (
-    <div className="min-h-screen flex bg-[#FFF7ED]">
+    <div className="min-h-screen flex bg-[#FFF0E8]">
       {/* ── Left corporate branding panel ── */}
       <div className="hidden lg:flex flex-col justify-between w-[45%] xl:w-[42%] relative overflow-hidden p-10 bg-[#0B1F3A] text-white">
         <div
@@ -141,7 +141,7 @@ export default function ResetPasswordPage() {
         />
         {/* Glow blobs */}
         <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(29,78,216,0.18) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-12 -right-20 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(245,158,11,0.10) 0%, transparent 70%)' }} />
+        <div className="absolute bottom-12 -right-20 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(40,120,200,0.10) 0%, transparent 70%)' }} />
 
         {/* Brand */}
         <div className="relative z-10 flex items-center gap-3">
@@ -171,7 +171,7 @@ export default function ResetPasswordPage() {
         {/* Security tip */}
         <div className="relative z-10 bg-slate-800/70 rounded-xl p-4 border border-slate-700/80">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#1D4ED8]/25 rounded-lg flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 bg-[#2878C8]/25 rounded-lg flex items-center justify-center shrink-0">
               <Lock className="w-4 h-4 text-blue-400" />
             </div>
             <div>
@@ -183,24 +183,24 @@ export default function ResetPasswordPage() {
       </div>
 
       {/* ── Right form panel ── */}
-      <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[#FFF7ED]">
+      <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[#FFF0E8]">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-6 lg:hidden">
             <img src="/logo/psycare-logo.png" alt="PSYCARE Logo" className="w-10 h-10 object-contain shrink-0" />
             <div>
-              <p className="font-bold text-[#172554] text-base leading-tight">PSY CARE</p>
+              <p className="font-bold text-[#25364B] text-base leading-tight">PSY CARE</p>
               <p className="text-xs text-[#64748B] leading-tight">Mental Well-being Portal</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 md:p-8 animate-fade-in shadow-[0_1px_3px_rgba(245,158,11,0.06),0_1px_2px_rgba(245,158,11,0.04)] border border-[#FED7AA]">
+          <div className="bg-white rounded-2xl p-6 md:p-8 animate-fade-in shadow-[0_1px_3px_rgba(245,158,11,0.06),0_1px_2px_rgba(245,158,11,0.04)] border border-[#F0D6C8]">
 
             {/* ── Verifying state ── */}
             {tokenState === 'verifying' && (
               <div className="text-center py-10 space-y-4">
                 <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center mx-auto border border-blue-100">
-                  <Loader2 className="w-7 h-7 text-[#1D4ED8] animate-spin" />
+                  <Loader2 className="w-7 h-7 text-[#2878C8] animate-spin" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-[#172033]">Verifying Reset Link…</h3>
@@ -212,7 +212,7 @@ export default function ResetPasswordPage() {
             {/* ── Success state ── */}
             {success && (
               <div className="text-center py-6 space-y-4">
-                <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto border border-emerald-200">
+                <div className="w-14 h-14 bg-[#E8F1FB] text-[#2878C8] rounded-full flex items-center justify-center mx-auto border border-[#BFDBFE]">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <div>
@@ -224,7 +224,7 @@ export default function ResetPasswordPage() {
                 <div className="pt-2">
                   <Button
                     asChild
-                    className="w-full bg-[#1D4ED8] hover:bg-[#1E40AF] border-0 text-white font-semibold h-11 rounded-lg shadow-sm"
+                    className="w-full bg-[#2878C8] hover:bg-[#1E40AF] border-0 text-white font-semibold h-11 rounded-lg shadow-sm"
                   >
                     <Link to={loginPath}>Sign In Now</Link>
                   </Button>
@@ -245,7 +245,7 @@ export default function ResetPasswordPage() {
                 <div className="pt-2 space-y-2">
                   <Button
                     asChild
-                    className="w-full bg-[#1D4ED8] hover:bg-[#1E40AF] border-0 text-white font-semibold h-11 rounded-lg shadow-sm"
+                    className="w-full bg-[#2878C8] hover:bg-[#1E40AF] border-0 text-white font-semibold h-11 rounded-lg shadow-sm"
                   >
                     <Link to={`/forgot-password${userRole ? `?role=${userRole}` : ''}`}>
                       <RefreshCw className="w-4 h-4 mr-2" />
@@ -255,7 +255,7 @@ export default function ResetPasswordPage() {
                   <Button
                     asChild
                     variant="ghost"
-                    className="w-full text-[#667085] hover:text-[#172554] hover:bg-orange-50"
+                    className="w-full text-[#667085] hover:text-[#25364B] hover:bg-[#E8F1FB]"
                   >
                     <Link to={loginPath}>Back to Sign In</Link>
                   </Button>
@@ -266,7 +266,7 @@ export default function ResetPasswordPage() {
             {/* ── Valid token – show password form ── */}
             {!success && tokenState === 'valid' && (
               <div>
-                <h2 className="text-2xl font-bold text-[#172554] mb-1">Set New Password</h2>
+                <h2 className="text-2xl font-bold text-[#25364B] mb-1">Set New Password</h2>
                 <p className="text-[#667085] text-sm mb-6">
                   Please enter and confirm your new password below.
                 </p>
@@ -281,7 +281,7 @@ export default function ResetPasswordPage() {
                 <form onSubmit={handleReset} className="space-y-4" autoComplete="off">
                   {/* New password */}
                   <div>
-                    <Label htmlFor="new-pw" className="text-sm font-medium text-[#172554]">
+                    <Label htmlFor="new-pw" className="text-sm font-medium text-[#25364B]">
                       New Password
                     </Label>
                     <div className="relative mt-1.5">
@@ -294,12 +294,12 @@ export default function ResetPasswordPage() {
                         placeholder="Min. 6 characters"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        className="bg-white border-[#FED7AA] hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 pr-10 transition-colors"
+                        className="bg-white border-[#F0D6C8] hover:border-[#2878C8] focus:border-[#2878C8] focus:ring-[#2878C8] pr-10 transition-colors"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#172554] transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#25364B] transition-colors"
                         aria-label={showPassword ? 'Hide password' : 'Show password'}
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -313,10 +313,10 @@ export default function ResetPasswordPage() {
                             key={i}
                             className={`h-1 flex-1 rounded-full transition-colors ${
                               password.length >= 12
-                                ? 'bg-emerald-400'
+                                ? 'bg-[#2878C8]'
                                 : password.length >= 8
-                                ? i < 3 ? 'bg-amber-400' : 'bg-[#E2E8F0]'
-                                : i < 2 ? 'bg-orange-400' : 'bg-[#E2E8F0]'
+                                ? i < 3 ? 'bg-[#2878C8]/60' : 'bg-[#E2E8F0]'
+                                : i < 2 ? 'bg-[#2878C8]/30' : 'bg-[#E2E8F0]'
                             }`}
                           />
                         ))}
@@ -329,7 +329,7 @@ export default function ResetPasswordPage() {
 
                   {/* Confirm password */}
                   <div>
-                    <Label htmlFor="confirm-pw" className="text-sm font-medium text-[#172554]">
+                    <Label htmlFor="confirm-pw" className="text-sm font-medium text-[#25364B]">
                       Confirm New Password
                     </Label>
                     <div className="relative mt-1.5">
@@ -342,7 +342,7 @@ export default function ResetPasswordPage() {
                         placeholder="Re-enter new password"
                         value={confirmPassword}
                         onChange={e => setConfirmPassword(e.target.value)}
-                        className={`bg-white border-[#FED7AA] hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 pr-10 transition-colors ${
+                        className={`bg-white border-[#F0D6C8] hover:border-[#2878C8] focus:border-[#2878C8] focus:ring-[#2878C8] pr-10 transition-colors ${
                           confirmPassword.length > 0 && confirmPassword !== password
                             ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500'
                             : ''
@@ -351,7 +351,7 @@ export default function ResetPasswordPage() {
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#172554] transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#25364B] transition-colors"
                         aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                       >
                         {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -359,7 +359,7 @@ export default function ResetPasswordPage() {
                     </div>
                     {/* Match feedback */}
                     {confirmPassword.length > 0 && (
-                      <p className={`text-[11px] mt-1 ${confirmPassword === password ? 'text-emerald-600' : 'text-rose-500'}`}>
+                      <p className={`text-[11px] mt-1 ${confirmPassword === password ? 'text-[#2878C8]' : 'text-rose-500'}`}>
                         {confirmPassword === password ? '✓ Passwords match' : '✗ Passwords do not match'}
                       </p>
                     )}
@@ -368,7 +368,7 @@ export default function ResetPasswordPage() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-[#1D4ED8] hover:bg-orange-600 border-0 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150 mt-2"
+                    className="w-full bg-[#2878C8] hover:bg-[#1D6AB8] border-0 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150 mt-2"
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
@@ -383,7 +383,7 @@ export default function ResetPasswordPage() {
                   <div className="text-center pt-1">
                     <Link
                       to={loginPath}
-                      className="text-xs text-[#64748B] hover:text-orange-600 transition-colors"
+                      className="text-xs text-[#64748B] hover:text-[#1D6AB8] transition-colors"
                     >
                       Back to Sign In
                     </Link>
@@ -398,3 +398,5 @@ export default function ResetPasswordPage() {
     </div>
   );
 }
+
+

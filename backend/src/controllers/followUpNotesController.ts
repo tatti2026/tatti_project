@@ -25,8 +25,8 @@ export async function ensureFollowUpNotesTable(): Promise<void> {
 // GET /api/follow-up-notes/:studentId
 export async function getNotesByStudent(req: AuthenticatedRequest, res: Response) {
   try {
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden: Admin access required.' });
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'counsellor')) {
+      return res.status(403).json({ error: 'Forbidden: Admin or counsellor access required.' });
     }
 
     const { studentId } = req.params;
@@ -72,8 +72,8 @@ export async function getNotesByStudent(req: AuthenticatedRequest, res: Response
 // POST /api/follow-up-notes/:studentId
 export async function addNote(req: AuthenticatedRequest, res: Response) {
   try {
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden: Admin access required.' });
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'counsellor')) {
+      return res.status(403).json({ error: 'Forbidden: Admin or counsellor access required.' });
     }
 
     const { studentId } = req.params;
@@ -115,8 +115,8 @@ export async function addNote(req: AuthenticatedRequest, res: Response) {
 // PUT /api/follow-up-notes/:studentId/:noteId
 export async function updateNote(req: AuthenticatedRequest, res: Response) {
   try {
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden: Admin access required.' });
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'counsellor')) {
+      return res.status(403).json({ error: 'Forbidden: Admin or counsellor access required.' });
     }
 
     const { studentId, noteId } = req.params;

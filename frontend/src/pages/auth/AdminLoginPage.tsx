@@ -66,13 +66,13 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFF7ED]">
+    <div className="min-h-screen flex flex-col bg-[#FFF0E8]">
       <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-md relative">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-white border border-[#FED7AA] p-1.5 shadow-sm flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-white border border-[#F0D6C8] p-1.5 shadow-sm flex items-center justify-center">
               <img
                 src="/logo/psycare-logo.png"
                 alt="PSYCARE Logo"
@@ -84,10 +84,10 @@ export default function AdminLoginPage() {
           <p className="text-[#64748B] text-sm">Administrative Management & Student Operations</p>
         </div>
 
-        <div className="bg-white border border-[#FED7AA] rounded-2xl p-8 shadow-[0_1px_3px_rgba(245,158,11,0.06),0_1px_2px_rgba(245,158,11,0.04)]">
-          <div className="flex items-center gap-2 mb-6 p-3 bg-[#FFE0B2]/40 hover:bg-[#FFE0B2]/70 hover:border-orange-300 rounded-lg border border-[#FED7AA] transition-all duration-150 group cursor-pointer">
-            <Shield className="w-4 h-4 text-[#9A3412] group-hover:text-orange-700 shrink-0 transition-colors" />
-            <span className="text-xs text-[#9A3412] group-hover:text-orange-700 font-medium transition-colors">Authorized Administrative Personnel Only</span>
+        <div className="bg-white border border-[#F0D6C8] rounded-2xl p-8 shadow-[0_1px_3px_rgba(245,158,11,0.06),0_1px_2px_rgba(245,158,11,0.04)]">
+          <div className="flex items-center gap-2 mb-6 p-3 bg-[#E8F1FB]/40 hover:bg-[#E8F1FB]/70 hover:border-[#BFDBFE] rounded-lg border border-[#F0D6C8] transition-all duration-150 group cursor-pointer">
+            <Shield className="w-4 h-4 text-[#2878C8] group-hover:text-[#1D6AB8] shrink-0 transition-colors" />
+            <span className="text-xs text-[#2878C8] group-hover:text-[#1D6AB8] font-medium transition-colors">Authorized Administrative Personnel Only</span>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5" autoComplete="off" autoCapitalize="none" spellCheck={false}>
@@ -107,7 +107,7 @@ export default function AdminLoginPage() {
                 placeholder="admin@tatti.edu.in"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="mt-1.5 bg-white border-[#FED7AA] hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 h-11 transition-colors"
+                className="mt-1.5 bg-white border-[#F0D6C8] hover:border-[#2878C8] focus:border-[#2878C8] focus:ring-[#2878C8] h-11 transition-colors"
               />
             </div>
             <div>
@@ -127,12 +127,12 @@ export default function AdminLoginPage() {
                   placeholder="Enter admin password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="bg-white border-[#FED7AA] hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 pr-10 h-11 transition-colors"
+                  className="bg-white border-[#F0D6C8] hover:border-[#2878C8] focus:border-[#2878C8] focus:ring-[#2878C8] pr-10 h-11 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-orange-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#1D6AB8] transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -141,12 +141,12 @@ export default function AdminLoginPage() {
             <div className="flex justify-end">
               <Link
                 to="/forgot-password?role=admin"
-                className="text-sm text-[#9A3412] font-medium hover:text-orange-600 hover:underline transition-colors"
+                className="text-sm text-[#2878C8] font-medium hover:text-[#1D6AB8] hover:underline transition-colors"
               >
                 Forgot Password?
               </Link>
             </div>
-            <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-orange-600 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150">
+            <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-[#1D6AB8] text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150">
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Shield className="w-4 h-4 mr-2" />}
               Admin Sign In
             </Button>
@@ -154,18 +154,18 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="text-center text-xs text-[#64748B] mt-6 space-x-2">
-          <span>Counsellor? <a href="/counsellor/login" className="text-emerald-600 font-medium hover:text-orange-600 hover:underline transition-colors">Counsellor Portal</a></span>
+          <span>Counsellor? <a href="/counsellor/login" className="text-[#2878C8] font-medium hover:text-[#1D6AB8] hover:underline transition-colors">Counsellor Portal</a></span>
           <span>·</span>
-          <span>Student? <a href="/login" className="text-[#1D4ED8] font-medium hover:text-orange-600 hover:underline transition-colors">Student Portal</a></span>
+          <span>Student? <a href="/login" className="text-[#1D4ED8] font-medium hover:text-[#1D6AB8] hover:underline transition-colors">Student Portal</a></span>
         </p>
       </div>
       </div>
 
       {/* Page footer — portal switcher */}
-      <footer className="py-5 flex items-center justify-center bg-[#FFF7ED] border-t border-[#FED7AA]">
+      <footer className="py-5 flex items-center justify-center bg-[#FFF0E8] border-t border-[#F0D6C8]">
         <a
           href="/login"
-          className="text-sm text-[#64748B] hover:text-orange-600 transition-colors duration-200 flex items-center gap-1 group"
+          className="text-sm text-[#64748B] hover:text-[#1D6AB8] transition-colors duration-200 flex items-center gap-1 group"
           id="switch-to-student-portal"
         >
           <span className="transition-transform duration-200 group-hover:-translate-x-0.5">←</span>
@@ -175,7 +175,7 @@ export default function AdminLoginPage() {
 
       {/* Forgot Password Dialog */}
       <Dialog open={forgotOpen} onOpenChange={open => { setForgotOpen(open); if (!open) setForgotMode('form'); }}>
-        <DialogContent className="sm:max-w-md bg-white border-[#FED7AA]">
+        <DialogContent className="sm:max-w-md bg-white border-[#F0D6C8]">
           <DialogHeader>
             <DialogTitle className="text-[#172554]">
               {forgotMode === 'form' ? 'Reset Admin Password' : 'Check Your Email'}
@@ -198,7 +198,7 @@ export default function AdminLoginPage() {
                   className="mt-1.5 bg-white border-[#D0D5DD] focus:border-[#1D4ED8] focus:ring-[#1D4ED8] h-10"
                 />
               </div>
-              <Button type="submit" disabled={forgotLoading} className="w-full bg-[#1D4ED8] hover:bg-orange-600 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150">
+              <Button type="submit" disabled={forgotLoading} className="w-full bg-[#1D4ED8] hover:bg-[#1D6AB8] text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150">
                 {forgotLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Send Reset Link
               </Button>
@@ -218,7 +218,7 @@ export default function AdminLoginPage() {
                 </p>
                 <p className="text-muted-foreground text-xs">Check your spam folder if you don't see it within a few minutes.</p>
               </div>
-              <Button variant="outline" className="w-full hover:border-orange-500 hover:text-orange-600 hover:bg-orange-50 transition-colors" onClick={() => setForgotOpen(false)}>
+              <Button variant="outline" className="w-full hover:border-[#2878C8] hover:text-[#1D6AB8] hover:bg-[#E8F1FB] transition-colors" onClick={() => setForgotOpen(false)}>
                 Close
               </Button>
             </div>
@@ -228,4 +228,6 @@ export default function AdminLoginPage() {
     </div>
   );
 }
+
+
 

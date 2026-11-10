@@ -153,22 +153,24 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFF7ED]">
+    <div className="min-h-screen flex flex-col bg-[#FFF0E8]">
       {/* Main content row */}
       <div className="flex flex-1 min-h-0">
-      {/* Left branding panel – light orange theme */}
+      {/* Left branding panel – light peach theme */}
       <div
         className="hidden md:flex flex-col justify-between w-[54%] relative overflow-hidden px-8 xl:px-16 py-8"
-        style={{ background: '#FFE0B2' }}
+        style={{ background: 'linear-gradient(145deg, #FFF0E8 0%, #FFE0CC 60%, #FFD9C8 100%)' }}
       >
-        {/* Soft dotted pattern + soft warm blobs */}
+        {/* Soft dotted pattern */}
         <div className="absolute inset-0 pointer-events-none" style={{
-          backgroundImage: 'radial-gradient(circle at 1px 1px, #FED7AA 1px, transparent 0)',
+          backgroundImage: 'radial-gradient(circle at 1px 1px, #F0D6C8 1px, transparent 0)',
           backgroundSize: '32px 32px',
         }} />
-        {/* Decorative circles – soft orange */}
-        <div className="absolute -left-20 bottom-12 w-64 h-64 rounded-full border-[24px] pointer-events-none" style={{ borderColor: '#FED7AA' }} />
-        <div className="absolute -left-10 bottom-20 w-44 h-44 rounded-full border-[14px] pointer-events-none" style={{ borderColor: '#FED7AA' }} />
+        {/* Decorative circles – soft peach */}
+        <div className="absolute -left-20 bottom-12 w-64 h-64 rounded-full border-[24px] pointer-events-none" style={{ borderColor: '#F0D6C8' }} />
+        <div className="absolute -left-10 bottom-20 w-44 h-44 rounded-full border-[14px] pointer-events-none" style={{ borderColor: '#FFBFA8' }} />
+        {/* Blue accent circle */}
+        <div className="absolute right-8 top-24 w-32 h-32 rounded-full opacity-10 pointer-events-none" style={{ background: '#2878C8' }} />
 
         {/* ── Top content block ── */}
         <div className="relative z-10 w-full max-w-[25rem] mx-auto">
@@ -185,23 +187,23 @@ export default function LoginPage() {
               className="flex items-center text-[2.8rem] font-black tracking-tight select-none"
               style={{ letterSpacing: '-0.07em' }}
             >
-              <span style={{ color: '#EA580C' }}>PSY</span>
-              <span style={{ color: '#172554' }}>CARE</span>
+              <span style={{ color: '#2878C8' }}>PSY</span>
+              <span style={{ color: '#25364B' }}>CARE</span>
             </div>
           </div>
 
           {/* Main heading */}
           <h1
             className="text-4xl leading-[1.08] font-bold mb-4"
-            style={{ letterSpacing: '-0.035em', color: '#172554' }}
+            style={{ letterSpacing: '-0.035em', color: '#25364B' }}
           >
             Your Mental Well-being<br />Our Priority
           </h1>
-          {/* Orange underline */}
-          <div className="w-14 h-1 rounded-full mb-4" style={{ background: '#F59E0B' }} />
+          {/* Blue underline */}
+          <div className="w-14 h-1 rounded-full mb-4" style={{ background: '#2878C8' }} />
 
           {/* Description */}
-          <p className="text-base leading-relaxed max-w-[22rem]" style={{ color: '#172554' }}>
+          <p className="text-base leading-relaxed max-w-[22rem]" style={{ color: '#25364B' }}>
             PSYCARE is a digital platform designed to support students in understanding their potential, making informed career choices and building a brighter future through personalized career guidance and counselling.
           </p>
 
@@ -214,11 +216,11 @@ export default function LoginPage() {
               <div key={text} className="flex flex-col items-center text-center gap-2 flex-1">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm"
-                  style={{ background: '#F59E0B' }}
+                  style={{ background: '#2878C8' }}
                 >
-                  <Icon className="w-5 h-5" style={{ color: '#172554' }} />
+                  <Icon className="w-5 h-5" style={{ color: '#FFFFFF' }} />
                 </div>
-                <span className="text-xs xl:text-sm font-medium leading-snug" style={{ color: '#9A3412' }}>
+                <span className="text-xs xl:text-sm font-medium leading-snug" style={{ color: '#25364B' }}>
                   {text}
                 </span>
               </div>
@@ -230,12 +232,12 @@ export default function LoginPage() {
         <div className="relative z-10 flex justify-center pb-1">
           <div
             className="relative text-[1.7rem] font-semibold italic tracking-tight"
-            style={{ letterSpacing: '-0.035em', color: '#172554' }}
+            style={{ letterSpacing: '-0.035em', color: '#25364B' }}
           >
             Better Minds&nbsp; Brighter Futures
             <span
               className="absolute -bottom-2 left-[29%] w-[55%] h-[2px] rounded-full -rotate-[5deg]"
-              style={{ background: '#F59E0B' }}
+              style={{ background: '#2878C8' }}
             />
           </div>
         </div>
@@ -243,7 +245,7 @@ export default function LoginPage() {
 
 
       {/* Right login card */}
-      <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[#FFF7ED] pb-6">
+      <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-[#FFF0E8] pb-6">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-6 lg:hidden">
@@ -253,8 +255,8 @@ export default function LoginPage() {
               className="w-11 h-11 object-contain shrink-0"
             />
             <div>
-              <p className="font-bold text-[#172554] text-base leading-tight">PSY CARE</p>
-              <p className="text-xs text-[#64748B] leading-tight">Student Management Portal</p>
+              <p className="font-bold text-[#25364B] text-base leading-tight">PSY CARE</p>
+              <p className="text-xs text-[#667085] leading-tight">Student Management Portal</p>
             </div>
           </div>
 
@@ -264,7 +266,7 @@ export default function LoginPage() {
               <p className="text-muted-foreground text-sm mb-6">Sign in to continue your student journey</p>
               <form onSubmit={handleLogin} className="space-y-4" autoComplete="off" autoCapitalize="none" spellCheck={false}>
                 <div>
-                  <Label htmlFor="tatti-student-id" className="text-sm font-medium">Student Email or Student ID</Label>
+                  <Label htmlFor="tatti-student-id" className="text-sm font-medium text-[#25364B]">Student Email or Student ID</Label>
                   <Input
                     id="tatti-student-id"
                     name="tatti_auth_student_identifier"
@@ -282,11 +284,11 @@ export default function LoginPage() {
                     className="mt-1.5 transition-colors"
                     style={{
                       background: '#FFFFFF',
-                      border: '1px solid #FED7AA',
-                      color: '#172554',
+                      border: '1px solid #F0D6C8',
+                      color: '#25364B',
                     }}
-                    onFocus={e => { e.currentTarget.style.border = '1px solid #F59E0B'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.2)'; }}
-                    onBlur={e => { e.currentTarget.style.border = '1px solid #FED7AA'; e.currentTarget.style.boxShadow = 'none'; }}
+                    onFocus={e => { e.currentTarget.style.border = '1px solid #2878C8'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(40,120,200,0.18)'; }}
+                    onBlur={e => { e.currentTarget.style.border = '1px solid #F0D6C8'; e.currentTarget.style.boxShadow = 'none'; }}
                   />
                   <p className="text-[11px] text-muted-foreground mt-1">
                     Sign in with the email address or Student ID you registered with.
@@ -312,16 +314,16 @@ export default function LoginPage() {
                       className="pr-10 transition-colors"
                       style={{
                         background: '#FFFFFF',
-                        border: '1px solid #FED7AA',
-                        color: '#172554',
+                        border: '1px solid #F0D6C8',
+                        color: '#25364B',
                       }}
-                      onFocus={e => { e.currentTarget.style.border = '1px solid #F59E0B'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.2)'; }}
-                      onBlur={e => { e.currentTarget.style.border = '1px solid #FED7AA'; e.currentTarget.style.boxShadow = 'none'; }}
+                      onFocus={e => { e.currentTarget.style.border = '1px solid #2878C8'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(40,120,200,0.18)'; }}
+                      onBlur={e => { e.currentTarget.style.border = '1px solid #F0D6C8'; e.currentTarget.style.boxShadow = 'none'; }}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-orange-600 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-[#1D6AB8] transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -330,18 +332,18 @@ export default function LoginPage() {
                 <div className="flex justify-end">
                   <Link
                     to="/forgot-password?role=student"
-                    className="text-sm text-primary hover:text-orange-600 hover:underline transition-colors"
+                    className="text-sm text-primary hover:text-[#1D6AB8] hover:underline transition-colors"
                   >
                     Forgot Password?
                   </Link>
                 </div>
-                <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-orange-600 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150">
+                <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-[#1D6AB8] text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign In'}
                 </Button>
               </form>
               <p className="text-center text-sm text-muted-foreground mt-5">
                 New student?{' '}
-                <button onClick={() => changeMode('signup')} className="text-[#1D4ED8] hover:text-orange-600 font-semibold hover:underline transition-colors">Sign Up</button>
+                <button onClick={() => changeMode('signup')} className="text-[#2878C8] hover:text-[#1D6AB8] font-semibold hover:underline transition-colors">Sign Up</button>
               </p>
               <div className="mt-4">
                 <div className="text-center text-xs text-muted-foreground mb-3">— OR —</div>
@@ -350,9 +352,9 @@ export default function LoginPage() {
                     type="button"
                     variant="outline"
                     className="w-full text-xs font-medium transition-all duration-150 shadow-sm"
-                    style={{ background: '#FFF7ED', border: '1px solid #FED7AA', color: '#172554' }}
-                    onMouseEnter={e => { const b = e.currentTarget; b.style.background='#FFE0B2'; b.style.border='1px solid #F59E0B'; b.style.color='#9A3412'; }}
-                    onMouseLeave={e => { const b = e.currentTarget; b.style.background='#FFF7ED'; b.style.border='1px solid #FED7AA'; b.style.color='#172554'; }}
+                    style={{ background: '#FFF0E8', border: '1px solid #F0D6C8', color: '#25364B' }}
+                    onMouseEnter={e => { const b = e.currentTarget; b.style.background='#E8F1FB'; b.style.border='1px solid #2878C8'; b.style.color='#2878C8'; }}
+                    onMouseLeave={e => { const b = e.currentTarget; b.style.background='#FFF0E8'; b.style.border='1px solid #F0D6C8'; b.style.color='#25364B'; }}
                   >
                     Counsellor Portal
                   </Button>
@@ -366,7 +368,7 @@ export default function LoginPage() {
               {createdStudentId ? (
                 /* Success banner with generated Student ID */
                 <div className="space-y-5 text-center">
-                  <div className="w-16 h-16 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-center mx-auto text-emerald-600">
+                  <div className="w-16 h-16 bg-[#E8F1FB] border border-[#BFDBFE] rounded-2xl flex items-center justify-center mx-auto text-[#2878C8]">
                     <CheckCircle2 className="w-9 h-9" />
                   </div>
                   <div>
@@ -377,7 +379,7 @@ export default function LoginPage() {
                   </div>
 
                   {/* Highlighted Student ID Card */}
-                  <div className="p-4 bg-blue-50 border-2 border-dashed border-[#1D4ED8]/40 hover:border-orange-500/50 rounded-xl flex items-center justify-between transition-colors">
+                  <div className="p-4 bg-blue-50 border-2 border-dashed border-[#1D4ED8]/40 hover:border-[#2878C8]/50 rounded-xl flex items-center justify-between transition-colors">
                     <div className="text-left">
                       <span className="text-[11px] font-semibold tracking-wider text-[#1D4ED8] uppercase block">Your Student ID</span>
                       <span className="text-xl font-bold text-[#0B1F3A] font-mono">{createdStudentId}</span>
@@ -387,7 +389,7 @@ export default function LoginPage() {
                       variant="outline"
                       size="sm"
                       onClick={handleCopyStudentId}
-                      className="flex items-center gap-1 text-xs border-[#1D4ED8]/30 text-[#1D4ED8] hover:border-orange-500 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                      className="flex items-center gap-1 text-xs border-[#1D4ED8]/30 text-[#1D4ED8] hover:border-[#2878C8] hover:bg-[#E8F1FB] hover:text-[#1D6AB8] transition-colors"
                     >
                       <Copy className="w-3.5 h-3.5" />
                       Copy
@@ -401,7 +403,7 @@ export default function LoginPage() {
                   <Button
                     type="button"
                     onClick={handleProceedAfterSignup}
-                    className="w-full bg-[#1D4ED8] hover:bg-orange-600 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150"
+                    className="w-full bg-[#2878C8] hover:bg-[#1D6AB8] text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150"
                   >
                     Proceed to Sign In
                   </Button>
@@ -565,21 +567,21 @@ export default function LoginPage() {
                         className="mt-0.5"
                       />
                       <Label htmlFor="tos" className="text-xs text-muted-foreground cursor-pointer">
-                        I agree to the <span className="text-primary hover:text-orange-600 transition-colors">User Agreement</span> and <span className="text-primary hover:text-orange-600 transition-colors">Privacy Policy</span>
+                        I agree to the <span className="text-primary hover:text-[#1D6AB8] transition-colors">User Agreement</span> and <span className="text-primary hover:text-[#1D6AB8] transition-colors">Privacy Policy</span>
                       </Label>
                     </div>
 
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-[#1D4ED8] hover:bg-orange-600 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150 mt-2"
+                      className="w-full bg-[#1D4ED8] hover:bg-[#1D6AB8] text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150 mt-2"
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Account'}
                     </Button>
                   </form>
                   <p className="text-center text-sm text-muted-foreground mt-4">
                     Already have an account?{' '}
-                    <button onClick={() => changeMode('login')} className="text-[#1D4ED8] hover:text-orange-600 font-semibold hover:underline transition-colors">Sign In</button>
+                    <button onClick={() => changeMode('login')} className="text-[#2878C8] hover:text-[#1D6AB8] font-semibold hover:underline transition-colors">Sign In</button>
                   </p>
                 </>
               )}
@@ -606,14 +608,14 @@ export default function LoginPage() {
                     placeholder="Enter your registered email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="mt-1.5 bg-input border-border hover:border-orange-400 focus:border-orange-500 focus:ring-orange-500 transition-colors"
+                    className="mt-1.5 bg-input border-border hover:border-[#2878C8] focus:border-[#2878C8] focus:ring-[#2878C8] transition-colors"
                   />
                 </div>
-                <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-orange-600 text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150">
+                <Button type="submit" disabled={loading} className="w-full bg-[#1D4ED8] hover:bg-[#1D6AB8] text-white font-semibold h-11 rounded-lg shadow-sm transition-all duration-150">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Reset Link'}
                 </Button>
               </form>
-              <button onClick={() => changeMode('login')} className="text-center text-sm text-[#1D4ED8] hover:text-orange-600 font-medium hover:underline transition-colors w-full mt-4">Back to Sign In</button>
+              <button onClick={() => changeMode('login')} className="text-center text-sm text-[#2878C8] hover:text-[#1D6AB8] font-medium hover:underline transition-colors w-full mt-4">Back to Sign In</button>
             </div>
           )}
 
@@ -629,7 +631,7 @@ export default function LoginPage() {
                 If an account exists for <span className="text-foreground font-medium">{email}</span>, a password reset link has been sent.
               </p>
               <p className="text-muted-foreground text-xs mb-6">Check your spam folder if you don't see it within a few minutes.</p>
-              <button onClick={() => { changeMode('login'); }} className="text-sm text-primary hover:text-orange-600 hover:underline transition-colors">Back to Sign In</button>
+              <button onClick={() => { changeMode('login'); }} className="text-sm text-[#2878C8] hover:text-[#1D6AB8] hover:underline transition-colors">Back to Sign In</button>
             </div>
           )}
         </div>
@@ -639,3 +641,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+

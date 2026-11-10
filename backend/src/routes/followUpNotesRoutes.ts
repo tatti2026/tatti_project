@@ -8,9 +8,9 @@ import {
 
 const router = Router();
 
-// All routes require admin authentication
+// All routes require admin or counsellor authentication
 router.use(requireAuth);
-router.use(requireRole('admin'));
+router.use(requireRole(['admin', 'counsellor']));
 
 router.get('/:studentId', getNotesByStudent);
 router.post('/:studentId', addNote);

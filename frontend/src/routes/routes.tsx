@@ -12,6 +12,7 @@ import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import StudentDashboard from '@/pages/student/StudentDashboard';
 import EntryAssessment from '@/pages/student/EntryAssessment';
 import ApplicationProcess from '@/pages/student/ApplicationProcess';
+import CourseRecommendation from '@/pages/student/CourseRecommendation';
 // AdmissionStatus removed from student portal
 import Notifications from '@/pages/student/Notifications';
 import StudentProfile from '@/pages/student/StudentProfile';
@@ -58,6 +59,7 @@ export const routes: RouteConfig[] = [
   // Student Portal
   { name: 'Student Dashboard', path: '/student/dashboard', element: studentGuard(<StudentDashboard />) },
   { name: 'Career Fit Assessment', path: '/student/assessment', element: studentGuard(<EntryAssessment />) },
+  { name: 'Course Recommendations', path: '/student/courses', element: studentGuard(<CourseRecommendation />) },
   { name: 'Application Process', path: '/student/application', element: studentGuard(<ApplicationProcess />) },
   // Counselling removed from student portal — redirect to dashboard
   { name: 'Counselling Redirect', path: '/student/counselling', element: <Navigate to="/student/dashboard" replace /> },
