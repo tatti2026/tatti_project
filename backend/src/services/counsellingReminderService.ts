@@ -1,4 +1,4 @@
-import { query } from '../database/pgPool.js';
+import { pool, query } from '../database/pgPool.js';
 
 export interface ReminderCalculationResult {
   reminderDatetime: Date | null;
@@ -93,9 +93,19 @@ export async function checkAndDispatchDueReminders(): Promise<number> {
     let dispatchedCount = 0;
 
     for (const row of result.rows) {
+      let client: any = null;
       try {
-        // Atomic update to mark as sent immediately to prevent concurrent duplicate delivery
-        const updateRes = await query(`
+        client = await pool.connect();
+      } catch (connectErr) {
+        console.error(`[CounsellingReminder] Failed to acquire DB client from pool for row ${row.id}:`, connectErr);
+        continue; // Pool pressure handling: skip row and let next tick retry without crashing worker
+      }
+
+      try {
+        await client.query('BEGIN');
+
+        // Atomically claim the reminder row for update with concurrency guard
+        const updateRes = await client.query(`
           UPDATE counselling
           SET reminder_sent = true, notification_status = 'sent', updated_at = now()
           WHERE id = $1 AND (reminder_sent = false OR reminder_sent IS NULL)
@@ -103,7 +113,20 @@ export async function checkAndDispatchDueReminders(): Promise<number> {
         `, [row.id]);
 
         if (updateRes.rows.length === 0) {
-          // Already claimed/sent by another tick
+          // Already claimed or sent by another concurrent worker instance
+          await client.query('ROLLBACK');
+          continue;
+        }
+
+        // Handling decision for missing profile_id (e.g. offline student without portal account)
+        if (!row.profile_id) {
+          console.warn(`[CounsellingReminder] Cannot dispatch in-app notification for row ${row.id}: student has no associated profile_id. Marking as unreachable.`);
+          await client.query(`
+            UPDATE counselling
+            SET notification_status = 'unreachable_no_profile', updated_at = now()
+            WHERE id = $1;
+          `, [row.id]);
+          await client.query('COMMIT');
           continue;
         }
 
@@ -130,17 +153,25 @@ export async function checkAndDispatchDueReminders(): Promise<number> {
           ? `Reminder: Your PSY CARE counselling session is tomorrow, ${dateStr} at ${timeStr} with ${counsellor}.`
           : `Reminder: Your PSY CARE counselling session is on ${dateStr} at ${timeStr} with ${counsellor}.`;
 
-        if (row.profile_id) {
-          await query(`
-            INSERT INTO notifications (profile_id, title, message, type, is_read)
-            VALUES ($1, $2, $3, 'counselling', false);
-          `, [row.profile_id, '📅 Counselling Reminder', reminderMsg]);
-        }
+        await client.query(`
+          INSERT INTO notifications (profile_id, title, message, type, is_read)
+          VALUES ($1, $2, $3, 'counselling', false);
+        `, [row.profile_id, '📅 Counselling Reminder', reminderMsg]);
+
+        // Commit atomically: BOTH reminder_sent=true and notification insert succeed together!
+        await client.query('COMMIT');
 
         dispatchedCount++;
         console.log(`[CounsellingReminder] Dispatched reminder for student ${row.full_name || row.email} (Counselling ID: ${row.id})`);
       } catch (rowErr) {
-        console.error(`[CounsellingReminder] Error dispatching reminder for row ${row.id}:`, rowErr);
+        // If notification insertion or anything fails, ROLLBACK the transaction!
+        // This ensures reminder_sent remains false, keeping the reminder eligible for retry.
+        await client.query('ROLLBACK').catch(() => {});
+        console.error(`[CounsellingReminder] Failed to dispatch reminder for row ${row.id}, transaction rolled back (remains eligible for retry):`, rowErr);
+      } finally {
+        if (client) {
+          client.release();
+        }
       }
     }
 

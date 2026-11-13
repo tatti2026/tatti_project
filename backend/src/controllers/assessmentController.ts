@@ -9,6 +9,21 @@ import type { QuestionRecord, CourseRecord } from '../models/index.js';
 export async function getStudentAssessment(req: Request, res: Response) {
   try {
     const { studentId } = req.params;
+    const caller = (req as any).user;
+    const role = (caller?.role || '').toLowerCase();
+
+    if (role === 'counsellor') {
+      const chk = await query('SELECT id FROM students WHERE id = $1 AND counsellor_id = $2', [studentId, caller.userId]);
+      if (chk.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied: Student not assigned to you.' });
+      }
+    } else if (role === 'student') {
+      const chk = await query('SELECT id FROM students WHERE id = $1 AND profile_id = $2', [studentId, caller.userId]);
+      if (chk.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied.' });
+      }
+    }
+
     const result = await query(
       'SELECT * FROM assessments WHERE student_id = $1 ORDER BY created_at DESC LIMIT 1',
       [studentId]
@@ -71,17 +86,20 @@ export async function submitAssessment(req: Request, res: Response) {
       `, [studentId, rec.course.id, rec.matchPercentage]);
     }
 
-    createSystemNotification(
-      studentId,
-      '✓ Assessment Completed',
-      `Your Career Fit Assessment has been evaluated with a score of ${evaluation.score}/${evaluation.totalMarks} (${evaluation.percentage}%). Your recommended courses are now unlocked.`,
-      'assessment'
-    );
+    try {
+      await createSystemNotification(
+        studentId,
+        'Assessment Completed!',
+        `Your assessment has been evaluated. Score: ${evaluation.percentage}%. Check out your recommended courses!`,
+        'assessment'
+      );
+    } catch (notifErr) {
+      console.warn('Notification insert failed:', notifErr);
+    }
 
-    return res.json({
-      message: 'Assessment submitted successfully.',
-      evaluation,
+    return res.status(201).json({
       assessment,
+      evaluation,
       recommendations,
     });
   } catch (err) {
@@ -95,15 +113,14 @@ export async function submitAssessmentById(req: Request, res: Response) {
     const { id } = req.params;
     const { score, totalMarks, answers } = req.body;
 
-    const percentage = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
+    const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
 
-    const result = await query(
-      `UPDATE assessments 
-       SET score = $1, total_marks = $2, percentage = $3, answers = $4, status = 'completed', submitted_at = now() 
-       WHERE id = $5 
-       RETURNING *`,
-      [score, totalMarks, percentage, JSON.stringify(answers || {}), id]
-    );
+    const result = await query(`
+      UPDATE assessments 
+      SET score = $1, total_marks = $2, percentage = $3, answers = $4, status = 'completed', submitted_at = now()
+      WHERE id = $5
+      RETURNING *;
+    `, [score, totalMarks, percentage, JSON.stringify(answers || {}), id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Assessment not found' });
@@ -111,7 +128,6 @@ export async function submitAssessmentById(req: Request, res: Response) {
 
     const assessment = result.rows[0];
 
-    // Update student's assessment status to 'completed'
     await query(
       "UPDATE students SET assessment_status = 'completed', updated_at = now() WHERE id = $1",
       [assessment.student_id]
@@ -144,6 +160,20 @@ export async function submitAssessmentById(req: Request, res: Response) {
 export async function getStudentRecommendations(req: Request, res: Response) {
   try {
     const { studentId } = req.params;
+    const caller = (req as any).user;
+    const role = (caller?.role || '').toLowerCase();
+
+    if (role === 'counsellor') {
+      const chk = await query('SELECT id FROM students WHERE id = $1 AND counsellor_id = $2', [studentId, caller.userId]);
+      if (chk.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied: Student not assigned to you.' });
+      }
+    } else if (role === 'student') {
+      const chk = await query('SELECT id FROM students WHERE id = $1 AND profile_id = $2', [studentId, caller.userId]);
+      if (chk.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied.' });
+      }
+    }
 
     // Fetch all currently available courses
     const coursesRes = await query("SELECT * FROM courses WHERE status = 'available' ORDER BY course_name ASC");
@@ -207,6 +237,16 @@ export async function getStudentRecommendations(req: Request, res: Response) {
 export async function upsertRecommendation(req: Request, res: Response) {
   try {
     const { student_id, course_id, recommendation_percentage, is_interested, is_selected } = req.body;
+    const caller = (req as any).user;
+    const role = (caller?.role || '').toLowerCase();
+
+    if (role === 'counsellor' && student_id) {
+      const chk = await query('SELECT id FROM students WHERE id = $1 AND counsellor_id = $2', [student_id, caller.userId]);
+      if (chk.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied: Student not assigned to you.' });
+      }
+    }
+
     const result = await query(`
       INSERT INTO course_recommendations (
         student_id, course_id, recommendation_percentage, is_interested, is_selected
@@ -226,6 +266,20 @@ export async function upsertRecommendation(req: Request, res: Response) {
 
 export async function getAllAssessments(req: Request, res: Response) {
   try {
+    const caller = (req as any).user;
+    const role = (caller?.role || '').toLowerCase();
+
+    if (role === 'counsellor') {
+      const result = await query(`
+        SELECT DISTINCT ON (a.student_id) a.*
+        FROM assessments a
+        JOIN students s ON s.id = a.student_id
+        WHERE s.counsellor_id = $1
+        ORDER BY a.student_id, a.created_at DESC
+      `, [caller.userId]);
+      return res.json(result.rows);
+    }
+
     const result = await query(`
       SELECT DISTINCT ON (student_id) *
       FROM assessments
@@ -247,6 +301,12 @@ export async function getStudentMonthlyPerformance(req: AuthenticatedRequest, re
     }
 
     if (req.user.role === 'admin' && req.params.studentId) {
+      targetStudentId = req.params.studentId;
+    } else if (req.user.role === 'counsellor' && req.params.studentId) {
+      const chk = await query('SELECT id FROM students WHERE id = $1 AND counsellor_id = $2', [req.params.studentId, req.user.userId]);
+      if (chk.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied: Student not assigned to you.' });
+      }
       targetStudentId = req.params.studentId;
     } else {
       const sRes = await query(
@@ -376,4 +436,3 @@ export async function getStudentMonthlyPerformance(req: AuthenticatedRequest, re
     res.status(500).json({ error: 'Internal server error' });
   }
 }
-

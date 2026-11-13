@@ -14,6 +14,9 @@ import profileRoutes from './profileRoutes.js';
 import adminRoutes from './adminRoutes.js';
 import messageRoutes from './messageRoutes.js';
 import counsellorPrivateNotesRoutes from './counsellorPrivateNotesRoutes.js';
+import moodRoutes from './moodRoutes.js';
+import anonymousQuestionsRoutes from './anonymousQuestionsRoutes.js';
+import sessionFeedbackRoutes from './sessionFeedbackRoutes.js';
 
 const apiRouter = Router();
 
@@ -32,9 +35,15 @@ apiRouter.use('/counsellor/private-notes', counsellorPrivateNotesRoutes);
 apiRouter.use('/counselling/private-notes', counsellorPrivateNotesRoutes);
 apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/follow-ups', followUpRoutes);
+apiRouter.use('/follow-up', followUpRoutes);
 apiRouter.use('/follow-up-notes', followUpNotesRoutes);
 apiRouter.use('/profiles', profileRoutes);
 apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/messages', messageRoutes);
+apiRouter.use('/mood', moodRoutes);
+apiRouter.use('/mood-tracker', moodRoutes);
+apiRouter.use('/anonymous-questions', anonymousQuestionsRoutes);
+apiRouter.use('/session-feedback', sessionFeedbackRoutes);
+apiRouter.use('/feedback', sessionFeedbackRoutes);
 
 export default apiRouter;

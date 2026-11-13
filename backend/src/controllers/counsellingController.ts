@@ -1,14 +1,49 @@
 import type { Request, Response } from 'express';
 import { query } from '../database/pgPool.js';
 import { calculateReminderDatetime } from '../services/counsellingReminderService.js';
+import { triggerFeedbackRequestIfNeeded } from './sessionFeedbackController.js';
 
 export async function getStudentCounselling(req: Request, res: Response) {
   try {
     const { studentId } = req.params;
-    const result = await query(
-      'SELECT * FROM counselling WHERE student_id = $1 ORDER BY created_at DESC LIMIT 1',
-      [studentId]
-    );
+    const caller = (req as any).user;
+    const role = (caller?.role || '').toLowerCase();
+
+    if (role === 'counsellor') {
+      const chk = await query('SELECT id FROM students WHERE id = $1 AND counsellor_id = $2', [studentId, caller.userId]);
+      if (chk.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied: Student not assigned to you.' });
+      }
+    } else if (role === 'student') {
+      const chk = await query('SELECT id FROM students WHERE id = $1 AND profile_id = $2', [studentId, caller.userId]);
+      if (chk.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied.' });
+      }
+    }
+
+    const result = await query(`
+      SELECT 
+        id,
+        student_id,
+        counsellor_name,
+        to_char(scheduled_date, 'YYYY-MM-DD') as scheduled_date,
+        scheduled_time,
+        mode,
+        venue_or_link,
+        instructions,
+        notes,
+        status,
+        reminder_option,
+        reminder_datetime,
+        reminder_sent,
+        notification_status,
+        created_at,
+        updated_at
+      FROM counselling 
+      WHERE student_id = $1 
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `, [studentId]);
     return res.json(result.rows[0] || null);
   } catch (err) {
     console.error('Error getting student counselling:', err);
@@ -18,6 +53,8 @@ export async function getStudentCounselling(req: Request, res: Response) {
 
 export async function getAllCounselling(req: Request, res: Response) {
   try {
+    const caller = (req as any).user;
+    const role = (caller?.role || '').toLowerCase();
     const { page, pageSize, limit, search = '' } = req.query;
     const isPaginated = page !== undefined || limit !== undefined || pageSize !== undefined;
 
@@ -28,6 +65,11 @@ export async function getAllCounselling(req: Request, res: Response) {
 
     let baseWhere = '1=1';
     const queryParams: any[] = [];
+
+    if (role === 'counsellor') {
+      queryParams.push(caller.userId);
+      baseWhere += ` AND s.counsellor_id = $${queryParams.length}`;
+    }
 
     if (search && typeof search === 'string' && search.trim()) {
       const searchStr = `%${search.trim()}%`;
@@ -138,7 +180,25 @@ export function formatCounsellingTime(timeInput: any): string {
 
 export async function upsertCounselling(req: Request, res: Response) {
   try {
+    const caller = (req as any).user;
+    const role = (caller?.role || '').toLowerCase();
     const c = req.body;
+    const targetStudentId = c.student_id;
+
+    if (role === 'counsellor' && targetStudentId) {
+      const chk = await query('SELECT id FROM students WHERE id = $1 AND counsellor_id = $2', [targetStudentId, caller.userId]);
+      if (chk.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied: Student not assigned to you.' });
+      }
+    }
+
+    // Synchronize notes and instructions
+    if (c.notes !== undefined && (c.instructions === undefined || c.instructions === '')) {
+      c.instructions = c.notes;
+    } else if (c.instructions !== undefined && (c.notes === undefined || c.notes === '')) {
+      c.notes = c.instructions;
+    }
+
     const reminderOpt = c.reminder_option || c.reminder || '1 day before';
     const dateStr = c.scheduled_date || '';
     const timeStr = c.scheduled_time || '10:30 AM';
@@ -147,18 +207,25 @@ export async function upsertCounselling(req: Request, res: Response) {
     const reminderSent = isPast;
     const notifStatus = isPast ? 'elapsed' : 'pending';
 
-    // Find existing row if c.id is provided, or if student already has a counselling record
+    // Find existing row if c.id is provided, or if PUT /counselling/:id
     let existingRow: any = null;
     const targetId = c.id || req.params?.id;
     if (targetId) {
       const existingRes = await query('SELECT * FROM counselling WHERE id = $1', [targetId]);
       existingRow = existingRes.rows[0] || null;
-    } else if (c.student_id) {
+    } else if (req.method === 'PUT' && c.student_id) {
       const existingRes = await query(
         'SELECT * FROM counselling WHERE student_id = $1 ORDER BY created_at DESC LIMIT 1',
         [c.student_id]
       );
       existingRow = existingRes.rows[0] || null;
+    }
+
+    if (role === 'counsellor' && existingRow) {
+      const chk = await query('SELECT id FROM students WHERE id = $1 AND counsellor_id = $2', [existingRow.student_id, caller.userId]);
+      if (chk.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied: Session does not belong to your assigned student.' });
+      }
     }
 
     let counsellingRow: any;
@@ -219,19 +286,19 @@ export async function upsertCounselling(req: Request, res: Response) {
       counsellingRow = result.rows[0];
     }
 
-    const targetStudentId = counsellingRow.student_id || c.student_id;
+    const resolvedStudentId = counsellingRow.student_id || c.student_id;
 
-    if (targetStudentId) {
+    if (resolvedStudentId) {
       // Update student's counselling_status in students table
       await query(
         'UPDATE students SET counselling_status = $1, updated_at = now() WHERE id = $2',
-        [counsellingRow.status || 'scheduled', targetStudentId]
+        [counsellingRow.status || 'scheduled', resolvedStudentId]
       );
 
       // Fetch student details for notification dispatch
       const studentRes = await query(
         'SELECT id, profile_id, full_name, student_id FROM students WHERE id = $1',
-        [targetStudentId]
+        [resolvedStudentId]
       );
       const student = studentRes.rows[0];
 
@@ -252,6 +319,10 @@ export async function upsertCounselling(req: Request, res: Response) {
         let notifTitle: string | null = null;
         let notifMessage: string | null = null;
 
+        const effectiveNotes = (counsellingRow.notes || counsellingRow.instructions || '').trim();
+        const oldEffectiveNotes = (existingRow?.notes || existingRow?.instructions || '').trim();
+        const isNotesChanged = existingRow && (oldEffectiveNotes !== effectiveNotes);
+
         if (status === 'cancelled') {
           if (!latestNotif || latestNotif.title !== 'Counselling Cancelled') {
             notifTitle = 'Counselling Cancelled';
@@ -261,16 +332,33 @@ export async function upsertCounselling(req: Request, res: Response) {
           // Initial schedule notification
           notifTitle = 'Counselling Scheduled';
           notifMessage = `Your counselling session has been scheduled.\n\nCounsellor: ${counsellor}\nDate: ${cleanDate}\nTime: ${cleanTime}\nType: ${type}`;
+          if (effectiveNotes) {
+            notifMessage += `\n\nNotes & Instructions:\n${effectiveNotes}`;
+          }
         } else {
-          // Editing existing session: check if date or time changed
+          // Editing existing session: check if date, time, or notes changed
           const oldCleanDate = formatCounsellingDate(existingRow.scheduled_date);
           const oldCleanTime = formatCounsellingTime(existingRow.scheduled_time);
           const isDateOrTimeChanged = (oldCleanDate && cleanDate && oldCleanDate !== cleanDate) ||
                                       (oldCleanTime && cleanTime && oldCleanTime !== cleanTime);
 
-          if (isDateOrTimeChanged) {
-            notifTitle = 'Counselling Schedule Updated';
-            notifMessage = `Your counselling session has been rescheduled.\n\nDate: ${cleanDate}\nTime: ${cleanTime}`;
+          if (isDateOrTimeChanged || isNotesChanged) {
+            if (isDateOrTimeChanged && isNotesChanged) {
+              notifTitle = 'Counselling Schedule & Notes Updated';
+              notifMessage = `Your counselling session has been rescheduled and updated.\n\nDate: ${cleanDate}\nTime: ${cleanTime}`;
+              if (effectiveNotes) {
+                notifMessage += `\n\nNotes & Instructions:\n${effectiveNotes}`;
+              }
+            } else if (isDateOrTimeChanged) {
+              notifTitle = 'Counselling Schedule Updated';
+              notifMessage = `Your counselling session has been rescheduled.\n\nDate: ${cleanDate}\nTime: ${cleanTime}`;
+              if (effectiveNotes) {
+                notifMessage += `\n\nNotes & Instructions:\n${effectiveNotes}`;
+              }
+            } else {
+              notifTitle = 'Counselling Notes Updated';
+              notifMessage = `Your counsellor has updated the session notes and instructions for your appointment on ${cleanDate} at ${cleanTime}.\n\nNotes & Instructions:\n${effectiveNotes}`;
+            }
           }
         }
 
@@ -279,6 +367,11 @@ export async function upsertCounselling(req: Request, res: Response) {
             INSERT INTO notifications (profile_id, student_id, title, message, type, is_read)
             VALUES ($1, $2, $3, $4, 'counselling', false);
           `, [student.profile_id, student.id, notifTitle, notifMessage]);
+        }
+
+        if (status.toLowerCase() === 'completed') {
+          // Trigger feedback request ONLY if student's follow-up is also Completed
+          await triggerFeedbackRequestIfNeeded(student.id, String(counsellingRow.id));
         }
       }
     }
@@ -291,7 +384,6 @@ export async function upsertCounselling(req: Request, res: Response) {
 }
 
 export async function updateCounselling(req: Request, res: Response) {
-  // Delegate to upsertCounselling so notifications, updates and rescheduling are handled consistently
   req.body = { ...req.body, id: req.params.id };
   return upsertCounselling(req, res);
 }

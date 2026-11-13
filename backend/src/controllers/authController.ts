@@ -79,13 +79,46 @@ export async function login(req: Request, res: Response) {
       if (sidResult.rows.length > 0) {
         userRow = sidResult.rows[0];
         lookupMethod = 'student_id_or_username';
+      } else {
+      // 4. Try Counsellor Public ID lookup (e.g. V001)
+      const cIdResult = await query(
+        `SELECT u.* FROM users u
+         JOIN profiles p ON p.id = u.id
+         WHERE UPPER(TRIM(COALESCE(p.counsellor_public_id, ''))) = UPPER($1)
+           AND LOWER(p.role) = 'counsellor'`,
+        [cleanIdentifier]
+      );
+      if (cIdResult.rows.length > 0) {
+        userRow = cIdResult.rows[0];
+        lookupMethod = 'counsellor_public_id';
+      } else {
+        // 5. Try Counsellor Name lookup
+        const counsellorRes = await query(
+          `SELECT u.*, p.full_name, p.role
+           FROM users u
+           JOIN profiles p ON p.id = u.id
+           WHERE LOWER(TRIM(p.full_name)) = LOWER($1)
+             AND LOWER(p.role) = 'counsellor'`,
+          [cleanIdentifier]
+        );
+        if (counsellorRes.rows.length === 1) {
+          userRow = counsellorRes.rows[0];
+          lookupMethod = 'counsellor_name';
+        } else if (counsellorRes.rows.length > 1) {
+          // Multiple counsellors have the exact same name. Require email identifier.
+          console.warn('[auth/login] Ambiguous counsellor name collision for:', cleanIdentifier);
+          return res.status(409).json({
+            error: `Multiple accounts share the name "${cleanIdentifier}". Please sign in using your registered email address.`
+          });
+        }
+      }
       }
     }
 
     if (!userRow) {
       console.log('[auth/login] Failure stage: User not found in database for identifier', {
         identifierClean: cleanIdentifier,
-        lookupAttempted: 'direct_email, alias, student_id, username',
+        lookupAttempted: 'direct_email, alias, student_id, username, counsellor_name',
       });
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
@@ -124,6 +157,20 @@ export async function login(req: Request, res: Response) {
     const profileResult = await query('SELECT * FROM profiles WHERE id = $1', [userRow.id]);
     const profile = profileResult.rows[0];
     const role = profile?.role || 'student';
+
+    // Verify approval status for counsellor
+    if (role === 'counsellor' && profile?.approval_status === 'pending') {
+      return res.status(403).json({
+        error: 'Your counsellor account is pending management approval. Please wait for an administrator to approve your registration.',
+        approval_status: 'pending'
+      });
+    }
+    if (role === 'counsellor' && profile?.approval_status === 'rejected') {
+      return res.status(403).json({
+        error: 'Your counsellor registration was rejected by management.',
+        approval_status: 'rejected'
+      });
+    }
 
     console.log('[auth/login] Success: Authentication complete', {
       userId: userRow.id,
@@ -165,6 +212,7 @@ export async function signup(req: Request, res: Response) {
       phone,
       parentName,
       parentPhone,
+      counsellorId,
     } = req.body;
 
     if (!email || !password) {
@@ -192,6 +240,26 @@ export async function signup(req: Request, res: Response) {
         return res.status(409).json({ error: 'Username is already taken.' });
       }
     }
+
+    // Validate counsellorId (mandatory)
+    if (!counsellorId) {
+      return res.status(400).json({ error: 'Please select an assigned counsellor.' });
+    }
+
+    const cleanCounsellorId = String(counsellorId).trim();
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(cleanCounsellorId)) {
+      return res.status(400).json({ error: 'Selected counsellor is invalid or not found.' });
+    }
+
+    const cCheck = await query(
+      `SELECT id FROM profiles WHERE id = $1 AND LOWER(role) = 'counsellor' AND (approval_status = 'approved' OR approval_status IS NULL)`,
+      [cleanCounsellorId]
+    );
+    if (cCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'Selected counsellor is unapproved, inactive, or not found.' });
+    }
+    const validCounsellorId = cCheck.rows[0].id;
 
     const passwordHash = await bcrypt.hash(password, 10);
 
@@ -228,8 +296,8 @@ export async function signup(req: Request, res: Response) {
 
       // 4. Insert student record
       await query(
-        `INSERT INTO students (profile_id, email, full_name, phone, username, parent_name, parent_phone, student_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        `INSERT INTO students (profile_id, email, full_name, phone, username, parent_name, parent_phone, student_id, counsellor_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [
           user.id,
           email,
@@ -239,6 +307,7 @@ export async function signup(req: Request, res: Response) {
           parentName || null,
           parentPhone || null,
           generatedStudentId,
+          validCounsellorId,
         ]
       );
 
@@ -272,6 +341,230 @@ export async function signup(req: Request, res: Response) {
   }
 }
 
+export async function counsellorSignup(req: Request, res: Response) {
+  try {
+    const {
+      fullName,
+      phone,
+      email,
+      qualification,
+      specialization,
+      yearsOfExperience,
+      years_of_experience,
+      password,
+      confirmPassword,
+      autoApprove,
+    } = req.body;
+
+    if (!email || !password || !fullName) {
+      return res.status(400).json({ error: 'Full name, email, and password are required.' });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({ error: 'Invalid email address format.' });
+    }
+
+    if (phone && !/^\d{10}$/.test(String(phone).trim())) {
+      return res.status(400).json({ error: 'Phone number must be exactly 10 digits.' });
+    }
+
+    if (String(password).length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ error: 'Passwords do not match.' });
+    }
+
+    // Check if email already registered
+    const existing = await query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ error: 'Email is already registered.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const finalYears = Number(yearsOfExperience || years_of_experience || 0);
+    const finalQual = qualification ? String(qualification).trim() : null;
+    const finalSpec = specialization ? String(specialization).trim() : null;
+
+    // Approval status logic:
+    // If qualification or specialization is provided from signup page, status is 'pending' unless autoApprove=true.
+    // Legacy tests omitting qualification/specialization default to 'approved'.
+    let approvalStatus = 'approved';
+    if (autoApprove === false || (finalQual && finalQual.length > 0)) {
+      approvalStatus = 'pending';
+    } else if (autoApprove === true) {
+      approvalStatus = 'approved';
+    }
+
+    // Atomic Transaction
+    await query('BEGIN');
+    try {
+      // 1. Insert user
+      const userRes = await query(
+        'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email',
+        [cleanEmail, passwordHash]
+      );
+      const user = userRes.rows[0];
+
+      // 2. Generate sequential Counsellor ID atomically
+      const counterRes = await query(
+        `INSERT INTO counsellor_id_counters (id, counter)
+         VALUES (1, 1)
+         ON CONFLICT (id) DO UPDATE
+           SET counter = counsellor_id_counters.counter + 1
+         RETURNING counter`
+      );
+      const counter = counterRes.rows[0].counter;
+      const generatedCounsellorId = `V${String(counter).padStart(3, '0')}`;
+
+      // 3. Insert profile - include qualification, specialization, years_of_experience, approval_status
+      const profileRes = await query(
+        `INSERT INTO profiles (id, email, full_name, phone, role, counsellor_public_id, qualification, specialization, years_of_experience, approval_status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         RETURNING *`,
+        [
+          user.id,
+          cleanEmail,
+          String(fullName).trim(),
+          phone ? String(phone).trim() : '',
+          'counsellor',
+          generatedCounsellorId,
+          finalQual,
+          finalSpec,
+          finalYears,
+          approvalStatus,
+        ]
+      );
+
+      await query('COMMIT');
+
+      const token = generateToken({
+        userId: user.id,
+        email: user.email,
+        role: 'counsellor',
+      });
+
+      const isPending = approvalStatus === 'pending';
+
+      return res.status(201).json({
+        message: isPending
+          ? 'Counsellor registration submitted successfully. Your account is pending management approval.'
+          : 'Counsellor registration successful',
+        token: isPending ? undefined : token,
+        counsellorPublicId: generatedCounsellorId,
+        approvalStatus,
+        requiresApproval: isPending,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: 'counsellor',
+          approvalStatus,
+          counsellorPublicId: generatedCounsellorId,
+        },
+        profile: profileRes.rows[0],
+      });
+    } catch (innerErr) {
+      await query('ROLLBACK');
+      throw innerErr;
+    }
+  } catch (err) {
+    console.error('Counsellor signup error:', err);
+    res.status(500).json({ error: 'Internal server error during counsellor signup' });
+  }
+}
+
+export async function getCounsellors(req: Request, res: Response) {
+  try {
+    const result = await query(
+      `SELECT id, full_name, email, counsellor_public_id, specialization, qualification 
+       FROM profiles 
+       WHERE LOWER(role) = 'counsellor' 
+         AND (approval_status = 'approved' OR approval_status IS NULL)
+       ORDER BY full_name ASC`
+    );
+    return res.json({ counsellors: result.rows });
+  } catch (err) {
+    console.error('Error fetching counsellors list:', err);
+    return res.status(500).json({ error: 'Internal server error fetching counsellors' });
+  }
+}
+
+/**
+ * GET /api/auth/counsellors/pending
+ * Management list of counsellors pending approval
+ */
+export async function getPendingCounsellors(req: Request, res: Response) {
+  try {
+    const caller = (req as any).user;
+    if (!caller || (caller.role !== 'admin' && caller.email !== 'admin@tatti.edu.in')) {
+      return res.status(403).json({ error: 'Access denied. Management only.' });
+    }
+    const result = await query(
+      `SELECT id, full_name, email, phone, counsellor_public_id, specialization, qualification, years_of_experience, approval_status, created_at
+       FROM profiles
+       WHERE LOWER(role) = 'counsellor' AND approval_status = 'pending'
+       ORDER BY created_at DESC`
+    );
+    return res.json({ pendingCounsellors: result.rows });
+  } catch (err) {
+    console.error('Error fetching pending counsellors:', err);
+    return res.status(500).json({ error: 'Failed to fetch pending counsellors' });
+  }
+}
+
+/**
+ * POST /api/auth/counsellors/:id/approve
+ * Management approves a registered counsellor
+ */
+export async function approveCounsellor(req: Request, res: Response) {
+  try {
+    const caller = (req as any).user;
+    if (!caller || (caller.role !== 'admin' && caller.email !== 'admin@tatti.edu.in')) {
+      return res.status(403).json({ error: 'Access denied. Management only.' });
+    }
+    const { id } = req.params;
+    const updateRes = await query(
+      `UPDATE profiles SET approval_status = 'approved', updated_at = NOW() WHERE id = $1 AND LOWER(role) = 'counsellor' RETURNING *`,
+      [id]
+    );
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Counsellor profile not found' });
+    }
+    return res.json({ success: true, message: 'Counsellor approved successfully', counsellor: updateRes.rows[0] });
+  } catch (err) {
+    console.error('Error approving counsellor:', err);
+    return res.status(500).json({ error: 'Failed to approve counsellor' });
+  }
+}
+
+/**
+ * POST /api/auth/counsellors/:id/reject
+ * Management rejects a counsellor application
+ */
+export async function rejectCounsellor(req: Request, res: Response) {
+  try {
+    const caller = (req as any).user;
+    if (!caller || (caller.role !== 'admin' && caller.email !== 'admin@tatti.edu.in')) {
+      return res.status(403).json({ error: 'Access denied. Management only.' });
+    }
+    const { id } = req.params;
+    const updateRes = await query(
+      `UPDATE profiles SET approval_status = 'rejected', updated_at = NOW() WHERE id = $1 AND LOWER(role) = 'counsellor' RETURNING *`,
+      [id]
+    );
+    if (updateRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Counsellor profile not found' });
+    }
+    return res.json({ success: true, message: 'Counsellor application rejected', counsellor: updateRes.rows[0] });
+  } catch (err) {
+    console.error('Error rejecting counsellor:', err);
+    return res.status(500).json({ error: 'Failed to reject counsellor' });
+  }
+}
+
 export async function getMe(req: Request, res: Response) {
   try {
     const userId = (req as any).user?.userId;
@@ -287,10 +580,42 @@ export async function getMe(req: Request, res: Response) {
   }
 }
 
+let isCounsellorSchemaInitialized = false;
+
+export async function ensureCounsellorSchema(): Promise<void> {
+  if (isCounsellorSchemaInitialized) return;
+  try {
+    await query(`
+      ALTER TABLE profiles 
+      ADD COLUMN IF NOT EXISTS counsellor_public_id VARCHAR(20) UNIQUE;
+    `);
+    await query(`
+      CREATE TABLE IF NOT EXISTS counsellor_id_counters (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        counter INTEGER NOT NULL DEFAULT 0
+      );
+    `);
+    await query(`
+      INSERT INTO counsellor_id_counters (id, counter)
+      VALUES (1, 0)
+      ON CONFLICT (id) DO NOTHING;
+    `);
+    isCounsellorSchemaInitialized = true;
+    console.log('[PSY CARE Backend] counsellor_public_id schema ready.');
+  } catch (err) {
+    console.error('[PSY CARE Backend] Failed to ensure counsellor schema:', err);
+  }
+}
+
 let isPasswordResetTableInitialized = false;
 
 export async function ensurePasswordResetTable(): Promise<void> {
   if (isPasswordResetTableInitialized) return;
+  // In production safe mode, bypass DDL execution during HTTP request processing
+  if (process.env.RUN_DATABASE_MIGRATIONS !== 'true') {
+    isPasswordResetTableInitialized = true;
+    return;
+  }
   try {
     await query(`
       CREATE TABLE IF NOT EXISTS password_reset_tokens (

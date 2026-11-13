@@ -35,7 +35,7 @@ function formatDateValue(value: string | null | undefined): string {
   return date.toISOString().slice(0, 10);
 }
 
-function buildFilteredStudentQuery(reqQuery: Record<string, any>) {
+function buildFilteredStudentQuery(reqQuery: Record<string, any>, caller?: any) {
   const {
     search = '',
     assessment_status,
@@ -48,6 +48,12 @@ function buildFilteredStudentQuery(reqQuery: Record<string, any>) {
 
   const conditions: string[] = [];
   const params: any[] = [];
+
+  const role = (caller?.role || '').toLowerCase();
+  if (role === 'counsellor') {
+    params.push(caller.userId);
+    conditions.push(`s.counsellor_id = ${params.length}`);
+  }
 
   if (typeof search === 'string' && search.trim()) {
     const q = `%${search.trim()}%`;
@@ -100,8 +106,8 @@ function buildFilteredStudentQuery(reqQuery: Record<string, any>) {
   };
 }
 
-async function getFilteredStudentsForExport(reqQuery: Record<string, any>) {
-  const { whereClause, params } = buildFilteredStudentQuery(reqQuery);
+async function getFilteredStudentsForExport(reqQuery: Record<string, any>, caller?: any) {
+  const { whereClause, params } = buildFilteredStudentQuery(reqQuery, caller);
 
   const rows = await query(`
     SELECT s.*,
@@ -127,7 +133,7 @@ function getExportDateStamp(date = new Date()) {
 }
 
 async function exportStudentsAsExcel(req: Request, res: Response) {
-  const students = await getFilteredStudentsForExport(req.query as Record<string, any>);
+  const students = await getFilteredStudentsForExport(req.query as Record<string, any>, (req as any).user);
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'PSY CARE Admin Portal';
   workbook.created = new Date();
@@ -263,7 +269,7 @@ async function exportStudentsAsExcel(req: Request, res: Response) {
 }
 
 async function exportStudentsAsPdf(req: Request, res: Response) {
-  const students = await getFilteredStudentsForExport(req.query as Record<string, any>);
+  const students = await getFilteredStudentsForExport(req.query as Record<string, any>, (req as any).user);
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -441,6 +447,15 @@ export async function updateStudentApplicationAccess(req: Request, res: Response
     const status = isUnlocked ? 'unlocked' : 'locked';
     const adminDisplayName = adminName || 'PSY CARE Head Administrator';
 
+    const caller = (req as any).user;
+    const callerRole = (caller?.role || '').toLowerCase();
+    if (callerRole === 'counsellor') {
+      const chk = await query('SELECT id FROM students WHERE id = $1 AND counsellor_id = $2', [targetStudentId, caller.userId]);
+      if (chk.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied: Student not assigned to you.' });
+      }
+    }
+
     // Verify student exists
     const checkRes = await query('SELECT id, full_name, email FROM students WHERE id = $1', [targetStudentId]);
     if (checkRes.rows.length === 0) {
@@ -530,6 +545,8 @@ export async function getStudentAuditLogs(req: Request, res: Response) {
 }
 
 export async function listAllStudents(req: Request, res: Response) {
+  const caller = (req as any).user;
+  const callerRole = (caller?.role || '').toLowerCase();
   const { page = 1, pageSize, limit, search = '' } = req.query;
   const rawPage = Number(page);
   const p = isNaN(rawPage) || rawPage <= 0 ? 1 : rawPage;
@@ -537,16 +554,26 @@ export async function listAllStudents(req: Request, res: Response) {
   const offset = (p - 1) * ps;
 
   try {
-    let countQueryStr = 'SELECT COUNT(*) FROM students';
-    let dataQueryStr = 'SELECT * FROM students';
+    let countQueryStr = 'SELECT COUNT(*) FROM students s';
+    let dataQueryStr = 'SELECT s.* FROM students s';
     let queryParams: any[] = [];
-    
+    const conditions: string[] = [];
+
+    if (callerRole === 'counsellor') {
+      queryParams.push(caller.userId);
+      conditions.push(`s.counsellor_id = ${queryParams.length}`);
+    }
+
     if (search && typeof search === 'string' && search.trim()) {
         const searchStr = `%${search.trim()}%`;
-        const whereClause = ' WHERE full_name ILIKE $1 OR email ILIKE $1 OR student_id ILIKE $1 OR phone ILIKE $1';
-        countQueryStr += whereClause;
-        dataQueryStr += whereClause;
         queryParams.push(searchStr);
+        conditions.push(`(s.full_name ILIKE ${queryParams.length} OR s.email ILIKE ${queryParams.length} OR s.student_id ILIKE ${queryParams.length} OR s.phone ILIKE ${queryParams.length})`);
+    }
+
+    if (conditions.length > 0) {
+      const whereClause = ` WHERE ${conditions.join(' AND ')}`;
+      countQueryStr += whereClause;
+      dataQueryStr += whereClause;
     }
     
     dataQueryStr += ` ORDER BY created_at DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
@@ -582,8 +609,13 @@ export async function listAllStudents(req: Request, res: Response) {
   }
 }
 
-export async function getDashboardStats(_req: Request, res: Response) {
+export async function getDashboardStats(req: Request, res: Response) {
   try {
+    const caller = (req as any).user;
+    const role = (caller?.role || '').toLowerCase();
+    const isCounsellor = role === 'counsellor';
+    const counsellorId = caller?.userId;
+
     // ── Single aggregate query from the students table ────────────────────────
     const statsResult = await query(`
       SELECT
@@ -651,8 +683,9 @@ export async function getDashboardStats(_req: Request, res: Response) {
              OR LOWER(a3.status) = 'confirmed'
         ), 0) AS admissions_confirmed
 
-      FROM students;
-    `);
+      FROM students
+      ${isCounsellor ? 'WHERE counsellor_id = $1' : ''};
+    `, isCounsellor ? [counsellorId] : []);
 
     const row = statsResult.rows[0] || {};
 
@@ -663,9 +696,10 @@ export async function getDashboardStats(_req: Request, res: Response) {
         COUNT(*)::int AS count
       FROM students
       WHERE created_at >= NOW() AT TIME ZONE 'UTC' - INTERVAL '6 days'
+        ${isCounsellor ? 'AND counsellor_id = $1' : ''}
       GROUP BY DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')
       ORDER BY day ASC;
-    `);
+    `, isCounsellor ? [counsellorId] : []);
 
     // Build a map keyed by ISO date string (YYYY-MM-DD)
     const trendMap: Record<string, number> = {};

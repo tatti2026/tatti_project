@@ -4,7 +4,7 @@ import { query } from '../database/pgPool.js';
 export async function getProfile(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const result = await query('SELECT * FROM profiles WHERE id = $1', [id]);
+    const result = await query('SELECT id, email, full_name, phone, role, avatar_url, created_at, updated_at FROM profiles WHERE id = $1', [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Profile not found' });
     }
@@ -18,8 +18,13 @@ export async function getProfile(req: Request, res: Response) {
 export async function updateProfile(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const body = req.body;
+    const caller = (req as any).user;
 
+    if (caller && caller.role !== 'admin' && caller.userId !== id) {
+      return res.status(403).json({ error: 'Forbidden: You can only update your own profile.' });
+    }
+
+    const body = req.body;
     const allowedFields = ['full_name', 'phone', 'avatar_url'];
     const updates: string[] = [];
     const values: any[] = [];
@@ -40,7 +45,7 @@ export async function updateProfile(req: Request, res: Response) {
     updates.push('updated_at = now()');
     values.push(id);
 
-    const queryStr = `UPDATE profiles SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`;
+    const queryStr = `UPDATE profiles SET ${updates.join(', ')} WHERE id = $${idx} RETURNING id, email, full_name, phone, role, avatar_url, created_at, updated_at`;
     const result = await query(queryStr, values);
 
     if (result.rows.length === 0) {

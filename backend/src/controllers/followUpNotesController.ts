@@ -31,10 +31,14 @@ export async function getNotesByStudent(req: AuthenticatedRequest, res: Response
 
     const { studentId } = req.params;
 
-    // Verify student exists
-    const studentCheck = await query('SELECT id FROM students WHERE id = $1', [studentId]);
+    // Verify student exists and check counsellor ownership
+    const studentCheck = await query('SELECT id, counsellor_id FROM students WHERE id = $1', [studentId]);
     if (studentCheck.rowCount === 0) {
       return res.status(404).json({ error: 'Student not found.' });
+    }
+
+    if (req.user.role === 'counsellor' && studentCheck.rows[0].counsellor_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Access denied: Student not assigned to you.' });
     }
 
     const result = await query(
@@ -83,10 +87,21 @@ export async function addNote(req: AuthenticatedRequest, res: Response) {
       return res.status(400).json({ error: 'Note content is required.' });
     }
 
-    // Verify student exists
-    const studentCheck = await query('SELECT id FROM students WHERE id = $1', [studentId]);
+    if (req.user.role === 'counsellor') {
+      const studentCheck = await query('SELECT id, counsellor_id FROM students WHERE id = $1', [studentId]);
+      if (studentCheck.rowCount === 0 || studentCheck.rows[0].counsellor_id !== req.user.userId) {
+        return res.status(403).json({ error: 'Access denied: Student not assigned to you.' });
+      }
+    }
+
+    // Verify student exists and check counsellor ownership
+    const studentCheck = await query('SELECT id, counsellor_id FROM students WHERE id = $1', [studentId]);
     if (studentCheck.rowCount === 0) {
       return res.status(404).json({ error: 'Student not found.' });
+    }
+
+    if (req.user.role === 'counsellor' && studentCheck.rows[0].counsellor_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Access denied: Student not assigned to you.' });
     }
 
     const adminId = req.user.userId || null;
@@ -124,6 +139,13 @@ export async function updateNote(req: AuthenticatedRequest, res: Response) {
 
     if (!note || !note.trim()) {
       return res.status(400).json({ error: 'Note content is required.' });
+    }
+
+    if (req.user.role === 'counsellor') {
+      const studentCheck = await query('SELECT id, counsellor_id FROM students WHERE id = $1', [studentId]);
+      if (studentCheck.rowCount === 0 || studentCheck.rows[0].counsellor_id !== req.user.userId) {
+        return res.status(403).json({ error: 'Access denied: Student not assigned to you.' });
+      }
     }
 
     // Strict student isolation: the note must belong to this student

@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { query } from '../database/pgPool.js';
 import { getStudentApplicationAccess } from '../services/applicationAccessService.js';
 import type { AuthenticatedRequest } from '../middleware/authMiddleware.js';
+import { canAccessStudent, canAccessStudentProfile } from '../utils/accessControl.js';
 
 export async function getStudentReminders(req: AuthenticatedRequest, res: Response) {
   try {
@@ -10,15 +11,6 @@ export async function getStudentReminders(req: AuthenticatedRequest, res: Respon
     }
 
     const profileId = req.user.userId;
-
-    // Ensure columns exist (idempotent migration)
-    await query(`
-      ALTER TABLE counselling
-        ADD COLUMN IF NOT EXISTS reminder_status TEXT DEFAULT 'pending',
-        ADD COLUMN IF NOT EXISTS acknowledged_at TIMESTAMPTZ,
-        ADD COLUMN IF NOT EXISTS dismissed_at TIMESTAMPTZ
-    `).catch(() => {});
-
     const [counsellingResult, followUpResult] = await Promise.all([
       query(`
         SELECT
@@ -30,9 +22,9 @@ export async function getStudentReminders(req: AuthenticatedRequest, res: Respon
           c.mode,
           c.venue_or_link,
           c.instructions,
+          c.notes,
           c.reminder_option,
           c.reminder_datetime::text AS reminder_datetime,
-          c.reminder_status,
           c.updated_at::text AS updated_at
         FROM counselling c
         JOIN students s ON s.id = c.student_id
@@ -43,7 +35,6 @@ export async function getStudentReminders(req: AuthenticatedRequest, res: Respon
           AND (c.scheduled_date + COALESCE(c.scheduled_time::time, TIME '10:30'))
               AT TIME ZONE 'Asia/Kolkata' > now()
           AND LOWER(COALESCE(c.status, 'scheduled')) NOT IN ('completed', 'cancelled', 'rejected', 'selected')
-          AND COALESCE(c.reminder_status, 'pending') = 'pending'
         ORDER BY c.scheduled_date, c.scheduled_time
       `, [profileId]),
       query(`
@@ -72,95 +63,18 @@ export async function getStudentReminders(req: AuthenticatedRequest, res: Respon
   }
 }
 
-// ── PUT /api/students/me/reminders/:id/acknowledge ──────────────────────────
-// Student acknowledges (confirms they saw) a counselling reminder.
-// Adds reminder_status='acknowledged' + acknowledged_at timestamp to counselling row.
-export async function acknowledgeReminder(req: AuthenticatedRequest, res: Response) {
-  try {
-    if (req.user?.role !== 'student') {
-      return res.status(403).json({ error: 'Only student accounts can acknowledge reminders.' });
-    }
-    const profileId = req.user.userId;
-    const { id } = req.params;
-
-    // Verify this reminder belongs to this student
-    const check = await query(
-      `SELECT c.id FROM counselling c
-       JOIN students s ON s.id = c.student_id
-       WHERE c.id = $1 AND s.profile_id = $2`,
-      [id, profileId]
-    );
-    if (check.rows.length === 0) {
-      return res.status(403).json({ error: 'Reminder not found or access denied.' });
-    }
-
-    // Ensure columns exist (idempotent migration)
-    await query(`
-      ALTER TABLE counselling
-        ADD COLUMN IF NOT EXISTS reminder_status TEXT DEFAULT 'pending',
-        ADD COLUMN IF NOT EXISTS acknowledged_at TIMESTAMPTZ,
-        ADD COLUMN IF NOT EXISTS dismissed_at TIMESTAMPTZ
-    `).catch(() => {}); // ignore if already exists
-
-    await query(
-      `UPDATE counselling
-       SET reminder_status = 'acknowledged', acknowledged_at = now()
-       WHERE id = $1`,
-      [id]
-    );
-
-    return res.json({ success: true, status: 'acknowledged' });
-  } catch (err) {
-    console.error('Error acknowledging reminder:', err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-}
-
-// ── PUT /api/students/me/reminders/:id/dismiss ───────────────────────────────
-// Student dismisses a counselling reminder (seen but not formally acknowledged).
-export async function dismissReminder(req: AuthenticatedRequest, res: Response) {
-  try {
-    if (req.user?.role !== 'student') {
-      return res.status(403).json({ error: 'Only student accounts can dismiss reminders.' });
-    }
-    const profileId = req.user.userId;
-    const { id } = req.params;
-
-    // Verify this reminder belongs to this student
-    const check = await query(
-      `SELECT c.id FROM counselling c
-       JOIN students s ON s.id = c.student_id
-       WHERE c.id = $1 AND s.profile_id = $2`,
-      [id, profileId]
-    );
-    if (check.rows.length === 0) {
-      return res.status(403).json({ error: 'Reminder not found or access denied.' });
-    }
-
-    await query(`
-      ALTER TABLE counselling
-        ADD COLUMN IF NOT EXISTS reminder_status TEXT DEFAULT 'pending',
-        ADD COLUMN IF NOT EXISTS acknowledged_at TIMESTAMPTZ,
-        ADD COLUMN IF NOT EXISTS dismissed_at TIMESTAMPTZ
-    `).catch(() => {});
-
-    await query(
-      `UPDATE counselling
-       SET reminder_status = 'dismissed', dismissed_at = now()
-       WHERE id = $1`,
-      [id]
-    );
-
-    return res.json({ success: true, status: 'dismissed' });
-  } catch (err) {
-    console.error('Error dismissing reminder:', err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-}
-
 export async function getStudentByProfileId(req: Request, res: Response) {
   try {
+    const caller = (req as AuthenticatedRequest).user;
     const { profileId } = req.params;
+
+    if (caller) {
+      const allowed = await canAccessStudentProfile(caller, profileId);
+      if (!allowed) {
+        return res.status(403).json({ error: 'Access denied: You do not have permission to view this student.' });
+      }
+    }
+
     const result = await query(`
       SELECT s.*, 
         (SELECT row_to_json(c.*) FROM courses c 
@@ -194,9 +108,18 @@ export async function getStudentByProfileId(req: Request, res: Response) {
 
 export async function getStudentApplicationAccessStatus(req: Request, res: Response) {
   try {
+    const caller = (req as AuthenticatedRequest).user;
     const { id } = req.params;
+
+    if (caller) {
+      const allowed = await canAccessStudent(caller, id);
+      if (!allowed) {
+        return res.status(403).json({ error: 'Access denied: You do not have permission to view this student.' });
+      }
+    }
+
     const result = await query(
-      'SELECT id, full_name, application_access_status, application_unlocked_by, application_unlocked_at FROM students WHERE id = $1',
+      'SELECT id, full_name, application_access_status, application_unlocked_by, application_unlocked_at, counsellor_id FROM students WHERE id = $1',
       [id]
     );
     if (result.rows.length === 0) {
@@ -223,7 +146,8 @@ export async function createStudent(req: Request, res: Response) {
       profile_id, student_id, full_name, email, phone,
       date_of_birth, address, city, state, pincode,
       parent_name, parent_phone, selected_course,
-      assessment_status, application_status, payment_status, admission_status
+      assessment_status, application_status, payment_status, admission_status,
+      counsellor_id
     } = req.body;
 
     const code = student_id || `TATTI-2026-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -233,17 +157,19 @@ export async function createStudent(req: Request, res: Response) {
         profile_id, student_id, full_name, email, phone,
         date_of_birth, address, city, state, pincode,
         parent_name, parent_phone, selected_course,
-        assessment_status, application_status, payment_status, admission_status
+        assessment_status, application_status, payment_status, admission_status,
+        counsellor_id
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-        $14, $15, $16, $17
+        $14, $15, $16, $17, $18
       ) RETURNING *;
     `, [
       profile_id || null, code, full_name || '', email || '', phone || '',
       date_of_birth || null, address || '', city || '', state || '', pincode || '',
       parent_name || '', parent_phone || '', selected_course || null,
       assessment_status || 'not_started', application_status || 'not_started',
-      payment_status || 'unpaid', admission_status || 'not_applied'
+      payment_status || 'unpaid', admission_status || 'not_applied',
+      counsellor_id || null
     ]);
 
     const student = result.rows[0];
@@ -262,8 +188,16 @@ export async function createStudent(req: Request, res: Response) {
 
 export async function updateStudent(req: Request, res: Response) {
   try {
+    const caller = (req as AuthenticatedRequest).user;
     const { id } = req.params;
     const body = req.body;
+
+    if (caller && caller.role !== 'admin') {
+      const allowed = await canAccessStudent(caller, id);
+      if (!allowed) {
+        return res.status(403).json({ error: 'Access denied: You do not have permission to update this student.' });
+      }
+    }
 
     const allowedFields = [
       'full_name', 'email', 'phone', 'date_of_birth', 'address', 'city', 'state', 'pincode',
@@ -271,6 +205,10 @@ export async function updateStudent(req: Request, res: Response) {
       'application_status', 'payment_status', 'admission_status', 'application_access_status',
       'counselling_status'
     ];
+
+    if (caller?.role === 'admin') {
+      allowedFields.push('counsellor_id');
+    }
 
     const fieldsToUpdate: string[] = [];
     const values: any[] = [];
@@ -307,6 +245,16 @@ export async function updateStudent(req: Request, res: Response) {
 
 export async function getAllStudents(req: Request, res: Response) {
   try {
+    const caller = (req as AuthenticatedRequest).user;
+    if (!caller) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const callerRole = caller.role?.toLowerCase();
+    if (callerRole !== 'admin' && callerRole !== 'counsellor') {
+      return res.status(403).json({ error: 'Forbidden: Insufficient privileges' });
+    }
+
     const {
       page = 1,
       pageSize,
@@ -339,16 +287,22 @@ export async function getAllStudents(req: Request, res: Response) {
          WHERE cr.student_id = s.id AND cr.is_selected = true
          ORDER BY cr.created_at DESC LIMIT 1) as recommended_course_name,
         (SELECT row_to_json(ast.*) FROM (
-           SELECT id, score, total_marks, percentage, status, submitted_at
-           FROM assessments
-           WHERE student_id = s.id
-           ORDER BY created_at DESC LIMIT 1
-         ) ast) as assessment_info
+            SELECT id, score, total_marks, percentage, status, submitted_at
+            FROM assessments
+            WHERE student_id = s.id
+            ORDER BY created_at DESC LIMIT 1
+          ) ast) as assessment_info
       FROM students s
     `;
 
     const conditions: string[] = [];
     const queryParams: any[] = [];
+
+    // Counsellor Isolation: counsellors only see their own assigned students
+    if (callerRole === 'counsellor') {
+      queryParams.push(caller.userId);
+      conditions.push(`s.counsellor_id = $${queryParams.length}`);
+    }
 
     // Search filter across student ID, name, email, phone, parent
     if (search && typeof search === 'string' && search.trim()) {
@@ -459,6 +413,11 @@ export async function getAllStudents(req: Request, res: Response) {
 
 export async function deleteStudent(req: Request, res: Response) {
   try {
+    const caller = (req as AuthenticatedRequest).user;
+    if (caller?.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: Only admin can delete students' });
+    }
+
     const { id } = req.params;
     const result = await query('DELETE FROM students WHERE id = $1 RETURNING id', [id]);
     if (result.rows.length === 0) {

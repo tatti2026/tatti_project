@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { query } from '../database/pgPool.js';
 import { verifyToken } from '../utils/jwt.js';
+import { triggerFeedbackRequestIfNeeded } from './sessionFeedbackController.js';
 
 export async function ensureFollowUpTimeColumn(): Promise<void> {
   await query('ALTER TABLE follow_ups ADD COLUMN IF NOT EXISTS followup_time TIME');
@@ -60,7 +61,6 @@ async function syncFollowUpNote(
   }
 
   // Duplicate prevention:
-  // If currentLatest exists and has the EXACT same text, do NOT insert a duplicate!
   if (currentLatest && currentLatest.note.trim() === trimmed) {
     return currentLatest;
   }
@@ -78,6 +78,8 @@ async function syncFollowUpNote(
 
 export async function getFollowUps(req: Request, res: Response) {
   try {
+    const caller = (req as any).user;
+    const role = (caller?.role || '').toLowerCase();
     const { page, pageSize, limit, intent, search = '' } = req.query;
     const isPaginated = page !== undefined || limit !== undefined || pageSize !== undefined;
 
@@ -88,6 +90,11 @@ export async function getFollowUps(req: Request, res: Response) {
 
     let baseWhere = '1=1';
     const queryParams: any[] = [];
+
+    if (role === 'counsellor') {
+      queryParams.push(caller.userId);
+      baseWhere += ` AND s.counsellor_id = $${queryParams.length}`;
+    }
 
     if (intent && intent !== 'all') {
       queryParams.push(intent);
@@ -148,7 +155,23 @@ export async function getFollowUps(req: Request, res: Response) {
 export async function upsertFollowUp(req: Request, res: Response) {
   try {
     const f = req.body;
+    const caller = (req as any).user;
+    const role = (caller?.role || '').toLowerCase();
     const { adminId, adminName } = await getAdminInfo(req);
+
+    if (role === 'counsellor') {
+      let checkStudentId = f.student_id;
+      if (!checkStudentId && f.id) {
+        const findStudent = await query('SELECT student_id FROM follow_ups WHERE id = $1', [f.id]);
+        checkStudentId = findStudent.rows[0]?.student_id;
+      }
+      if (checkStudentId) {
+        const chk = await query('SELECT id FROM students WHERE id = $1 AND counsellor_id = $2', [checkStudentId, caller.userId]);
+        if (chk.rows.length === 0) {
+          return res.status(403).json({ error: 'Access denied: Student not assigned to you.' });
+        }
+      }
+    }
 
     if (f.id) {
       let studentId = f.student_id;
@@ -183,6 +206,10 @@ export async function upsertFollowUp(req: Request, res: Response) {
         latestNote = await syncFollowUpNote(studentId, f.notes, adminId, adminName);
       }
 
+      if ((updatedRow.followup_status || '').toLowerCase() === 'completed' && studentId) {
+        await triggerFeedbackRequestIfNeeded(studentId);
+      }
+
       return res.json({
         ...updatedRow,
         latest_note: latestNote,
@@ -203,6 +230,10 @@ export async function upsertFollowUp(req: Request, res: Response) {
         latestNote = await syncFollowUpNote(f.student_id, f.notes, adminId, adminName);
       }
 
+      if ((createdRow.followup_status || '').toLowerCase() === 'completed' && f.student_id) {
+        await triggerFeedbackRequestIfNeeded(f.student_id);
+      }
+
       return res.status(201).json({
         ...createdRow,
         latest_note: latestNote,
@@ -218,12 +249,21 @@ export async function updateFollowUp(req: Request, res: Response) {
   try {
     const { id } = req.params;
     const f = req.body;
+    const caller = (req as any).user;
+    const role = (caller?.role || '').toLowerCase();
     const { adminId, adminName } = await getAdminInfo(req);
 
     let studentId = f.student_id;
     if (!studentId) {
       const findStudent = await query('SELECT student_id FROM follow_ups WHERE id = $1', [id]);
       studentId = findStudent.rows[0]?.student_id;
+    }
+
+    if (role === 'counsellor' && studentId) {
+      const chk = await query('SELECT id FROM students WHERE id = $1 AND counsellor_id = $2', [studentId, caller.userId]);
+      if (chk.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied: Student not assigned to you.' });
+      }
     }
 
     const allowedFields = ['intent_level', 'last_interaction', 'followup_date', 'followup_time', 'followup_status', 'notes'];
@@ -253,6 +293,10 @@ export async function updateFollowUp(req: Request, res: Response) {
     let latestNote = null;
     if (studentId) {
       latestNote = await syncFollowUpNote(studentId, f.notes, adminId, adminName);
+    }
+
+    if ((updatedRow?.followup_status || '').toLowerCase() === 'completed' && studentId) {
+      await triggerFeedbackRequestIfNeeded(studentId);
     }
 
     return res.json({

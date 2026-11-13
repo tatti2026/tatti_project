@@ -37,12 +37,12 @@ router.post('/students/:studentId/unlock', unlockStudentApplication);
 router.post('/students/:studentId/lock', lockStudentApplication);
 router.get('/students/:studentId/audit-logs', getStudentAuditLogs);
 
-// UPI Payment verification endpoints
-router.get('/payments/pending', getPendingPayments);
-router.get('/payments/rejected', getRejectedPayments);
-router.get('/payments/:id', getPaymentDetailsById);
-router.post('/payments/:id/approve', approvePayment);
-router.post('/payments/:id/reject', rejectPayment);
-router.get('/payments/:id/screenshot', getAdminPaymentScreenshot);
+// UPI Payment verification endpoints (Admin only)
+router.get('/payments/pending', requireRole('admin'), getPendingPayments);
+router.get('/payments/rejected', requireRole('admin'), getRejectedPayments);
+router.get('/payments/:id', requireRole('admin'), getPaymentDetailsById);
+router.post('/payments/:id/approve', requireRole('admin'), approvePayment);
+router.post('/payments/:id/reject', requireRole('admin'), rejectPayment);
+router.get('/payments/:id/screenshot', requireRole('admin'), getAdminPaymentScreenshot);
 
 export default router;

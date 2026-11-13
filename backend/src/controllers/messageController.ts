@@ -26,14 +26,14 @@ function mapMessage(row: Record<string, unknown>) {
 }
 
 // ─── POST /api/messages/send ──────────────────────────────────────────────
-// Send a message from admin OR student. Role-enforced.
+// Send a message from admin/counsellor OR student. Role-enforced.
 // Body: { studentId, text, senderName, attachment? }
 export async function sendMessage(req: Request, res: Response) {
   try {
     const caller = (req as any).user;
     if (!caller) return res.status(401).json({ error: 'Unauthorized' });
 
-    const callerRole: string = caller.role || 'student';
+    const callerRole: string = (caller.role || 'student').toLowerCase();
     const {
       studentId,
       text,
@@ -41,45 +41,72 @@ export async function sendMessage(req: Request, res: Response) {
       attachment,
     } = req.body;
 
-    let targetStudentId = studentId;
-
     if (!text && !attachment) {
       return res.status(400).json({ error: 'Message text or attachment is required.' });
     }
 
-    // Students can only send to their own conversation (auto-resolve from authenticated profile)
+    let targetStudentId = studentId;
+
+    // Students can only send to their own conversation
     if (callerRole === 'student') {
       const studentCheck = await query(
-        'SELECT id FROM students WHERE profile_id = $1',
+        'SELECT id, counsellor_id, full_name, student_id FROM students WHERE profile_id = $1',
         [caller.userId]
       );
       if (studentCheck.rows.length === 0) {
-        return res.status(403).json({ error: 'No student record found for this account.' });
+        return res.status(403).json({ error: 'Student record not found for user.' });
       }
-      targetStudentId = studentCheck.rows[0].id;
-    } else {
-      if (!targetStudentId) {
-        return res.status(400).json({ error: 'studentId is required.' });
+      const myStudentId = studentCheck.rows[0].id;
+      if (studentId && studentId !== 'default' && studentId !== myStudentId) {
+        return res.status(403).json({ error: 'Students can only send messages in their own conversation.' });
       }
-      // Allow targetStudentId to be students.id (UUID), students.student_id (code), or profile_id
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetStudentId);
-      let studentRes;
-      if (isUuid) {
-        studentRes = await query('SELECT id FROM students WHERE id = $1 OR profile_id = $1 LIMIT 1', [targetStudentId]);
-      } else {
-        studentRes = await query('SELECT id FROM students WHERE UPPER(TRIM(student_id)) = UPPER(TRIM($1)) LIMIT 1', [targetStudentId]);
+      targetStudentId = myStudentId;
+    }
+
+    if (!targetStudentId) {
+      return res.status(400).json({ error: 'studentId is required.' });
+    }
+
+    // Counsellors can only send to their assigned students
+    if (callerRole === 'counsellor') {
+      const counsellorCheck = await query(
+        'SELECT id FROM students WHERE id = $1 AND (counsellor_id = $2 OR counsellor_id IS NULL)',
+        [targetStudentId, caller.userId]
+      );
+      if (counsellorCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied: You can only message your assigned students.' });
       }
-      if (studentRes.rows.length === 0) {
-        return res.status(404).json({ error: 'Student not found.' });
+    }
+
+    // Verify student exists
+    const studentRes = await query('SELECT id, counsellor_id, profile_id, full_name, student_id FROM students WHERE id = $1', [targetStudentId]);
+    if (studentRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found.' });
+    }
+    const studentData = studentRes.rows[0];
+
+    // Ensure student has counsellor assigned if null
+    if (!studentData.counsellor_id) {
+      const defCounsellor = await query(`
+        SELECT id FROM profiles 
+        WHERE (email = 'counsellor@tatti.edu.in' OR role = 'counsellor') 
+        ORDER BY (email = 'counsellor@tatti.edu.in') DESC 
+        LIMIT 1
+      `);
+      if (defCounsellor.rows.length > 0) {
+        studentData.counsellor_id = defCounsellor.rows[0].id;
+        await query('UPDATE students SET counsellor_id = $1, updated_at = now() WHERE id = $2', [
+          studentData.counsellor_id,
+          targetStudentId
+        ]);
       }
-      targetStudentId = studentRes.rows[0].id;
     }
 
     const isStaff = callerRole === 'admin' || callerRole === 'counsellor';
     const senderType = isStaff ? 'admin' : 'student';
     const receiverRole = isStaff ? 'student' : 'admin';
     const defaultStaffName = callerRole === 'counsellor' ? 'PSY CARE Counsellor' : 'PSY CARE Admin';
-    const resolvedSenderName = senderName || (isStaff ? defaultStaffName : 'Student');
+    const resolvedSenderName = senderName || (isStaff ? defaultStaffName : (studentData.full_name || 'Student'));
 
     const result = await query(
       `INSERT INTO direct_messages
@@ -101,6 +128,26 @@ export async function sendMessage(req: Request, res: Response) {
       ]
     );
 
+    // Notify the other party in PostgreSQL notifications
+    try {
+      if (senderType === 'student' && studentData.counsellor_id) {
+        const sName = studentData.full_name || studentData.student_id || 'Student';
+        await query(
+          `INSERT INTO notifications (profile_id, title, message, type, is_read)
+           VALUES ($1, 'New Student Message', $2 || ' sent you a message.', 'message', false)`,
+          [studentData.counsellor_id, sName]
+        );
+      } else if (senderType === 'admin' && studentData.profile_id) {
+        await query(
+          `INSERT INTO notifications (profile_id, title, message, type, is_read)
+           VALUES ($1, 'New Message from Counsellor', 'You received a message from your counsellor.', 'message', false)`,
+          [studentData.profile_id]
+        );
+      }
+    } catch (notifErr) {
+      console.warn('Notification dispatch note:', notifErr);
+    }
+
     return res.status(201).json({ message: mapMessage(result.rows[0]) });
   } catch (err) {
     console.error('sendMessage error:', err);
@@ -109,19 +156,20 @@ export async function sendMessage(req: Request, res: Response) {
 }
 
 // ─── GET /api/messages/conversation/:studentId ───────────────────────────
-// Get full conversation between admin and a specific student.
+// Get full conversation between counsellor/admin and a specific student.
 // Students can only retrieve their own conversation.
+// Counsellors can only retrieve conversations of their assigned students.
 export async function getConversation(req: Request, res: Response) {
   try {
     const caller = (req as any).user;
     if (!caller) return res.status(401).json({ error: 'Unauthorized' });
 
     const { studentId } = req.params;
-    const callerRole: string = caller.role || 'student';
+    const callerRole: string = (caller.role || 'student').toLowerCase();
 
     let targetStudentId = studentId;
 
-    // Students can only read their own conversation (auto-resolved from profile)
+    // Students can only read their own conversation
     if (callerRole === 'student') {
       const studentCheck = await query(
         'SELECT id FROM students WHERE profile_id = $1',
@@ -130,16 +178,21 @@ export async function getConversation(req: Request, res: Response) {
       if (studentCheck.rows.length === 0) {
         return res.status(403).json({ error: 'Access denied.' });
       }
-      targetStudentId = studentCheck.rows[0].id;
-    } else {
-      // For staff, resolve studentId in case student code or profileId was passed
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetStudentId);
-      if (isUuid) {
-        const sRes = await query('SELECT id FROM students WHERE id = $1 OR profile_id = $1 LIMIT 1', [targetStudentId]);
-        if (sRes.rows.length > 0) targetStudentId = sRes.rows[0].id;
-      } else {
-        const sRes = await query('SELECT id FROM students WHERE UPPER(TRIM(student_id)) = UPPER(TRIM($1)) LIMIT 1', [targetStudentId]);
-        if (sRes.rows.length > 0) targetStudentId = sRes.rows[0].id;
+      const myStudentId = studentCheck.rows[0].id;
+      if (studentId && studentId !== 'default' && studentId !== myStudentId) {
+        return res.status(403).json({ error: 'Access denied: You can only view your own conversation.' });
+      }
+      targetStudentId = myStudentId;
+    }
+
+    // Counsellors can only read their assigned students' conversations
+    if (callerRole === 'counsellor') {
+      const counsellorCheck = await query(
+        'SELECT id FROM students WHERE id = $1 AND (counsellor_id = $2 OR counsellor_id IS NULL)',
+        [targetStudentId, caller.userId]
+      );
+      if (counsellorCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied: You can only view conversations for your assigned students.' });
       }
     }
 
@@ -151,19 +204,12 @@ export async function getConversation(req: Request, res: Response) {
       [targetStudentId]
     );
 
-    // Mark messages as delivered when the counter-party fetches them
+    // Mark admin messages as delivered when student fetches them
     if (callerRole === 'student') {
       await query(
         `UPDATE direct_messages
          SET status = 'delivered', delivered_at = now()
          WHERE student_id = $1 AND sender_type = 'admin' AND status = 'sent'`,
-        [targetStudentId]
-      );
-    } else {
-      await query(
-        `UPDATE direct_messages
-         SET status = 'delivered', delivered_at = now()
-         WHERE student_id = $1 AND sender_type = 'student' AND status = 'sent'`,
         [targetStudentId]
       );
     }
@@ -176,12 +222,24 @@ export async function getConversation(req: Request, res: Response) {
 }
 
 // ─── GET /api/messages/conversations ─────────────────────────────────────
-// Admin only: get all conversation summaries (last message + unread count per student)
+// Admin / Counsellor: get conversation summaries.
+// Counsellors only see conversations for their assigned students.
 export async function getAllConversations(req: Request, res: Response) {
   try {
     const caller = (req as any).user;
-    if (!caller || (caller.role !== 'admin' && caller.role !== 'counsellor')) {
+    if (!caller) return res.status(401).json({ error: 'Unauthorized' });
+
+    const callerRole: string = (caller.role || '').toLowerCase();
+    if (callerRole !== 'admin' && callerRole !== 'counsellor') {
       return res.status(403).json({ error: 'Admin or Counsellor access required.' });
+    }
+
+    let filterCondition = '';
+    const params: any[] = [];
+
+    if (callerRole === 'counsellor') {
+      params.push(caller.userId);
+      filterCondition = `WHERE (s.counsellor_id = $1 OR (s.counsellor_id IS NULL AND (SELECT email FROM profiles WHERE id = $1) = 'counsellor@tatti.edu.in'))`;
     }
 
     const result = await query(
@@ -191,6 +249,7 @@ export async function getAllConversations(req: Request, res: Response) {
          s.full_name AS student_name,
          s.email AS student_email,
          s.phone AS student_phone,
+         s.counsellor_id,
          -- Last message in conversation
          (SELECT dm.message_text FROM direct_messages dm
           WHERE dm.student_id = s.id ORDER BY dm.created_at DESC LIMIT 1) AS last_message,
@@ -198,14 +257,15 @@ export async function getAllConversations(req: Request, res: Response) {
           WHERE dm.student_id = s.id ORDER BY dm.created_at DESC LIMIT 1) AS last_message_time,
          (SELECT dm.sender_type FROM direct_messages dm
           WHERE dm.student_id = s.id ORDER BY dm.created_at DESC LIMIT 1) AS last_message_sender,
-         -- Unread count: student messages not yet read by admin
+         -- Unread count: student messages not yet read by staff
          (SELECT COUNT(*) FROM direct_messages dm
           WHERE dm.student_id = s.id AND dm.sender_type = 'student' AND dm.status != 'read') AS unread_count,
          -- Total messages
          (SELECT COUNT(*) FROM direct_messages dm WHERE dm.student_id = s.id) AS total_messages
        FROM students s
+       ${filterCondition}
        ORDER BY last_message_time DESC NULLS LAST`,
-      []
+      params
     );
 
     const conversations = result.rows.map(row => ({
@@ -214,6 +274,7 @@ export async function getAllConversations(req: Request, res: Response) {
       studentName: row.student_name || 'Unknown Student',
       studentEmail: row.student_email,
       studentPhone: row.student_phone,
+      counsellorId: row.counsellor_id,
       lastMessage: row.last_message || '',
       lastMessageTime: row.last_message_time,
       lastMessageSender: row.last_message_sender,
@@ -236,26 +297,24 @@ export async function markMessagesRead(req: Request, res: Response) {
     if (!caller) return res.status(401).json({ error: 'Unauthorized' });
 
     const { studentId } = req.params;
-    const callerRole: string = caller.role || 'student';
+    const callerRole: string = (caller.role || 'student').toLowerCase();
 
     let targetStudentId = studentId;
+
+    // Student reads admin messages
     if (callerRole === 'student') {
-      const studentCheck = await query(
-        'SELECT id FROM students WHERE profile_id = $1',
-        [caller.userId]
+      const sCheck = await query('SELECT id FROM students WHERE profile_id = $1', [caller.userId]);
+      if (sCheck.rows.length > 0) targetStudentId = sCheck.rows[0].id;
+    }
+
+    // Counsellor check
+    if (callerRole === 'counsellor') {
+      const counsellorCheck = await query(
+        'SELECT id FROM students WHERE id = $1 AND (counsellor_id = $2 OR counsellor_id IS NULL)',
+        [targetStudentId, caller.userId]
       );
-      if (studentCheck.rows.length === 0) {
-        return res.status(403).json({ error: 'Access denied.' });
-      }
-      targetStudentId = studentCheck.rows[0].id;
-    } else {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetStudentId);
-      if (isUuid) {
-        const sRes = await query('SELECT id FROM students WHERE id = $1 OR profile_id = $1 LIMIT 1', [targetStudentId]);
-        if (sRes.rows.length > 0) targetStudentId = sRes.rows[0].id;
-      } else {
-        const sRes = await query('SELECT id FROM students WHERE UPPER(TRIM(student_id)) = UPPER(TRIM($1)) LIMIT 1', [targetStudentId]);
-        if (sRes.rows.length > 0) targetStudentId = sRes.rows[0].id;
+      if (counsellorCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied: You can only update messages for your assigned students.' });
       }
     }
 
@@ -278,17 +337,29 @@ export async function markMessagesRead(req: Request, res: Response) {
 }
 
 // ─── GET /api/messages/unread-count ──────────────────────────────────────
-// For the current student: how many unread admin messages they have.
+// Unread message count per caller role.
 export async function getUnreadCount(req: Request, res: Response) {
   try {
     const caller = (req as any).user;
     if (!caller) return res.status(401).json({ error: 'Unauthorized' });
 
-    if (caller.role === 'admin' || caller.role === 'counsellor') {
-      // Admin/Counsellor: total unread student messages across all conversations
+    const callerRole: string = (caller.role || '').toLowerCase();
+
+    if (callerRole === 'admin') {
       const result = await query(
         `SELECT COUNT(*) AS count FROM direct_messages
          WHERE sender_type = 'student' AND status != 'read'`
+      );
+      return res.json({ count: parseInt(result.rows[0].count, 10) });
+    }
+
+    if (callerRole === 'counsellor') {
+      const result = await query(
+        `SELECT COUNT(*) AS count FROM direct_messages dm
+         JOIN students s ON s.id = dm.student_id
+         WHERE dm.sender_type = 'student' AND dm.status != 'read' 
+           AND (s.counsellor_id = $1 OR (s.counsellor_id IS NULL AND (SELECT email FROM profiles WHERE id = $1) = 'counsellor@tatti.edu.in'))`,
+        [caller.userId]
       );
       return res.json({ count: parseInt(result.rows[0].count, 10) });
     }

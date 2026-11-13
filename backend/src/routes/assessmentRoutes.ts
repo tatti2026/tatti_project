@@ -10,20 +10,20 @@ import {
   getAllAssessments,
   getStudentMonthlyPerformance,
 } from '../controllers/assessmentController.js';
-import { requireAuth } from '../middleware/authMiddleware.js';
+import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
-router.get('/', getAllAssessments);
+router.get('/', requireAuth, requireRole(['admin', 'counsellor']), getAllAssessments);
 router.get('/questions', getActiveQuestions);
 router.get('/monthly-performance', requireAuth, getStudentMonthlyPerformance);
 router.get('/student/:studentId/monthly-performance', requireAuth, getStudentMonthlyPerformance);
 router.post('/submit', submitAssessment);
 
-router.get('/student/:studentId', getStudentAssessment);
+router.get('/student/:studentId', requireAuth, getStudentAssessment);
 router.post('/', createAssessment);
 router.put('/:id/submit', submitAssessmentById);
-router.get('/recommendations/:studentId', getStudentRecommendations);
-router.post('/recommendations', upsertRecommendation);
+router.get('/recommendations/:studentId', requireAuth, getStudentRecommendations);
+router.post('/recommendations', requireAuth, requireRole(['admin', 'counsellor']), upsertRecommendation);
 
 export default router;
