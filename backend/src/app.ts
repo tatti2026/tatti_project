@@ -39,6 +39,14 @@ app.get('/health', async (_req, res) => {
 // Mount main API
 app.use('/api', apiRouter);
 
+// 404 handler for unhandled API routes (guarantees valid JSON responses)
+app.use('/api', (_req, res) => {
+  return res.status(404).json({
+    error: 'API endpoint not found',
+    status: 404,
+  });
+});
+
 // Serve frontend static assets if available (supports single-service deployment)
 const possibleDistPaths = [
   path.resolve(__dirname, '../../dist'),

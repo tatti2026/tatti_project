@@ -39,11 +39,37 @@ function getAndroidDevApiBase(): string {
   return 'http://localhost:5000/api';
 }
 
-export const API_BASE = isProduction
-  ? (import.meta.env.VITE_API_URL || 'https://tattiproject-production-506b.up.railway.app/api')
-  : (isCapacitorAndroid
-      ? getAndroidDevApiBase()
-      : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api'));
+function getApiBase(): string {
+  if (isCapacitorAndroid) {
+    if (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('506b')) {
+      return import.meta.env.VITE_API_URL;
+    }
+    return getAndroidDevApiBase();
+  }
+
+  if (typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname;
+    // Local development web (Vite dev server typically on :5173)
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      if (window.location.port === '5000') {
+        return `${window.location.origin}/api`;
+      }
+      return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    }
+
+    // Production web deployment (Railway, Custom Domain, etc.)
+    // Express serves both frontend and /api on the same origin.
+    // Always use the current origin /api so requests never fail due to CORS or stale external domains.
+    if (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('506b') && !import.meta.env.VITE_API_URL.includes('localhost')) {
+      return import.meta.env.VITE_API_URL;
+    }
+    return `${window.location.origin}/api`;
+  }
+
+  return import.meta.env.VITE_API_URL || '/api';
+}
+
+export const API_BASE = getApiBase();
 
 function getHeaders(): HeadersInit {
   // Check localStorage first, then sessionStorage.
@@ -1174,8 +1200,9 @@ export async function getCounsellors(): Promise<{
   specialization?: string;
   qualification?: string;
 }[]> {
-  const tryUrls = isProduction
-    ? [`${API_BASE}/auth/counsellors`]
+  const isWebProd = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+  const tryUrls = isWebProd
+    ? [`${API_BASE}/auth/counsellors`, `/api/auth/counsellors`]
     : [
         `${API_BASE}/auth/counsellors`,
         'http://localhost:5000/api/auth/counsellors',
@@ -1185,7 +1212,9 @@ export async function getCounsellors(): Promise<{
     try {
       const res = await fetch(url);
       if (res.ok) {
-        const data = await res.json();
+        const text = await res.text();
+        if (!text || !text.trim()) continue;
+        const data = JSON.parse(text);
         if (data.counsellors && Array.isArray(data.counsellors)) {
           return data.counsellors;
         }

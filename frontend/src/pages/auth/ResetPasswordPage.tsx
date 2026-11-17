@@ -5,12 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Eye, EyeOff, GraduationCap, CheckCircle2, Lock, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_URL || (
-  import.meta.env.PROD
-    ? 'https://tattiproject-production-506b.up.railway.app/api'
-    : 'http://localhost:5000/api'
-);
+import { API_BASE } from '@/lib/api';
 
 /** Map role → correct login path */
 function getLoginPath(role: string | null): string {

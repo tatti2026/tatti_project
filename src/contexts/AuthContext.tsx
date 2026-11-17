@@ -35,15 +35,55 @@ function getAndroidDevApiBase(): string {
   return 'http://localhost:5000/api';
 }
 
-const API_BASE = isProduction
-  ? (import.meta.env.VITE_API_URL || 'https://tattiproject-production-506b.up.railway.app/api')
-  : (isCapacitorAndroid
-      ? getAndroidDevApiBase()
-      : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api'));
+function getApiBase(): string {
+  if (isCapacitorAndroid) {
+    if (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('506b')) {
+      return import.meta.env.VITE_API_URL;
+    }
+    return getAndroidDevApiBase();
+  }
+
+  if (typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname;
+    // Local development web (Vite dev server typically on :5173)
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      if (window.location.port === '5000') {
+        return `${window.location.origin}/api`;
+      }
+      return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    }
+
+    // Production web deployment (Railway, Custom Domain, etc.)
+    // Express serves both frontend and /api on the same origin.
+    // Always use the current origin /api so requests never fail due to CORS or stale external domains.
+    if (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('506b') && !import.meta.env.VITE_API_URL.includes('localhost')) {
+      return import.meta.env.VITE_API_URL;
+    }
+    return `${window.location.origin}/api`;
+  }
+
+  return import.meta.env.VITE_API_URL || '/api';
+}
+
+const API_BASE = getApiBase();
+
+export async function safeParseResponse<T = any>(res: Response): Promise<{ data: T | null; text: string; isJson: boolean }> {
+  try {
+    const text = await res.text();
+    if (!text || !text.trim()) {
+      return { data: null, text: '', isJson: false };
+    }
+    const data = JSON.parse(text);
+    return { data, text, isJson: true };
+  } catch {
+    return { data: null, text: '', isJson: false };
+  }
+}
 
 async function fetchAuth(endpoint: string, options: RequestInit = {}): Promise<Response> {
-  const tryUrls = isProduction
-    ? [`${API_BASE}${endpoint}`]
+  const isWebProd = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+  const tryUrls = isWebProd
+    ? [`${API_BASE}${endpoint}`, `/api${endpoint}`]
     : [
         `${API_BASE}${endpoint}`,
         `http://localhost:5000/api${endpoint}`,
@@ -53,7 +93,7 @@ async function fetchAuth(endpoint: string, options: RequestInit = {}): Promise<R
   for (const url of tryUrls) {
     try {
       const res = await fetch(url, options);
-      if (res.ok || res.status === 400 || res.status === 401 || res.status === 403 || res.status === 409) {
+      if (res.ok || res.status === 400 || res.status === 401 || res.status === 403 || res.status === 404 || res.status === 409 || res.status === 500) {
         return res;
       }
       lastRes = res;
@@ -78,7 +118,8 @@ export async function getProfile(userId: string): Promise<Profile | null> {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {}
     });
     if (!res.ok) return null;
-    return await res.json();
+    const { data } = await safeParseResponse<Profile>(res);
+    return data;
   } catch (err) {
     console.error('Error in getProfile:', err);
     return null;
@@ -142,11 +183,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
       .then(async (res) => {
         if (res.ok) {
-          const data = await res.json();
-          if (data.profile) {
+          const { data } = await safeParseResponse(res);
+          if (data?.profile) {
             setUser({ id: data.profile.id, email: data.profile.email, role: data.profile.role });
             setProfile(data.profile);
-          } else if (data.user) {
+          } else if (data?.user) {
             setUser(data.user);
             getProfile(data.user.id).then(setProfile);
           }
@@ -176,12 +217,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      const { data, text, isJson } = await safeParseResponse(res);
+
       if (!res.ok) {
-        const err: any = new Error(data.error || 'Invalid login credentials');
+        let errorMsg = data?.error;
+        if (!errorMsg) {
+          if (res.status === 401) {
+            errorMsg = 'Invalid credentials. Please check your Student ID / email and password.';
+          } else if (res.status === 403) {
+            errorMsg = data?.error || 'Your counsellor account is pending management approval.';
+          } else if (res.status === 404) {
+            errorMsg = 'Authentication service endpoint not found (HTTP 404). Backend may be offline or misconfigured.';
+          } else if (res.status === 502 || res.status === 503 || res.status === 504) {
+            errorMsg = 'Server temporarily unavailable. Please try again in a few moments.';
+          } else if (res.status === 500) {
+            errorMsg = 'Server or database error. Please try again shortly.';
+          } else {
+            errorMsg = isJson ? (data?.message || `Login failed with status ${res.status}`) : (text?.slice(0, 100) || `Login failed (${res.status}).`);
+          }
+        }
+        const err: any = new Error(errorMsg);
         err.status = res.status;
         err.data = data;
         throw err;
+      }
+
+      if (!data) {
+        throw new Error('Authentication succeeded but server returned an empty response.');
       }
 
       if (data.token) {
@@ -235,19 +297,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const { data } = await safeParseResponse(res);
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to sign up');
+        throw new Error(data?.error || `Failed to sign up (${res.status})`);
       }
 
-      if (data.token) {
+      if (data?.token) {
         localStorage.setItem('tatti_token', data.token);
       }
-      setUser(data.user);
-      const prof = await getProfile(data.user.id);
-      setProfile(prof);
+      if (data?.user) {
+        setUser(data.user);
+        const prof = await getProfile(data.user.id);
+        setProfile(prof);
+      }
 
-      return { error: null, studentId: data.studentId as string | undefined };
+      return { error: null, studentId: data?.studentId as string | undefined };
     } catch (error) {
       return { error: error as Error };
     }
@@ -275,17 +339,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email: cleanEmail }),
       });
 
-      const data = await res.json();
+      const { data } = await safeParseResponse(res);
 
       if (!res.ok) {
-        throw new Error(data.error || 'Unable to process reset request. Please try again.');
+        throw new Error(data?.error || 'Unable to process reset request. Please try again.');
       }
 
       return {
         error: null,
-        message: data.message,
-        previewUrl: data.previewUrl,
-        devResetUrl: data.devResetUrl,
+        message: data?.message,
+        previewUrl: data?.previewUrl,
+        devResetUrl: data?.devResetUrl,
       };
     } catch (error: any) {
       console.warn('sendPasswordResetEmail note:', error.message);
@@ -307,9 +371,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ newPassword }),
       });
 
+      const { data } = await safeParseResponse(res);
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to update password');
+        throw new Error(data?.error || 'Failed to update password');
       }
 
       return { error: null };
