@@ -11,6 +11,7 @@ import {
   TrendingUp, UserPlus, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
+import CounsellorDashboardAdditions from '@/components/counsellor/CounsellorDashboardAdditions';
 
 const COLORS = ['#2878C8', '#0EA5E9', '#10B981', '#2878C8', '#667085'];
 
@@ -180,6 +181,9 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Counsellor Portal Additional Features: Needs Attention, Mood Overview, Anonymous Inquiries & Feedback */}
+        <CounsellorDashboardAdditions />
       </div>
     </AdminLayout>
   );

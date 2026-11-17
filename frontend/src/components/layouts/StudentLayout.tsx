@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
   LayoutDashboard, ClipboardList, BookOpen,
-  Bell, User, LogOut, Menu, Settings
+  Bell, User, LogOut, Menu, Settings, Smile, HelpCircle,
+  MoreHorizontal, ChevronRight
 } from 'lucide-react';
 import { getNotifications, getStudentByProfileId } from '@/lib/api';
 import { getStudentUnreadMessagesCount } from '@/services/messagingService';
@@ -20,17 +21,27 @@ const sidebarNavItems = [
   { path: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/student/assessment', icon: ClipboardList, label: 'Career Fit Assessment' },
   { path: '/student/courses', icon: BookOpen, label: 'Course Recommendations' },
+  { path: '/student/mood-tracker', icon: Smile, label: 'Mood Tracker' },
+  { path: '/student/anonymous-questions', icon: HelpCircle, label: 'Anonymous Question Box' },
   { path: '/student/notifications', icon: Bell, label: 'Inquiries & Messages', isNotifications: true },
   { path: '/student/profile', icon: User, label: 'Profile' },
   { path: '/student/settings', icon: Settings, label: 'Account Settings' },
 ];
 
-// Compact 4 items for Mobile Bottom Navigation
+// Compact 4 items for Mobile Bottom Navigation (5th item is More Sheet)
 const mobileBottomNavItems = [
   { path: '/student/dashboard', icon: LayoutDashboard, label: 'Home' },
   { path: '/student/assessment', icon: ClipboardList, label: 'Assessment' },
-  { path: '/student/courses', icon: BookOpen, label: 'Courses' },
+  { path: '/student/mood-tracker', icon: Smile, label: 'Mood Tracker' },
+  { path: '/student/anonymous-questions', icon: HelpCircle, label: 'Question Box', fullLabel: 'Anonymous Question Box' },
+];
+
+// Displaced and secondary items for Student Mobile More Options Menu
+const mobileMoreNavItems = [
+  { path: '/student/courses', icon: BookOpen, label: 'Course Recommendations' },
   { path: '/student/profile', icon: User, label: 'Profile' },
+  { path: '/student/notifications', icon: Bell, label: 'Inquiries & Messages', isNotifications: true },
+  { path: '/student/settings', icon: Settings, label: 'Account Settings' },
 ];
 
 function SidebarContent({
@@ -129,6 +140,7 @@ function SidebarContent({
 
 export default function StudentLayout({ children }: StudentLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [studentId, setStudentId] = useState<string | null>(null);
   const location = useLocation();
@@ -255,31 +267,86 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation (4 Compact Items) */}
+      {/* Mobile Bottom Navigation (5 Items: Home, Assessment, Mood Tracker, Anonymous Question Box, More) */}
       <nav
         aria-label="Mobile Navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#F0D6C8] px-2 pt-1 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_-2px_10px_rgba(40,120,200,0.06)]"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#F0D6C8] px-1 pt-1 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_-2px_10px_rgba(40,120,200,0.06)]"
       >
-        <div className="grid grid-cols-4 gap-1 max-w-md mx-auto">
-          {mobileBottomNavItems.map(({ path, icon: Icon, label }) => {
+        <div className="grid grid-cols-5 gap-0.5 sm:gap-1 max-w-md mx-auto">
+          {mobileBottomNavItems.map(({ path, icon: Icon, label, fullLabel }) => {
             const active = location.pathname === path;
             return (
               <Link
                 key={path}
                 to={path}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-150 ${
+                title={fullLabel || label}
+                aria-label={fullLabel || label}
+                className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all duration-150 ${
                   active
                     ? 'bg-[#E8F2FF] text-[#2878C8] font-bold'
                     : 'text-[#667085] hover:text-[#25364B]'
                 }`}
               >
                 <Icon className={`w-5 h-5 transition-transform ${active ? 'scale-110 text-[#2878C8]' : 'text-[#667085]'}`} />
-                <span className="text-[10px] leading-tight font-medium mt-1">
+                <span className="text-[10px] leading-tight font-medium mt-1 truncate max-w-full text-center">
+                  {fullLabel && <span className="sr-only">{fullLabel.replace(label, '')}</span>}
                   {label}
                 </span>
               </Link>
             );
           })}
+
+          {/* 5th Item: More Sheet */}
+          <Sheet open={mobileMoreOpen} onOpenChange={setMobileMoreOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                className={`relative flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all duration-150 ${
+                  mobileMoreNavItems.some(item => item.path === location.pathname)
+                    ? 'bg-[#E8F2FF] text-[#2878C8] font-bold'
+                    : 'text-[#667085] hover:text-[#25364B]'
+                }`}
+              >
+                <MoreHorizontal className={`w-5 h-5 ${mobileMoreNavItems.some(item => item.path === location.pathname) ? 'scale-110 text-[#2878C8]' : 'text-[#667085]'}`} />
+                <span className="text-[10px] leading-tight font-medium mt-1">More</span>
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-2 min-w-[14px] h-[14px] rounded-full bg-[#2878C8] text-white text-[8px] font-bold flex items-center justify-center px-0.5">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-2xl bg-white border-t border-[#F0D6C8] p-4 max-h-[80vh] overflow-y-auto">
+              <div className="w-12 h-1 bg-[#F0D6C8] rounded-full mx-auto mb-4" />
+              <h3 className="text-sm font-bold text-[#25364B] mb-2 px-1">More Options</h3>
+              <div className="space-y-1">
+                {mobileMoreNavItems.map(({ path, icon: Icon, label, isNotifications }) => {
+                  const active = location.pathname === path;
+                  return (
+                    <Link
+                      key={path}
+                      to={path}
+                      onClick={() => setMobileMoreOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                        active
+                          ? 'bg-[#E8F2FF] text-[#2878C8] font-bold'
+                          : 'text-[#667085] hover:bg-[#FFF0E8] hover:text-[#25364B]'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 text-[#2878C8]" />
+                      <span className="flex-1">{label}</span>
+                      {isNotifications && unreadCount > 0 && (
+                        <span className="shrink-0 min-w-[18px] h-[18px] rounded-full bg-[#2878C8] text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-xs">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      )}
+                      <ChevronRight className="w-4 h-4 text-slate-300" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </nav>
 

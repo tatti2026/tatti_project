@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import type { Student, StudentAssessmentPerformance } from '@/types/index';
 import { ClipboardList, ArrowRight } from 'lucide-react';
 import MonthlyCareerAssessmentGraph from '@/components/student/MonthlyCareerAssessmentGraph';
+import StudentDashboardAdditions from '@/components/student/StudentDashboardAdditions';
+import AutomaticCounsellingFeedbackModal from '@/components/student/AutomaticCounsellingFeedbackModal';
 
 export default function StudentDashboard() {
   const { profile } = useAuth();
@@ -192,6 +194,12 @@ export default function StudentDashboard() {
           hideSummaryCards={true}
           onTakeAssessment={() => navigate('/student/assessment')}
         />
+
+        {/* E. Additional Features: Mood Tracker, Session Feedback & Anonymous Question Box */}
+        <StudentDashboardAdditions />
+
+        {/* Automatic 5-Star Counselling Feedback Modal */}
+        <AutomaticCounsellingFeedbackModal />
       </div>
     </StudentLayout>
   );

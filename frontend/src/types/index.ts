@@ -274,3 +274,96 @@ export interface CounsellorPrivateNote {
   updated_at: string;
 }
 
+
+
+// ── MOOD TRACKER & ATTENTION ALERTS ────────────────────────
+export type MoodValue = 'Sad' | 'Low' | 'Okay' | 'Good' | 'Great';
+
+export interface StudentMoodEntry {
+  id: string;
+  student_id: string;
+  entry_date: string;
+  mood: MoodValue;
+  journal_text: string | null;
+  created_at: string;
+  updated_at: string;
+  student_name?: string;
+  student_code?: string;
+  student_email?: string;
+  journal_status?: 'Has Journal' | 'No Journal';
+  mood_status?: 'Needs Attention' | 'Normal';
+}
+
+export interface MoodAttentionAlert {
+  id: string;
+  student_id: string;
+  consecutive_days: number;
+  alert_reason: string;
+  recent_moods: Array<{ date: string; mood: string }>;
+  last_checkin_date: string;
+  status: 'Active' | 'Reviewed' | 'Resolved';
+  reviewed_at: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  student_name: string;
+  student_code?: string;
+  student_email?: string;
+  student_phone?: string;
+}
+
+// ── ANONYMOUS QUESTIONS ───────────────────────────────────
+export interface AnonymousQuestion {
+  id: string;
+  reference_id: string;
+  question: string;
+  category?: string;
+  title?: string;
+  status: 'Pending' | 'Answered' | 'Closed';
+  created_at: string;
+  updated_at: string;
+  reply_count?: number;
+  submission_date?: string;
+}
+
+export interface AnonymousQuestionReply {
+  id: string;
+  question_id: string;
+  sender_type: 'student' | 'counsellor';
+  message: string;
+  created_at: string;
+}
+
+// ── SESSION FEEDBACK ──────────────────────────────────────
+export interface SessionFeedback {
+  id: string;
+  session_id: string;
+  student_id: string;
+  counsellor_id?: string;
+  followup_id?: string | null;
+  rating: number;
+  comment?: string | null;
+  what_liked?: string | null;
+  improvement_suggestions?: string | null;
+  low_rating_reason?: string | null;
+  status?: string;
+  created_at: string;
+  formatted_created_at?: string;
+  student_name?: string;
+  student_code?: string;
+  counsellor_name?: string;
+  scheduled_date?: string;
+}
+
+export interface SessionFeedbackSummary {
+  totalFeedback: number;
+  averageRating: number;
+  pendingFeedback: number;
+  distribution: {
+    5: number;
+    4: number;
+    3: number;
+    2: number;
+    1: number;
+  };
+}

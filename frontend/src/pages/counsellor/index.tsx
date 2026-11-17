@@ -32,3 +32,6 @@ export const CounsellorFollowUpManagement = wrap(FollowUpManagement);
 export const CounsellorCoursesManagement = wrap(CoursesManagement);
 export const CounsellorReports = wrap(Reports);
 export const CounsellorNotifications = wrap(AdminNotifications);
+export { default as CounsellorMoodTracker } from './CounsellorMoodTracker';
+export { default as CounsellorAnonymousQuestions } from './CounsellorAnonymousQuestions';
+export { default as CounsellorFeedbackManagement } from './CounsellorFeedbackManagement';

@@ -6,20 +6,24 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
   LayoutDashboard, Users, ClipboardList, BarChart2, Phone,
   PhoneCall, BookOpen, FileBarChart, MessageSquare,
-  LogOut, Menu, Bell, MoreHorizontal, ChevronRight, UserCheck
+  LogOut, Menu, Bell, MoreHorizontal, ChevronRight, UserCheck,
+  Smile, HelpCircle, Star
 } from 'lucide-react';
-import { getNotifications, getUnreadCount as getChatUnreadCount } from '@/lib/api';
+import { getNotifications, getUnreadCount } from '@/lib/api';
 
 const navItems = [
   { path: '/counsellor/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/counsellor/students', icon: Users, label: 'Student Details' },
   { path: '/counsellor/questions', icon: ClipboardList, label: 'Career Assessment' },
   { path: '/counsellor/segmentation', icon: BarChart2, label: 'Student Segmentation' },
+  { path: '/counsellor/mood-tracker', icon: Smile, label: 'Mood Tracker' },
+  { path: '/counsellor/anonymous-questions', icon: HelpCircle, label: 'Anonymous Questions' },
   { path: '/counsellor/counselling', icon: Phone, label: 'Counselling' },
   { path: '/counsellor/followup', icon: PhoneCall, label: 'Follow-up' },
   { path: '/counsellor/courses', icon: BookOpen, label: 'Course Management' },
   { path: '/counsellor/reports', icon: FileBarChart, label: 'Analytics & Reports' },
   { path: '/counsellor/notifications', icon: MessageSquare, label: 'Student Inquiries' },
+  { path: '/counsellor/feedback', icon: Star, label: 'Counselling Feedback' },
 ];
 
 // Bottom nav items for mobile
@@ -113,6 +117,7 @@ function SidebarContent({ onNavClick, unreadCount }: { onNavClick?: () => void; 
 }
 
 export default function CounsellorLayout({ children }: { children: React.ReactNode }) {
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
@@ -124,20 +129,20 @@ export default function CounsellorLayout({ children }: { children: React.ReactNo
     let mounted = true;
     const fetchUnread = async () => {
       try {
-        const [notifs, chatUnread] = await Promise.all([
+        const [notifs, msgCount] = await Promise.all([
           getNotifications(profile.id).catch(() => []),
-          getChatUnreadCount().catch(() => 0),
+          getUnreadCount().catch(() => 0),
         ]);
         if (mounted) {
-          const sysUnread = Array.isArray(notifs) ? notifs.filter(n => !n.is_read).length : 0;
-          setUnreadCount(sysUnread + (typeof chatUnread === 'number' ? chatUnread : 0));
+          const notifUnread = Array.isArray(notifs) ? notifs.filter(n => !n.is_read).length : 0;
+          setUnreadCount(notifUnread + (typeof msgCount === 'number' ? msgCount : 0));
         }
       } catch {
         // graceful
       }
     };
     fetchUnread();
-    const interval = setInterval(fetchUnread, 6000);
+    const interval = setInterval(fetchUnread, 5000);
     return () => {
       mounted = false;
       clearInterval(interval);
@@ -152,9 +157,12 @@ export default function CounsellorLayout({ children }: { children: React.ReactNo
   const moreNavItems = [
     { path: '/counsellor/questions', icon: ClipboardList, label: 'Career Assessment' },
     { path: '/counsellor/segmentation', icon: BarChart2, label: 'Student Segmentation' },
+    { path: '/counsellor/mood-tracker', icon: Smile, label: 'Mood Tracker' },
+    { path: '/counsellor/anonymous-questions', icon: HelpCircle, label: 'Anonymous Questions' },
     { path: '/counsellor/courses', icon: BookOpen, label: 'Course Management' },
     { path: '/counsellor/reports', icon: FileBarChart, label: 'Analytics & Reports' },
     { path: '/counsellor/notifications', icon: MessageSquare, label: 'Student Inquiries' },
+    { path: '/counsellor/feedback', icon: Star, label: 'Counselling Feedback' },
   ];
 
   const isMoreActive = moreNavItems.some(item => location.pathname === item.path);
@@ -170,7 +178,22 @@ export default function CounsellorLayout({ children }: { children: React.ReactNo
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Compact Top Header (48–56px high) */}
         <header className="h-13 sm:h-14 border-b border-[#F0D6C8] bg-white flex items-center justify-between px-3.5 sm:px-6 shrink-0 shadow-[0_1px_3px_rgba(40,120,200,0.05)] pt-safe">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            {/* Mobile Sheet Trigger (Menu) */}
+            <Sheet open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 text-[#25364B] hover:bg-[#FFF0E8]">
+                  <Menu className="w-5 h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-64 bg-white border-r border-[#F0D6C8]">
+                <SidebarContent
+                  unreadCount={unreadCount}
+                  onNavClick={() => setMobileDrawerOpen(false)}
+                />
+              </SheetContent>
+            </Sheet>
+
             <Link to="/counsellor/dashboard" className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-white border border-[#F0D6C8] p-0.5 flex items-center justify-center shrink-0">
                 <img src="/logo/psycare-logo.png" alt="PSYCARE" className="w-full h-full object-contain" />

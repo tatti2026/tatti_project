@@ -1,7 +1,6 @@
 /**
- * Counsellor portal pages — thin wrappers around the existing admin page components.
- * Each wrapper injects PortalProvider with mode="counsellor" so that AdminLayout
- * automatically renders CounsellorLayout (green sidebar) instead of the blue admin sidebar.
+ * Counsellor portal pages — wrappers around existing admin page components.
+ * Injects PortalProvider mode="counsellor" so AdminLayout renders CounsellorLayout.
  */
 import { PortalProvider } from '@/contexts/PortalContext';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
@@ -33,3 +32,6 @@ export const CounsellorFollowUpManagement = wrap(FollowUpManagement);
 export const CounsellorCoursesManagement = wrap(CoursesManagement);
 export const CounsellorReports = wrap(Reports);
 export const CounsellorNotifications = wrap(AdminNotifications);
+export { default as CounsellorMoodTracker } from './CounsellorMoodTracker';
+export { default as CounsellorAnonymousQuestions } from './CounsellorAnonymousQuestions';
+export { default as CounsellorFeedbackManagement } from './CounsellorFeedbackManagement';

@@ -5,6 +5,7 @@ import { RouteGuard } from '@/components/common/RouteGuard';
 // Auth pages
 import LoginPage from '@/pages/auth/LoginPage';
 import CounsellorLoginPage from '@/pages/auth/CounsellorLoginPage';
+import CounsellorSignupPage from '@/pages/auth/CounsellorSignupPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 
@@ -17,6 +18,8 @@ import CourseRecommendation from '@/pages/student/CourseRecommendation';
 import Notifications from '@/pages/student/Notifications';
 import StudentProfile from '@/pages/student/StudentProfile';
 import StudentSettings from '@/pages/student/StudentSettings';
+import MoodTracker from '@/pages/student/MoodTracker';
+import AnonymousQuestionBox from '@/pages/student/AnonymousQuestionBox';
 
 // Counsellor pages (page components wrapped in counsellor portal context)
 import {
@@ -29,6 +32,9 @@ import {
   CounsellorCoursesManagement,
   CounsellorReports,
   CounsellorNotifications,
+  CounsellorMoodTracker,
+  CounsellorAnonymousQuestions,
+  CounsellorFeedbackManagement,
 } from '@/pages/counsellor';
 
 export interface RouteConfig {
@@ -53,6 +59,7 @@ export const routes: RouteConfig[] = [
   // Auth
   { name: 'Student Login', path: '/login', element: <LoginPage />, public: true },
   { name: 'Counsellor Login', path: '/counsellor/login', element: <CounsellorLoginPage />, public: true },
+  { name: 'Counsellor Signup', path: '/counsellor/signup', element: <CounsellorSignupPage />, public: true },
   { name: 'Forgot Password', path: '/forgot-password', element: <ForgotPasswordPage />, public: true },
   { name: 'Reset Password', path: '/reset-password', element: <ResetPasswordPage />, public: true },
 
@@ -68,6 +75,8 @@ export const routes: RouteConfig[] = [
   { name: 'Notifications', path: '/student/notifications', element: studentGuard(<Notifications />) },
   { name: 'Profile', path: '/student/profile', element: studentGuard(<StudentProfile />) },
   { name: 'Settings', path: '/student/settings', element: studentGuard(<StudentSettings />) },
+  { name: 'Mood Tracker', path: '/student/mood-tracker', element: studentGuard(<MoodTracker />) },
+  { name: 'Anonymous Question Box', path: '/student/anonymous-questions', element: studentGuard(<AnonymousQuestionBox />) },
 
   // Old Admin Portal routes — redirect to public login page
   { name: 'Admin Login Redirect', path: '/admin/login', element: <Navigate to="/login" replace />, public: true },
@@ -95,4 +104,7 @@ export const routes: RouteConfig[] = [
   { name: 'Counsellor Confirmations Redirect', path: '/counsellor/confirmations', element: counsellorGuard(<Navigate to="/counsellor/dashboard" replace />) },
   { name: 'Counsellor Reports', path: '/counsellor/reports', element: counsellorGuard(<CounsellorReports />) },
   { name: 'Counsellor Notifications', path: '/counsellor/notifications', element: counsellorGuard(<CounsellorNotifications />) },
+  { name: 'Counsellor Mood Tracker', path: '/counsellor/mood-tracker', element: counsellorGuard(<CounsellorMoodTracker />) },
+  { name: 'Counsellor Anonymous Questions', path: '/counsellor/anonymous-questions', element: counsellorGuard(<CounsellorAnonymousQuestions />) },
+  { name: 'Counsellor Feedback', path: '/counsellor/feedback', element: counsellorGuard(<CounsellorFeedbackManagement />) },
 ];

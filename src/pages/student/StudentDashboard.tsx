@@ -1,219 +1,205 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { getStudentByProfileId, getStudentAssessment, getStudentApplication, getStudentPayment } from '@/lib/api';
+import { getStudentByProfileId, getStudentMonthlyPerformance } from '@/lib/api';
 import StudentLayout from '@/components/layouts/StudentLayout';
-import StatusBadge from '@/components/common/StatusBadge';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import type { Student, Assessment, Application, Payment } from '@/types/index';
-import {
-  ClipboardList, BookOpen, FileText,
-  CheckCircle2, Circle, ArrowRight, UserCheck, Lock, Unlock, ShieldCheck
-} from 'lucide-react';
-import { getApplicationAccess, isApplicationUnlocked } from '@/services/applicationAccessService';
+import type { Student, StudentAssessmentPerformance } from '@/types/index';
+import { ClipboardList, ArrowRight } from 'lucide-react';
 import MonthlyCareerAssessmentGraph from '@/components/student/MonthlyCareerAssessmentGraph';
-
-const journeySteps = [
-  { key: 'registration', label: 'Registration', icon: UserCheck },
-  { key: 'assessment', label: 'Career Fit Assessment', icon: ClipboardList },
-  { key: 'recommendation', label: 'Course Select', icon: BookOpen },
-  { key: 'application_access', label: 'App Access', icon: Lock },
-  { key: 'application', label: 'Application', icon: FileText },
-  { key: 'payment', label: 'Payment', icon: FileText },
-];
+import StudentDashboardAdditions from '@/components/student/StudentDashboardAdditions';
+import AutomaticCounsellingFeedbackModal from '@/components/student/AutomaticCounsellingFeedbackModal';
 
 export default function StudentDashboard() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [student, setStudent] = useState<Student | null>(null);
-  const [assessment, setAssessment] = useState<Assessment | null>(null);
-  const [application, setApplication] = useState<Application | null>(null);
-  const [payment, setPayment] = useState<Payment | null>(null);
+  const [perfData, setPerfData] = useState<StudentAssessmentPerformance | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!profile) return;
+    let mounted = true;
     (async () => {
-      const s = await getStudentByProfileId(profile.id);
-      setStudent(s);
-      if (s) {
-        const [a, app, pay] = await Promise.all([
-          getStudentAssessment(s.id),
-          getStudentApplication(s.id),
-          getStudentPayment(s.id),
+      try {
+        const [s, perf] = await Promise.all([
+          getStudentByProfileId(profile.id),
+          getStudentMonthlyPerformance().catch(() => null),
         ]);
-        setAssessment(a);
-        setApplication(app);
-        setPayment(pay);
+        if (mounted) {
+          setStudent(s);
+          setPerfData(perf);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Error loading student dashboard:', err);
+        if (mounted) setLoading(false);
       }
-      setLoading(false);
     })();
+    return () => { mounted = false; };
   }, [profile]);
-
-  const isUnlocked = student ? isApplicationUnlocked(student.id) : false;
-
-  const getJourneyStep = () => {
-    if (!student) return 0;
-    if (student.payment_status === 'paid') return 5;
-    if (student.application_status === 'submitted') return 4;
-    if (isUnlocked) return 3;
-    if (student.assessment_status === 'completed') return 2;
-    if (student.assessment_status === 'in_progress') return 1;
-    return 0;
-  };
-
-  const currentStep = getJourneyStep();
-  const progress = Math.round((currentStep / 5) * 100);
-
-  const kpiCards = [
-    {
-      label: 'Career Fit Assessment',
-      status: student?.assessment_status || 'not_started',
-      icon: ClipboardList,
-      action: () => navigate('/student/assessment'),
-      actionLabel: 'Take Career Fit Assessment',
-    },
-    {
-      label: 'Application Access',
-      status: isUnlocked ? 'unlocked' : 'locked',
-      icon: isUnlocked ? Unlock : Lock,
-      action: () => navigate('/student/application'),
-      actionLabel: isUnlocked ? 'Start Application' : 'View Access Status',
-      isAccessCard: true,
-    },
-    {
-      label: 'Application Status',
-      status: student?.application_status || 'not_started',
-      icon: FileText,
-      action: () => navigate('/student/application'),
-      actionLabel: 'View Application',
-    },
-    {
-      label: 'Payment Status',
-      status: student?.payment_status || 'unpaid',
-      icon: FileText,
-      action: () => navigate('/student/application'),
-      actionLabel: 'Make Payment',
-    },
-  ];
 
   if (loading) {
     return (
       <StudentLayout>
-        <div className="space-y-4">
-          {[1, 2, 3].map(i => <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />)}
+        <div className="space-y-3.5 animate-pulse">
+          <div className="h-16 rounded-2xl bg-white/70 border border-[#F0D6C8]" />
+          <div className="h-32 rounded-2xl bg-white/70 border border-[#F0D6C8]" />
+          <div className="grid grid-cols-3 gap-2.5">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-20 rounded-2xl bg-white/70 border border-[#F0D6C8]" />
+            ))}
+          </div>
+          <div className="h-64 rounded-2xl bg-white/70 border border-[#F0D6C8]" />
         </div>
       </StudentLayout>
     );
   }
 
+  // Real assessment status and stats
+  const isCompleted = student?.assessment_status === 'completed';
+  const isInProgress = student?.assessment_status === 'in_progress';
+  const progressPercent = isCompleted ? 100 : (isInProgress ? 50 : 0);
+
+  const summary = perfData?.summary;
+  const latestPct = summary?.latestScore !== null && summary?.latestScore !== undefined
+    ? `${summary.latestScore}%`
+    : (student?.assessment_percentage ? `${student.assessment_percentage}%` : '—');
+  const avgPct = summary?.averageScore !== null && summary?.averageScore !== undefined
+    ? `${summary.averageScore}%`
+    : '—';
+  const completedCount = summary?.totalCompleted ?? (isCompleted ? 1 : 0);
+
   return (
     <StudentLayout>
-      <div className="space-y-6 animate-fade-in">
-        {/* Welcome */}
-        <div className="glass-card rounded-xl p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-bold text-foreground mb-1">
-                Welcome back, {profile?.full_name || profile?.email?.split('@')[0] || 'Student'}!
-              </h1>
-              <p className="text-muted-foreground text-sm">Track your TAT Entrance Exam and admission journey.</p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p className="text-xs text-muted-foreground mb-1">Overall Progress</p>
-              <p className="text-2xl font-bold gradient-text">{progress}%</p>
-            </div>
+      <div className="space-y-3.5 sm:space-y-4">
+        {/* A. Welcome section - Compact */}
+        <div className="bg-white border border-[#F0D6C8] rounded-2xl p-3.5 sm:p-4 shadow-xs flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] sm:text-xs text-[#667085] font-medium leading-none">
+              Welcome back
+            </p>
+            <h1 className="text-base sm:text-lg font-bold text-[#25364B] tracking-tight truncate mt-1">
+              {profile?.full_name || 'Student'}
+            </h1>
           </div>
-          <Progress value={progress} className="mt-4 h-2" />
+          {student?.student_id && (
+            <div className="bg-[#FFF0E8] border border-[#F0D6C8] rounded-xl px-2.5 py-1 text-[11px] font-semibold text-[#25364B] shrink-0">
+              ID: <span className="font-mono text-[#2878C8]">{student.student_id}</span>
+            </div>
+          )}
         </div>
 
-        {/* Journey Roadmap */}
-        <div className="glass-card rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Admission Journey</h2>
-          <div className="overflow-x-auto">
-            <div className="flex items-center gap-0 min-w-max pb-2">
-              {journeySteps.map((step, idx) => {
-                const done = idx < currentStep;
-                const active = idx === currentStep;
-                const Icon = step.icon;
-                return (
-                  <div key={step.key} className="flex items-center">
-                    <div className="flex flex-col items-center gap-1.5">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all ${
-                        done ? 'bg-primary border-primary' :
-                        active ? 'bg-primary/20 border-primary' :
-                        'bg-muted border-border'
-                      }`}>
-                        {done ? (
-                          <CheckCircle2 className="w-4 h-4 text-white" />
-                        ) : (
-                          <Icon className={`w-4 h-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-                        )}
-                      </div>
-                      <span className={`text-[10px] font-medium whitespace-nowrap ${
-                        done || active ? 'text-foreground' : 'text-muted-foreground'
-                      }`}>{step.label}</span>
-                      {active && <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />}
-                    </div>
-                    {idx < journeySteps.length - 1 && (
-                      <div className={`w-8 h-0.5 mx-1 mb-5 ${idx < currentStep ? 'bg-primary' : 'bg-border'}`} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          {kpiCards.map(({ label, status, icon: Icon, action, actionLabel }) => (
-            <div key={label} className="kpi-card">
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Icon className="w-4 h-4 text-primary" />
-                </div>
-                <StatusBadge status={status} />
+        {/* B. Career Fit Assessment Card - Compact */}
+        <div className="bg-white border border-[#F0D6C8] rounded-2xl p-4 shadow-xs space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-[#E8F2FF] text-[#2878C8] flex items-center justify-center shrink-0">
+                <ClipboardList className="w-4 h-4" />
               </div>
-              <p className="text-sm font-medium text-foreground mb-3">{label}</p>
-              <button onClick={action} className="text-xs text-primary hover:underline flex items-center gap-1">
-                {actionLabel} <ArrowRight className="w-3 h-3" />
-              </button>
+              <div className="min-w-0">
+                <h2 className="text-xs sm:text-sm font-bold text-[#25364B] truncate">
+                  Career Fit Assessment
+                </h2>
+                <p className="text-[10px] sm:text-[11px] text-[#667085] truncate">
+                  {isCompleted
+                    ? 'Assessment completed. Review recommendations.'
+                    : isInProgress
+                    ? 'Assessment in progress'
+                    : 'Discover your strengths and career pathway'}
+                </p>
+              </div>
             </div>
-          ))}
+            <span
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                isCompleted
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : isInProgress
+                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+              }`}
+            >
+              {isCompleted ? 'Completed' : isInProgress ? 'In Progress' : 'Not Started'}
+            </span>
+          </div>
+
+          {/* Thin blue progress bar on pale peach track (#FFE0CC) */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-[10px] text-[#667085] font-medium">
+              <span>Progress</span>
+              <span>{progressPercent}%</span>
+            </div>
+            <div className="w-full h-1.5 rounded-full bg-[#FFE0CC] overflow-hidden">
+              <div
+                className="h-full bg-[#2878C8] rounded-full transition-all duration-500"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Prominent full-width blue "Continue assessment" button */}
+          <Button
+            onClick={() => navigate('/student/assessment')}
+            className="w-full h-10 bg-[#2878C8] hover:bg-[#1D6AB8] text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
+          >
+            <span>{isCompleted ? 'View / Retake Assessment' : isInProgress ? 'Continue assessment' : 'Start Assessment'}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Button>
         </div>
 
-        {/* Monthly Career Assessment Performance Line Graph */}
-        <MonthlyCareerAssessmentGraph onTakeAssessment={() => navigate('/student/assessment')} />
+        {/* C. Assessment Statistics - Three small cards in a single row */}
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+          {/* Card 1: Latest */}
+          <div className="bg-white border border-[#F0D6C8] rounded-2xl p-3 shadow-xs text-center">
+            <p className="text-[10px] sm:text-[11px] text-[#667085] font-medium uppercase tracking-wider">
+              Latest
+            </p>
+            <p className="text-base sm:text-xl font-bold text-[#25364B] mt-0.5">
+              {latestPct}
+            </p>
+            <p className="text-[9px] text-[#2878C8] font-medium truncate mt-0.5">
+              Score
+            </p>
+          </div>
 
-        {/* Quick Actions */}
-        <div className="glass-card rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-foreground mb-4">Quick Actions</h2>
-          <div className="flex flex-wrap gap-3">
-            {student?.assessment_status !== 'completed' && (
-              <Button onClick={() => navigate('/student/assessment')} size="sm" className="gradient-bg border-0 text-white">
-                <ClipboardList className="w-4 h-4 mr-2" /> Take Assessment
-              </Button>
-            )}
-            {student?.assessment_status === 'completed' && student?.application_status === 'not_started' && (
-              <Button onClick={() => navigate('/student/application')} size="sm" className="gradient-bg border-0 text-white">
-                <FileText className="w-4 h-4 mr-2" /> Start Application
-              </Button>
-            )}
-            {student?.assessment_status === 'completed' && (
-              <Button
-                onClick={() => navigate('/student/assessment')}
-                variant="outline"
-                size="sm"
-              >
-                <BookOpen className="w-4 h-4 mr-2" />
-                View Course Recommendations
-              </Button>
-            )}
+          {/* Card 2: Average */}
+          <div className="bg-white border border-[#F0D6C8] rounded-2xl p-3 shadow-xs text-center">
+            <p className="text-[10px] sm:text-[11px] text-[#667085] font-medium uppercase tracking-wider">
+              Average
+            </p>
+            <p className="text-base sm:text-xl font-bold text-[#25364B] mt-0.5">
+              {avgPct}
+            </p>
+            <p className="text-[9px] text-[#2878C8] font-medium truncate mt-0.5">
+              Overall
+            </p>
+          </div>
+
+          {/* Card 3: Completed */}
+          <div className="bg-white border border-[#F0D6C8] rounded-2xl p-3 shadow-xs text-center">
+            <p className="text-[10px] sm:text-[11px] text-[#667085] font-medium uppercase tracking-wider">
+              Completed
+            </p>
+            <p className="text-base sm:text-xl font-bold text-[#25364B] mt-0.5">
+              {completedCount}
+            </p>
+            <p className="text-[9px] text-[#2878C8] font-medium truncate mt-0.5">
+              Attempts
+            </p>
           </div>
         </div>
+
+        {/* D. Career Performance Chart */}
+        <MonthlyCareerAssessmentGraph
+          hideSummaryCards={true}
+          onTakeAssessment={() => navigate('/student/assessment')}
+        />
+
+        {/* E. Additional Features: Mood Tracker, Session Feedback & Anonymous Question Box */}
+        <StudentDashboardAdditions />
+
+        {/* Automatic 5-Star Counselling Feedback Modal */}
+        <AutomaticCounsellingFeedbackModal />
       </div>
     </StudentLayout>
   );

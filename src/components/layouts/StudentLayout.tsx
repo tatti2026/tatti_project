@@ -4,8 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
-  LayoutDashboard, ClipboardList, Lock, Unlock,
-  Bell, User, LogOut, Menu, GraduationCap, ChevronRight, Settings
+  LayoutDashboard, ClipboardList, BookOpen,
+  Bell, User, LogOut, Menu, Settings, Smile, HelpCircle,
+  MoreHorizontal, ChevronRight
 } from 'lucide-react';
 import { getNotifications, getStudentByProfileId } from '@/lib/api';
 import { getStudentUnreadMessagesCount } from '@/services/messagingService';
@@ -15,14 +16,40 @@ interface StudentLayoutProps {
   children: React.ReactNode;
 }
 
+// Nav items for desktop sidebar & mobile drawer
+const sidebarNavItems = [
+  { path: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { path: '/student/assessment', icon: ClipboardList, label: 'Career Fit Assessment' },
+  { path: '/student/courses', icon: BookOpen, label: 'Course Recommendations' },
+  { path: '/student/mood-tracker', icon: Smile, label: 'Mood Tracker' },
+  { path: '/student/anonymous-questions', icon: HelpCircle, label: 'Anonymous Question Box' },
+  { path: '/student/notifications', icon: Bell, label: 'Inquiries & Messages', isNotifications: true },
+  { path: '/student/profile', icon: User, label: 'Profile' },
+  { path: '/student/settings', icon: Settings, label: 'Account Settings' },
+];
+
+// Compact 4 items for Mobile Bottom Navigation (5th item is More Sheet)
+const mobileBottomNavItems = [
+  { path: '/student/dashboard', icon: LayoutDashboard, label: 'Home' },
+  { path: '/student/assessment', icon: ClipboardList, label: 'Assessment' },
+  { path: '/student/mood-tracker', icon: Smile, label: 'Mood Tracker' },
+  { path: '/student/anonymous-questions', icon: HelpCircle, label: 'Question Box', fullLabel: 'Anonymous Question Box' },
+];
+
+// Displaced and secondary items for Student Mobile More Options Menu
+const mobileMoreNavItems = [
+  { path: '/student/courses', icon: BookOpen, label: 'Course Recommendations' },
+  { path: '/student/profile', icon: User, label: 'Profile' },
+  { path: '/student/notifications', icon: Bell, label: 'Inquiries & Messages', isNotifications: true },
+  { path: '/student/settings', icon: Settings, label: 'Account Settings' },
+];
+
 function SidebarContent({
   onNavClick,
   unreadCount,
-  isUnlocked,
 }: {
   onNavClick?: () => void;
   unreadCount: number;
-  isUnlocked: boolean;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -33,103 +60,64 @@ function SidebarContent({
     navigate('/login');
   };
 
-  const navItems = [
-    { path: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/student/assessment', icon: ClipboardList, label: 'Career Fit Assessment' },
-    {
-      path: '/student/application',
-      icon: isUnlocked ? Unlock : Lock,
-      label: 'Application Process',
-      isAppProcess: true,
-    },
-    { path: '/student/notifications', icon: Bell, label: 'Inquiries & Messages', isNotifications: true },
-    { path: '/student/profile', icon: User, label: 'Profile' },
-    { path: '/student/settings', icon: Settings, label: 'Account Settings' },
-  ];
-
   return (
-    <div className="flex flex-col h-full bg-[#0B1F3A] text-slate-300">
+    <div className="flex flex-col h-full bg-white text-[#25364B]">
       {/* Brand Header */}
-      <div className="px-5 py-5 border-b border-slate-700/60">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#1D4ED8] flex items-center justify-center shrink-0 shadow-sm">
-            <GraduationCap className="w-5 h-5 text-white" />
+      <div className="px-4 py-3.5 border-b border-[#F0D6C8] bg-white">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-white border border-[#F0D6C8] p-1 flex items-center justify-center shrink-0 shadow-xs">
+            <img src="/logo/psycare-logo.png" alt="PSYCARE" className="w-full h-full object-contain" />
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-white tracking-wide leading-tight">PSY CARE</p>
-            <p className="text-[11px] text-slate-400 truncate leading-tight font-normal">Student Management Portal</p>
+          <div className="min-w-0 flex items-center gap-1.5">
+            <span className="text-base font-bold text-[#2878C8] tracking-tight">PSYCARE</span>
+            <span className="text-[10px] font-semibold bg-[#E8F2FF] text-[#2878C8] px-1.5 py-0.5 rounded-full border border-[#2878C8]/20">
+              Student
+            </span>
           </div>
         </div>
       </div>
 
       {/* Student Profile Card */}
-      <div className="px-5 py-3.5 border-b border-slate-700/60 bg-slate-900/30">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#1D4ED8]/25 border border-[#1D4ED8]/40 flex items-center justify-center shrink-0">
-            <span className="text-xs font-bold text-white">
-              {(profile?.full_name || profile?.email || 'S')[0].toUpperCase()}
-            </span>
+      <div className="px-4 py-3 border-b border-[#F0D6C8] bg-[#FFF0E8]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-full bg-[#2878C8] text-white flex items-center justify-center shrink-0 font-bold text-xs shadow-xs">
+            {(profile?.full_name || profile?.email || 'S')[0].toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-white truncate">{profile?.full_name || 'Enrolled Student'}</p>
-            <p className="text-[10px] text-slate-400 truncate">{profile?.email || ''}</p>
+            <p className="text-xs font-semibold text-[#25364B] truncate">{profile?.full_name || 'Enrolled Student'}</p>
+            <p className="text-[10px] text-[#667085] truncate">{profile?.email || ''}</p>
           </div>
         </div>
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map(({ path, icon: Icon, label, isAppProcess, isNotifications }) => {
+      <nav className="flex-1 px-2.5 py-3 space-y-1 overflow-y-auto">
+        {sidebarNavItems.map(({ path, icon: Icon, label, isNotifications }) => {
           const active = location.pathname === path;
           return (
             <Link
               key={path}
               to={path}
               onClick={onNavClick}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-all duration-150 group ${
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                 active
-                  ? 'bg-[#FFE0B2] text-[#9A3412] font-semibold shadow-sm'
-                  : 'text-slate-300 hover:bg-orange-500/15 hover:text-orange-300'
+                  ? 'bg-[#E8F2FF] text-[#2878C8] font-semibold border border-[#BFDBFE] shadow-xs'
+                  : 'text-[#667085] hover:bg-[#FFF0E8] hover:text-[#25364B]'
               }`}
             >
-              <div className="relative shrink-0">
-                <Icon
-                  className={`w-4 h-4 transition-colors ${
-                    isAppProcess
-                      ? isUnlocked
-                        ? 'text-emerald-400'
-                        : 'text-amber-400'
-                      : active
-                        ? 'text-[#C66A16]'
-                        : 'text-slate-400 group-hover:text-orange-300'
-                  }`}
-                />
-              </div>
+              <Icon
+                className={`w-4 h-4 shrink-0 transition-colors ${
+                  active ? 'text-[#2878C8]' : 'text-[#667085]'
+                }`}
+              />
 
               <span className="flex-1 min-w-0 truncate">{label}</span>
 
-              {/* Lock / Unlock badge indicator on sidebar */}
-              {isAppProcess && (
-                <span
-                  className={`ml-auto text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold flex items-center gap-1 ${
-                    isUnlocked
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                  }`}
-                >
-                  {isUnlocked ? 'Unlocked' : 'Locked'}
-                </span>
-              )}
-
               {/* Unread notification badge */}
               {isNotifications && unreadCount > 0 && (
-                <span className="ml-auto shrink-0 min-w-[18px] h-[18px] rounded-full bg-[#F59E0B] text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-sm">
+                <span className="ml-auto shrink-0 min-w-[18px] h-[18px] rounded-full bg-[#2878C8] text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-xs">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
-              )}
-
-              {active && !isAppProcess && !isNotifications && (
-                <ChevronRight className="w-3.5 h-3.5 shrink-0 text-[#9A3412]" />
               )}
             </Link>
           );
@@ -137,12 +125,12 @@ function SidebarContent({
       </nav>
 
       {/* Logout */}
-      <div className="px-3 py-3 border-t border-slate-700/60">
+      <div className="px-3 py-3 border-t border-[#F0D6C8]">
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-xs font-medium text-rose-300 hover:bg-rose-500/10 hover:text-rose-200 transition-colors"
+          className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-xs font-medium text-rose-600 hover:bg-rose-50 transition-colors"
         >
-          <LogOut className="w-4 h-4 shrink-0" />
+          <LogOut className="w-4 h-4 shrink-0 text-rose-500" />
           <span>Sign Out</span>
         </button>
       </div>
@@ -152,13 +140,13 @@ function SidebarContent({
 
 export default function StudentLayout({ children }: StudentLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isUnlocked, setIsUnlocked] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
   const location = useLocation();
   const { profile } = useAuth();
 
-  // Load student & application access status
+  // Load student data & notifications
   useEffect(() => {
     if (!profile) return;
     let mounted = true;
@@ -168,7 +156,6 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
         const student = await getStudentByProfileId(profile.id);
         if (student && mounted) {
           setStudentId(student.id);
-          setIsUnlocked(student.application_access_status === 'unlocked');
 
           const [notifs] = await Promise.all([getNotifications(profile.id)]);
           const sysUnread = notifs.filter(n => !n.is_read).length;
@@ -181,13 +168,6 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
     };
 
     loadStudentData();
-
-    const handleAccessChange = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (!studentId || detail?.studentId === studentId) {
-        setIsUnlocked(detail?.status === 'unlocked');
-      }
-    };
 
     const handleNewMessage = () => {
       if (studentId) {
@@ -206,7 +186,6 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
       }
     };
 
-    window.addEventListener('tatti_application_access_changed', handleAccessChange);
     window.addEventListener('tatti_new_message', handleNewMessage);
     window.addEventListener('tatti_messages_read', handleNewMessage);
     window.addEventListener('storage', handleStorage);
@@ -215,7 +194,6 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
 
     return () => {
       mounted = false;
-      window.removeEventListener('tatti_application_access_changed', handleAccessChange);
       window.removeEventListener('tatti_new_message', handleNewMessage);
       window.removeEventListener('tatti_messages_read', handleNewMessage);
       window.removeEventListener('storage', handleStorage);
@@ -224,63 +202,154 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
   }, [profile, studentId]);
 
   return (
-    <div className="flex min-h-screen w-full bg-[#FFF7ED]">
+    <div className="flex min-h-screen w-full bg-[#FFF0E8]">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-[#0B1F3A]">
-        <SidebarContent unreadCount={unreadCount} isUnlocked={isUnlocked} />
+      <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-[#F0D6C8] bg-white">
+        <SidebarContent unreadCount={unreadCount} />
       </aside>
 
       {/* Main content container */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Top header */}
-        <header className="h-16 border-b border-[#FED7AA] bg-white flex items-center justify-between px-6 gap-4 shrink-0 shadow-[0_1px_2px_rgba(245,158,11,0.04)]">
-          {/* Mobile hamburger */}
-          <div className="flex items-center gap-3">
+        {/* Compact Top Header (48–56px high) */}
+        <header className="h-13 sm:h-14 border-b border-[#F0D6C8] bg-white flex items-center justify-between px-3.5 sm:px-6 shrink-0 shadow-[0_1px_3px_rgba(40,120,200,0.05)] pt-safe">
+          {/* Left: PSYCARE + Student badge */}
+          <div className="flex items-center gap-2.5">
+            {/* Mobile Sheet Trigger (Menu) */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden shrink-0 text-slate-700">
+                <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 text-[#25364B] hover:bg-[#FFF0E8]">
                   <Menu className="w-5 h-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-60 bg-[#0B1F3A] border-r border-[#0B1F3A]">
+              <SheetContent side="left" className="p-0 w-64 bg-white border-r border-[#F0D6C8]">
                 <SidebarContent
                   unreadCount={unreadCount}
-                  isUnlocked={isUnlocked}
                   onNavClick={() => setMobileOpen(false)}
                 />
               </SheetContent>
             </Sheet>
 
-            <div>
-              <span className="text-base font-semibold text-[#172554] tracking-tight">
-                PSY CARE Student Portal
+            <Link to="/student/dashboard" className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-white border border-[#F0D6C8] p-0.5 flex items-center justify-center shrink-0">
+                <img src="/logo/psycare-logo.png" alt="PSYCARE" className="w-full h-full object-contain" />
+              </div>
+              <span className="text-base sm:text-lg font-bold text-[#2878C8] tracking-tight">
+                PSYCARE
               </span>
-              <p className="text-[11px] text-[#64748B] hidden sm:block">
-                PSY CARE
-              </p>
-            </div>
+              <span className="text-[10px] font-semibold bg-[#E8F2FF] text-[#2878C8] px-2 py-0.5 rounded-full border border-[#2878C8]/20">
+                Student
+              </span>
+            </Link>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link to="/student/notifications">
-              <Button variant="outline" size="sm" className="relative h-9 px-3 border-[#FED7AA] text-[#172554] hover:bg-[#FFEDD5]/50">
-                <Bell className="w-4 h-4 mr-1.5 text-slate-500" />
-                <span className="text-xs">Notifications</span>
-                {unreadCount > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#F59E0B] text-white text-[10px] font-bold">
-                    {unreadCount}
-                  </span>
-                )}
-              </Button>
+          {/* Right: Notification Bell */}
+          <div className="flex items-center gap-2">
+            <Link
+              to="/student/notifications"
+              className="relative p-2 rounded-xl text-[#25364B] hover:bg-[#FFF0E8] transition-colors"
+              title="Notifications"
+            >
+              <Bell className="w-5 h-5 text-[#25364B]" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 min-w-[17px] h-[17px] rounded-full bg-[#2878C8] text-white text-[9px] font-bold flex items-center justify-center px-1 shadow-xs animate-pulse">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </Link>
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 p-5 md:p-8 overflow-y-auto bg-[#FFF7ED]">
-          {children}
+        {/* Page Content with bottom padding to avoid bottom nav overlap */}
+        <main className="flex-1 p-3.5 sm:p-5 md:p-6 overflow-y-auto bg-[#FFF0E8] pb-24 md:pb-8">
+          <div className="max-w-4xl mx-auto w-full">
+            {children}
+          </div>
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation (5 Items: Home, Assessment, Mood Tracker, Anonymous Question Box, More) */}
+      <nav
+        aria-label="Mobile Navigation"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#F0D6C8] px-1 pt-1 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_-2px_10px_rgba(40,120,200,0.06)]"
+      >
+        <div className="grid grid-cols-5 gap-0.5 sm:gap-1 max-w-md mx-auto">
+          {mobileBottomNavItems.map(({ path, icon: Icon, label, fullLabel }) => {
+            const active = location.pathname === path;
+            return (
+              <Link
+                key={path}
+                to={path}
+                title={fullLabel || label}
+                aria-label={fullLabel || label}
+                className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all duration-150 ${
+                  active
+                    ? 'bg-[#E8F2FF] text-[#2878C8] font-bold'
+                    : 'text-[#667085] hover:text-[#25364B]'
+                }`}
+              >
+                <Icon className={`w-5 h-5 transition-transform ${active ? 'scale-110 text-[#2878C8]' : 'text-[#667085]'}`} />
+                <span className="text-[10px] leading-tight font-medium mt-1 truncate max-w-full text-center">
+                  {fullLabel && <span className="sr-only">{fullLabel.replace(label, '')}</span>}
+                  {label}
+                </span>
+              </Link>
+            );
+          })}
+
+          {/* 5th Item: More Sheet */}
+          <Sheet open={mobileMoreOpen} onOpenChange={setMobileMoreOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                className={`relative flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all duration-150 ${
+                  mobileMoreNavItems.some(item => item.path === location.pathname)
+                    ? 'bg-[#E8F2FF] text-[#2878C8] font-bold'
+                    : 'text-[#667085] hover:text-[#25364B]'
+                }`}
+              >
+                <MoreHorizontal className={`w-5 h-5 ${mobileMoreNavItems.some(item => item.path === location.pathname) ? 'scale-110 text-[#2878C8]' : 'text-[#667085]'}`} />
+                <span className="text-[10px] leading-tight font-medium mt-1">More</span>
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-2 min-w-[14px] h-[14px] rounded-full bg-[#2878C8] text-white text-[8px] font-bold flex items-center justify-center px-0.5">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-2xl bg-white border-t border-[#F0D6C8] p-4 max-h-[80vh] overflow-y-auto">
+              <div className="w-12 h-1 bg-[#F0D6C8] rounded-full mx-auto mb-4" />
+              <h3 className="text-sm font-bold text-[#25364B] mb-2 px-1">More Options</h3>
+              <div className="space-y-1">
+                {mobileMoreNavItems.map(({ path, icon: Icon, label, isNotifications }) => {
+                  const active = location.pathname === path;
+                  return (
+                    <Link
+                      key={path}
+                      to={path}
+                      onClick={() => setMobileMoreOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                        active
+                          ? 'bg-[#E8F2FF] text-[#2878C8] font-bold'
+                          : 'text-[#667085] hover:bg-[#FFF0E8] hover:text-[#25364B]'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 text-[#2878C8]" />
+                      <span className="flex-1">{label}</span>
+                      {isNotifications && unreadCount > 0 && (
+                        <span className="shrink-0 min-w-[18px] h-[18px] rounded-full bg-[#2878C8] text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-xs">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      )}
+                      <ChevronRight className="w-4 h-4 text-slate-300" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </nav>
+
       <StudentAppointmentReminders />
     </div>
   );

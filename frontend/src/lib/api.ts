@@ -5,11 +5,45 @@ import type {
   StudentAssessmentPerformance, MonthlyPerformancePoint,
 } from '@/types/index';
 
-const API_BASE = import.meta.env.VITE_API_URL || (
-  import.meta.env.PROD
-    ? 'https://tattiproject-production-506b.up.railway.app/api'
-    : 'http://localhost:5000/api'
+const isCapacitorAndroid = typeof window !== 'undefined' && (
+  (window as any).Capacitor?.isNativePlatform?.() ||
+  ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (window.location.protocol === 'https:' || window.location.protocol === 'capacitor:'))
 );
+
+// Determine if running against a production backend (non-native web production deployments)
+const isProduction = !isCapacitorAndroid && Boolean(
+  import.meta.env.VITE_API_URL?.startsWith('https://') ||
+  (import.meta.env.PROD && !import.meta.env.DEV && import.meta.env.VITE_API_URL?.includes('railway.app'))
+);
+
+function getAndroidDevApiBase(): string {
+  if (typeof window !== 'undefined') {
+    // 1. Developer override if set in localStorage
+    const devOverride = localStorage.getItem('psycare_dev_api_target');
+    if (devOverride === 'physical' || devOverride === 'localhost') {
+      return 'http://localhost:5000/api';
+    }
+    if (devOverride === 'emulator' || devOverride === '10.0.2.2') {
+      return 'http://10.0.2.2:5000/api';
+    }
+
+    // 2. Auto-detect Android Emulator via userAgent and platform architecture
+    const ua = navigator.userAgent || '';
+    const isEmulator = /sdk_gphone|google_sdk|emulator|sdk built for|x86_64|i686|x86/i.test(ua);
+    if (isEmulator) {
+      return 'http://10.0.2.2:5000/api';
+    }
+  }
+
+  // 3. Default for physical Android devices in development (connected via USB ADB reverse)
+  return 'http://localhost:5000/api';
+}
+
+export const API_BASE = isProduction
+  ? (import.meta.env.VITE_API_URL || 'https://tattiproject-production-506b.up.railway.app/api')
+  : (isCapacitorAndroid
+      ? getAndroidDevApiBase()
+      : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api'));
 
 function getHeaders(): HeadersInit {
   // Check localStorage first, then sessionStorage.
@@ -791,6 +825,9 @@ export interface StudentReminder {
   instructions?: string | null;
   reminder_option?: string | null;
   reminder_datetime?: string | null;
+  reminder_status?: string | null;
+  acknowledged_at?: string | null;
+  dismissed_at?: string | null;
   updated_at?: string | null;
   notes?: string | null;
 }
@@ -806,20 +843,26 @@ export async function getStudentReminders(): Promise<StudentReminder[]> {
   return await res.json();
 }
 
-export async function acknowledgeReminder(id: string): Promise<boolean> {
+export async function acknowledgeReminder(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/students/me/reminders/${id}/acknowledge`, {
     method: 'PUT',
     headers: getHeaders(),
   });
-  return res.ok;
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to acknowledge reminder');
+  }
 }
 
-export async function dismissReminder(id: string): Promise<boolean> {
+export async function dismissReminder(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/students/me/reminders/${id}/dismiss`, {
     method: 'PUT',
     headers: getHeaders(),
   });
-  return res.ok;
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error || 'Failed to dismiss reminder');
+  }
 }
 
 // ── COUNSELLING ────────────────────────────────────────────
@@ -1121,4 +1164,280 @@ export async function deletePrivateNote(noteId: string): Promise<boolean> {
     headers: getHeaders(),
   });
   return res.ok;
+}
+
+export async function getCounsellors(): Promise<{
+  id: string;
+  full_name: string;
+  email: string;
+  counsellor_public_id?: string;
+  specialization?: string;
+  qualification?: string;
+}[]> {
+  const tryUrls = isProduction
+    ? [`${API_BASE}/auth/counsellors`]
+    : [
+        `${API_BASE}/auth/counsellors`,
+        'http://localhost:5000/api/auth/counsellors',
+        'http://10.0.2.2:5000/api/auth/counsellors'
+      ];
+  for (const url of tryUrls) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.counsellors && Array.isArray(data.counsellors)) {
+          return data.counsellors;
+        }
+      }
+    } catch {}
+  }
+  return [];
+}
+
+
+// ── ADDITIONAL FEATURES: MOOD TRACKER, ANONYMOUS QUESTIONS & FEEDBACK ──────
+
+import type {
+  MoodValue, StudentMoodEntry, MoodAttentionAlert,
+  AnonymousQuestion, AnonymousQuestionReply, SessionFeedback, SessionFeedbackSummary
+} from '@/types/index';
+
+// 1. MOOD TRACKER
+export async function recordMoodCheckin(mood: MoodValue, journalText?: string, date?: string): Promise<{ success: boolean; entry: StudentMoodEntry }> {
+  const res = await fetch(`${API_BASE}/mood/checkin`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ mood, journalText, date }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to submit mood check-in');
+  }
+  return res.json();
+}
+
+export async function getStudentMoodHistory(): Promise<{
+  todayEntry: StudentMoodEntry | null;
+  entries: StudentMoodEntry[];
+  trends: {
+    weekly: Record<string, number>;
+    monthly: Record<string, number>;
+    totalEntries: number;
+  };
+}> {
+  const res = await fetch(`${API_BASE}/mood/history`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    return {
+      todayEntry: null,
+      entries: [],
+      trends: { weekly: { Sad: 0, Low: 0, Okay: 0, Good: 0, Great: 0 }, monthly: { Sad: 0, Low: 0, Okay: 0, Good: 0, Great: 0 }, totalEntries: 0 }
+    };
+  }
+  return res.json();
+}
+
+export async function getCounsellorStudentsMood(params?: {
+  filter?: string;
+  mood?: string;
+  search?: string;
+  studentId?: string;
+  startDate?: string;
+  endDate?: string;
+}): Promise<{
+  records: StudentMoodEntry[];
+  todayOverview: Record<string, number>;
+  totalCount: number;
+}> {
+  const query = new URLSearchParams();
+  if (params?.filter) query.set('filter', params.filter);
+  if (params?.mood && params.mood !== 'all') query.set('mood', params.mood);
+  if (params?.search) query.set('search', params.search);
+  if (params?.studentId) query.set('studentId', params.studentId);
+  if (params?.startDate) query.set('startDate', params.startDate);
+  if (params?.endDate) query.set('endDate', params.endDate);
+
+  const res = await fetch(`${API_BASE}/mood/counsellor/overview?${query.toString()}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    return { records: [], todayOverview: { Sad: 0, Low: 0, Okay: 0, Good: 0, Great: 0, total: 0 }, totalCount: 0 };
+  }
+  return res.json();
+}
+
+export async function getNeedsAttentionAlerts(): Promise<MoodAttentionAlert[]> {
+  const res = await fetch(`${API_BASE}/mood/counsellor/alerts`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function updateAlertStatus(id: string, status: 'Reviewed' | 'Resolved'): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/mood/counsellor/alerts/${id}`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify({ status }),
+  });
+  return res.ok;
+}
+
+// 2. ANONYMOUS QUESTIONS
+export async function submitAnonymousQuestion(
+  input: string | { question?: string; category?: string; title?: string; description?: string }
+): Promise<{ success: boolean; question: AnonymousQuestion }> {
+  const body = typeof input === 'string' ? { question: input } : input;
+  const res = await fetch(`${API_BASE}/anonymous-questions`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to submit anonymous question');
+  }
+  return res.json();
+}
+
+export async function getStudentAnonymousQuestions(): Promise<AnonymousQuestion[]> {
+  const res = await fetch(`${API_BASE}/anonymous-questions/my`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getAnonymousQuestionThread(id: string): Promise<{
+  question: AnonymousQuestion;
+  replies: AnonymousQuestionReply[];
+} | null> {
+  const res = await fetch(`${API_BASE}/anonymous-questions/${id}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function replyToAnonymousQuestion(id: string, message: string): Promise<{ success: boolean; reply: AnonymousQuestionReply }> {
+  const res = await fetch(`${API_BASE}/anonymous-questions/${id}/replies`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ message }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to post reply');
+  }
+  return res.json();
+}
+
+export async function getCounsellorAnonymousQuestions(params?: {
+  status?: string;
+  search?: string;
+}): Promise<AnonymousQuestion[]> {
+  const query = new URLSearchParams();
+  if (params?.status && params.status !== 'all') query.set('status', params.status);
+  if (params?.search) query.set('search', params.search);
+
+  const res = await fetch(`${API_BASE}/anonymous-questions/counsellor/list?${query.toString()}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function updateAnonymousQuestionStatus(id: string, status: string): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/anonymous-questions/counsellor/${id}/status`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify({ status }),
+  });
+  return res.ok;
+}
+
+// 3. SESSION FEEDBACK
+export async function submitSessionFeedback(
+  sessionIdOrData: string | {
+    sessionId: string;
+    rating: number;
+    comment?: string;
+    whatLiked?: string;
+    improvementSuggestions?: string;
+    lowRatingReason?: string;
+    followupId?: string;
+  },
+  legacyRating?: number,
+  legacyComment?: string
+): Promise<{ success: boolean; message: string; feedback?: any }> {
+  let bodyData: any;
+  if (typeof sessionIdOrData === 'object') {
+    bodyData = sessionIdOrData;
+  } else {
+    bodyData = {
+      sessionId: sessionIdOrData,
+      rating: legacyRating,
+      comment: legacyComment
+    };
+  }
+
+  const res = await fetch(`${API_BASE}/session-feedback`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(bodyData),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to submit feedback');
+  }
+  return res.json();
+}
+
+export async function getStudentPendingFeedback(): Promise<{
+  hasPendingFeedback: boolean;
+  pendingSession: {
+    session_id: string;
+    counsellor_name: string;
+    scheduled_date: string;
+    scheduled_time: string;
+    mode: string;
+    followup_id?: string;
+  } | null;
+}> {
+  const res = await fetch(`${API_BASE}/session-feedback/pending`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) return { hasPendingFeedback: false, pendingSession: null };
+  return res.json();
+}
+
+export async function getCounsellorFeedbackSummary(filters?: {
+  rating?: number;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+}): Promise<{
+  summary: SessionFeedbackSummary;
+  feedbacks: SessionFeedback[];
+}> {
+  const queryParams = new URLSearchParams();
+  if (filters?.rating !== undefined && filters.rating !== 0) queryParams.set('rating', String(filters.rating));
+  if (filters?.search) queryParams.set('search', filters.search);
+  if (filters?.startDate) queryParams.set('startDate', filters.startDate);
+  if (filters?.endDate) queryParams.set('endDate', filters.endDate);
+
+  const qs = queryParams.toString();
+  const url = `${API_BASE}/session-feedback/summary${qs ? `?${qs}` : ''}`;
+  const res = await fetch(url, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) {
+    return {
+      summary: { totalFeedback: 0, averageRating: 0, pendingFeedback: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } },
+      feedbacks: []
+    };
+  }
+  return res.json();
 }
